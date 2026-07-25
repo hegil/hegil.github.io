@@ -596,29 +596,30 @@ function renderStats() {
 }
 
 /* =========================================================================
-   6-1) 최종 도전 (단원 보스전 / 티어 최종 도전 게임틀렛)
+   6-1) 최종 도전 (단원 보스전 / 티어 최종 도전 — 티어 도전은 그 티어의
+   모든 단원 내용을 하나로 합친, 완전히 새로운 단 하나의 문제예요)
    ========================================================================= */
 function startBossChallenge(lang, unitId) {
-  challenge = { kind: 'boss', lang, tier: null, queue: [unitId], idx: 0, question: null, answered: false, ok: null };
+  challenge = { kind: 'boss', lang, unitId, question: null, answered: false, ok: null };
   view = 'challenge';
   renderNav();
   newChallengeQuestion();
 }
 
-function startGauntlet(lang, tier, unitIds) {
-  challenge = { kind: 'gauntlet', lang, tier, queue: unitIds, idx: 0, question: null, answered: false, ok: null };
+function startGauntlet(lang, tier) {
+  challenge = { kind: 'gauntlet', lang, tier, question: null, answered: false, ok: null };
   view = 'challenge';
   renderNav();
   newChallengeQuestion();
-}
-
-function currentChallengeUnit() {
-  return COURSES[challenge.lang].units.find(u => u.id === challenge.queue[challenge.idx]);
 }
 
 function newChallengeQuestion() {
-  const u = currentChallengeUnit();
-  challenge.question = u.boss();
+  if (challenge.kind === 'boss') {
+    const u = COURSES[challenge.lang].units.find(u => u.id === challenge.unitId);
+    challenge.question = u.boss();
+  } else {
+    challenge.question = COURSES[challenge.lang].tierBoss[challenge.tier]();
+  }
   challenge.answered = false;
   challenge.ok = null;
   renderChallenge();
@@ -632,12 +633,6 @@ function challengeFoot() {
       <button class="text-btn" type="button" id="challengeExit" style="margin-left:auto">그만두고 돌아가기</button>`;
   }
   if (challenge.ok) {
-    const isLast = challenge.idx >= challenge.queue.length - 1;
-    if (challenge.kind === 'gauntlet' && !isLast) {
-      return `
-        <button class="btn" type="button" id="challengeNext">다음 단계로</button>
-        <button class="text-btn" type="button" id="challengeExit" style="margin-left:auto">그만두고 돌아가기</button>`;
-    }
     return `<button class="btn" type="button" id="challengeFinish">완료하고 돌아가기</button>`;
   }
   return `
@@ -649,12 +644,16 @@ function renderChallenge() {
   el('sidebar').hidden = true;
   el('wrap').classList.add('home-view');
   const course = COURSES[challenge.lang];
-  const u = currentChallengeUnit();
   const isGauntlet = challenge.kind === 'gauntlet';
-  const title = isGauntlet ? `${course.name} · ${TIER_LABEL[challenge.tier]} 최종 도전` : `${course.name} · ${u.title} 최종 도전`;
-  const subtitle = isGauntlet
-    ? `${TIER_LABEL[challenge.tier]}에 속한 단원들의 어려운 문제를 차례로 풀어요. (${challenge.idx + 1} / ${challenge.queue.length}단계 · 지금은 "${u.title}")`
-    : `${u.title}에서 배운 여러 개념을 한 번에 묻는 조금 어려운 문제예요. 정답을 맞히면 클리어로 기록돼요.`;
+  let title, subtitle;
+  if (isGauntlet) {
+    title = `${course.name} · ${TIER_LABEL[challenge.tier]} 최종 도전`;
+    subtitle = `${TIER_LABEL[challenge.tier]}에서 배운 모든 단원의 내용을 한데 모은, 완전히 새로운 문제예요. 정답을 맞히면 이 티어를 클리어해요.`;
+  } else {
+    const u = course.units.find(u => u.id === challenge.unitId);
+    title = `${course.name} · ${u.title} 최종 도전`;
+    subtitle = `${u.title}에서 배운 여러 개념을 한 번에 묻는 조금 어려운 문제예요. 정답을 맞히면 클리어로 기록돼요.`;
+  }
 
   el('main').innerHTML = `
     <div class="hero">
@@ -685,9 +684,13 @@ function checkChallengeAnswer() {
   challenge.answered = true;
   challenge.ok = ok;
 
-  if (ok && challenge.kind === 'boss') {
-    const key = `${challenge.lang}.${currentChallengeUnit().id}`;
-    progress[key] = { ...(progress[key] || {}), bossCleared: true };
+  if (ok) {
+    if (challenge.kind === 'boss') {
+      const key = `${challenge.lang}.${challenge.unitId}`;
+      progress[key] = { ...(progress[key] || {}), bossCleared: true };
+    } else {
+      progress[`${challenge.lang}.tier.${challenge.tier}`] = { cleared: true };
+    }
     saveProgress(progress);
   }
   el('main').querySelector('.quiz-foot').innerHTML = challengeFoot();
@@ -700,25 +703,17 @@ function showChallengeHint() {
 }
 
 function retryChallenge() { newChallengeQuestion(); }
-function nextChallengeStep() { challenge.idx++; newChallengeQuestion(); }
 
-function finishChallenge() {
-  if (challenge.kind === 'gauntlet' && challenge.ok) {
-    progress[`${challenge.lang}.tier.${challenge.tier}`] = { cleared: true };
-    saveProgress(progress);
-  }
+function backFromChallenge() {
   const lang = challenge.lang;
-  const backIdx = COURSES[lang].units.findIndex(u => u.id === challenge.queue[0]);
+  const backIdx = challenge.kind === 'boss'
+    ? COURSES[lang].units.findIndex(u => u.id === challenge.unitId)
+    : 0;
   challenge = null;
   goLesson(lang, backIdx);
 }
-
-function exitChallenge() {
-  const lang = challenge.lang;
-  const backIdx = COURSES[lang].units.findIndex(u => u.id === challenge.queue[0]);
-  challenge = null;
-  goLesson(lang, backIdx);
-}
+function finishChallenge() { backFromChallenge(); }
+function exitChallenge() { backFromChallenge(); }
 
 /* =========================================================================
    7) 이벤트
@@ -750,20 +745,13 @@ document.addEventListener('click', async e => {
 
   if (e.target.id === 'startBoss') { startBossChallenge(langKey, COURSES[langKey].units[unitIdx].id); return; }
   const gauntletBtn = e.target.closest('[data-gauntlet]');
-  if (gauntletBtn) {
-    const tier = gauntletBtn.dataset.gauntlet;
-    const readyUnits = COURSES[langKey].units.filter(u => u.ready);
-    const unitIds = readyUnits.filter((u, i) => tierOfIndex(i, readyUnits.length) === tier).map(u => u.id);
-    startGauntlet(langKey, tier, unitIds);
-    return;
-  }
+  if (gauntletBtn) { startGauntlet(langKey, gauntletBtn.dataset.gauntlet); return; }
   const minigameBtn = e.target.closest('[data-minigame]');
   if (minigameBtn) { startMinigame(langKey, minigameBtn.dataset.minigame); return; }
 
   if (e.target.id === 'challengeCheck') { checkChallengeAnswer(); return; }
   if (e.target.id === 'challengeHint') { showChallengeHint(); return; }
   if (e.target.id === 'challengeRetry') { retryChallenge(); return; }
-  if (e.target.id === 'challengeNext') { nextChallengeStep(); return; }
   if (e.target.id === 'challengeFinish') { finishChallenge(); return; }
   if (e.target.id === 'challengeExit') { exitChallenge(); return; }
 

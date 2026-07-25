@@ -104,6 +104,15 @@ printf("%.1f\\n", 7 / 2.0);       // 3.5`,
           '지역 변수는 자동으로 초기화되지 않아서, 값을 넣기 전까지는 무슨 값이 있을지 알 수 없어요.',
           'C는 값을 자동으로 채워주지 않아요.'
         ),
+        () => ({
+          type: 'code',
+          q: '정수 20을 담는 변수 <code>age</code>를 선언하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'int age = 20;',
+          accept: ['int age = 20;'],
+          why: 'C는 <code>자료형 이름 = 값;</code> 순서로 써요. 정수니까 <code>int</code>를 써요.',
+          hint: '자료형(int)을 이름 앞에 적고, 문장 끝에 세미콜론을 잊지 마세요.'
+        }),
       ],
       boss: () => {
         const age = randInt(10, 99);
@@ -210,6 +219,16 @@ if (age >= 14 && hasTicket) {
           '<code>&&</code>는 두 조건이 모두 참이어야 참이 돼요.',
           '기호를 두 번 겹쳐 쓰는 연산자 중 "그리고"를 뜻하는 것이에요.'
         ),
+        () => ({
+          type: 'code',
+          q: '<code>score</code>가 60 이상이면 <code>printf("합격")</code>을, 아니면 <code>printf("불합격")</code>을 실행하는 if-else문을 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'if (score >= 60) {\n    printf("합격");\n} else {\n    printf("불합격");\n}',
+          accept: ['if (score >= 60) {printf("합격");} else {printf("불합격");}'],
+          why: '<code>if (조건) { ... } else { ... }</code> 형태로 조건에 따라 다른 코드를 실행해요.',
+          hint: 'if (score >= 60) { } 안에 성공 코드를, else { } 안에 실패 코드를 넣으세요.'
+        }),
       ],
       boss: () => {
         const age = randInt(1, 25);
@@ -304,6 +323,16 @@ printf("발사!\\n");`,
           '<code>continue</code>는 이번만 건너뛰고 다음 반복을 계속해요.',
           '"계속하다"라는 뜻의 영어 단어예요.'
         ),
+        () => ({
+          type: 'code',
+          q: 'for문으로 0부터 4까지 <code>printf("%d\\n", i)</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'for (int i = 0; i < 5; i++) {\n    printf("%d\\n", i);\n}',
+          accept: ['for (int i = 0; i < 5; i++) {printf("%d\\n", i);}'],
+          why: '<code>for (int i = 0; i < 5; i++)</code>는 i를 0부터 4까지 5번 반복해요.',
+          hint: 'for (int i = 0; i < 5; i++) { } 안에 printf("%d\\n", i);를 넣으세요.'
+        }),
       ],
       boss: () => {
         const n = randInt(4, 8);
@@ -398,6 +427,16 @@ int main(void) {
             hint: '돌려줄 값의 종류(자료형)를 함수 이름 앞에 그대로 적으면 돼요.'
           };
         },
+        () => ({
+          type: 'code',
+          q: '두 정수를 더해 반환하는 함수 <code>add</code>를 작성하세요. (<code>int add(int a, int b)</code> 형태)',
+          starter: '',
+          rows: 3,
+          placeholder: 'int add(int a, int b) {\n    return a + b;\n}',
+          accept: ['int add(int a, int b) {return a + b;}'],
+          why: '반환 타입 <code>int</code>, 함수 이름 <code>add</code>, 매개변수 <code>(int a, int b)</code> 다음에 <code>return a + b;</code>를 써요.',
+          hint: 'int add(int a, int b) { } 안에 return a + b;를 넣으세요.'
+        }),
       ],
       boss: () => {
         const a = randInt(1, 10) * 2;
@@ -495,6 +534,15 @@ for (int i = 0; i < 3; i++) {
             hint: '배열의 크기를 그대로 조건에 넣으면 처음부터 끝까지 훑을 수 있어요.'
           };
         },
+        () => ({
+          type: 'code',
+          q: '정수 배열 <code>scores</code>에 <code>{90, 85, 100}</code>을 담아 선언하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'int scores[3] = {90, 85, 100};',
+          accept: ['int scores[3] = {90, 85, 100};', 'int scores[] = {90, 85, 100};'],
+          why: '<code>자료형 이름[개수] = {값, 값, ...};</code> 형태로 배열을 선언해요.',
+          hint: 'int scores[3] = { }; 안에 90, 85, 100을 순서대로 넣으세요.'
+        }),
       ],
       boss: () => {
         const items = shuffle([70, 80, 90, 100, 60, 55]).slice(0, randInt(3, 4));
@@ -507,5 +555,36 @@ for (int i = 0; i < 3; i++) {
           hint: 'for문으로 배열 처음부터 끝까지 하나씩 훑으면서 다 더해보세요.'
         };
       }
-    }]
+    }],
+  tierBoss: {
+    beginner: () => ({
+      type: 'code',
+      q: '정수 변수 <code>age</code>에 15를 저장하고, age가 18 이상이면 <code>printf("성인")</code>을, 아니면 <code>printf("미성년자")</code>를 실행하는 전체 코드를 작성하세요.',
+      starter: '',
+      rows: 5,
+      placeholder: 'int age = 15;\nif (age >= 18) {\n    printf("성인");\n} else {\n    printf("미성년자");\n}',
+      accept: ['int age = 15;if (age >= 18) {printf("성인");} else {printf("미성년자");}'],
+      why: '변수를 선언하고, if-else로 나눠서 각각 printf 하면 돼요. 15는 18보다 작으니 "미성년자"가 맞아요.',
+      hint: 'int age = 15;를 먼저 쓰고, if (age >= 18) { } else { } 안에 각각 printf를 넣으세요.'
+    }),
+    intermediate: () => ({
+      type: 'code',
+      q: '정수를 받아 제곱을 반환하는 함수 <code>square</code>를 만들고, for문으로 1부터 3까지 각각 결과를 <code>printf("%d\\n", ...)</code>로 출력하는 전체 코드를 작성하세요.',
+      starter: '',
+      rows: 6,
+      placeholder: 'int square(int n) {\n    return n * n;\n}\n\nfor (int i = 1; i <= 3; i++) {\n    printf("%d\\n", square(i));\n}',
+      accept: ['int square(int n) {return n * n;}for (int i = 1; i <= 3; i++) {printf("%d\\n", square(i));}'],
+      why: '함수를 먼저 만들고, for문으로 1부터 3까지 반복하며 함수를 호출해서 출력하면 돼요.',
+      hint: 'int square(int n) { return n * n; } 다음에, for (int i = 1; i <= 3; i++) { printf("%d\\n", square(i)); }를 쓰세요.'
+    }),
+    advanced: () => ({
+      type: 'code',
+      q: '정수 배열 <code>scores</code>에 <code>{3, 1, 4, 1, 5}</code>를 담아 선언하는 코드를 작성하세요.',
+      starter: '',
+      placeholder: 'int scores[5] = {3, 1, 4, 1, 5};',
+      accept: ['int scores[5] = {3, 1, 4, 1, 5};', 'int scores[] = {3, 1, 4, 1, 5};'],
+      why: '자료형 이름[개수] = {값, 값, ...}; 형태로 배열을 선언해요.',
+      hint: 'int scores[5] = { }; 안에 3, 1, 4, 1, 5를 순서대로 넣으세요.'
+    }),
+  }
 };

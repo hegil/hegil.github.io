@@ -578,5 +578,37 @@ print(student["name"])`,
           hint: 'append로 추가한 값은 리스트 맨 마지막에 들어가고, len(fruits) - 1은 "마지막 순번"을 가리켜요.'
         };
       }
-    }]
+    }],
+  tierBoss: {
+    beginner: () => ({
+      type: 'code',
+      q: '변수 <code>age</code>에 15를 저장하고, age가 18 이상이면 "성인"을, 아니면 "미성년자"를 출력하는 전체 코드를 작성하세요. (변수와 조건문을 함께 사용하세요)',
+      starter: '',
+      rows: 4,
+      placeholder: 'age = 15\nif age >= 18:\n    print("성인")\nelse:\n    print("미성년자")',
+      accept: ['age = 15\nif age >= 18:\n    print("성인")\nelse:\n    print("미성년자")'],
+      why: '변수를 만들고(<code>age = 15</code>), 조건문으로 나눠서 출력해요. 15는 18보다 작으니 "미성년자"가 맞아요.',
+      hint: '먼저 age = 15로 변수를 만들고, 그 아래에 if/else 조건문을 이어서 쓰세요.'
+    }),
+    intermediate: () => ({
+      type: 'code',
+      q: '숫자를 받아 그 제곱을 반환하는 함수 <code>square</code>를 만들고, for문으로 1부터 3까지 각각 <code>square</code> 결과를 출력하는 전체 코드를 작성하세요.',
+      starter: '',
+      rows: 5,
+      placeholder: 'def square(n):\n    return n * n\n\nfor i in range(1, 4):\n    print(square(i))',
+      accept: ['def square(n):\n    return n * n\nfor i in range(1, 4):\n    print(square(i))'],
+      why: '함수를 먼저 만들고, range(1, 4)로 1부터 3까지 반복하며 함수를 호출해서 출력하면 돼요.',
+      hint: 'def square(n): return n * n으로 함수를 만들고, for i in range(1, 4): print(square(i))로 반복하세요.'
+    }),
+    advanced: () => ({
+      type: 'code',
+      q: '리스트 <code>numbers = [3, 1, 4, 1, 5]</code>에서 가장 큰 값을 찾아 출력하는 코드를 작성하세요. (<code>max()</code> 함수를 사용하세요)',
+      starter: '',
+      rows: 3,
+      placeholder: 'numbers = [3, 1, 4, 1, 5]\nprint(max(numbers))',
+      accept: ['numbers = [3, 1, 4, 1, 5]\nprint(max(numbers))'],
+      why: '<code>max(리스트)</code>는 리스트 안에서 가장 큰 값을 찾아줘요.',
+      hint: 'numbers 리스트를 만들고, max(numbers)의 결과를 print로 출력하세요.'
+    }),
+  }
 };

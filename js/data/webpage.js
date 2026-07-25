@@ -563,5 +563,41 @@ COURSES.webpage = {
           'max-width는 "이 값 이하일 때"를 뜻해요. min-width와 헷갈리지 마세요.'
         );
       }
-    }]
+    }],
+  tierBoss: {
+    beginner: () => ({
+      type: 'code',
+      preview: true,
+      q: '제목 <code>&lt;h1&gt;환영합니다&lt;/h1&gt;</code>과, 항목이 사과·바나나인 목록 <code>&lt;ul&gt;</code>을 순서대로 작성하세요.',
+      starter: '',
+      rows: 4,
+      placeholder: '<h1>환영합니다</h1>\n<ul>\n  <li>사과</li>\n  <li>바나나</li>\n</ul>',
+      accept: ['<h1>환영합니다</h1>\n<ul><li>사과</li><li>바나나</li></ul>'],
+      why: '제목은 <code>&lt;h1&gt;</code>, 목록은 <code>&lt;ul&gt;</code> 안에 <code>&lt;li&gt;</code> 두 개를 넣어서 순서대로 쓰면 돼요.',
+      hint: '<h1>환영합니다</h1> 다음 줄에 <ul><li>사과</li><li>바나나</li></ul>을 써보세요.'
+    }),
+    intermediate: () => ({
+      type: 'code',
+      q: '<code>.row</code>에는 <code>display: flex;</code>와 <code>gap: 10px;</code>를, <code>.card</code>에는 <code>padding: 10px;</code>와 <code>border-radius: 8px;</code>를 지정하는 CSS를 작성하세요.',
+      starter: '',
+      rows: 6,
+      placeholder: '.row {\n  display: flex;\n  gap: 10px;\n}\n.card {\n  padding: 10px;\n  border-radius: 8px;\n}',
+      accept: [
+        '.row {display: flex;gap: 10px;}.card {padding: 10px;border-radius: 8px;}',
+        '.row {gap: 10px;display: flex;}.card {border-radius: 8px;padding: 10px;}'
+      ],
+      why: '<code>.row</code>는 가로 배치(display: flex)와 간격(gap), <code>.card</code>는 안쪽 여백(padding)과 둥근 모서리(border-radius)를 각각 지정해요.',
+      hint: '.row { } 안에 display와 gap을, .card { } 안에 padding과 border-radius를 넣으세요.'
+    }),
+    advanced: () => ({
+      type: 'code',
+      q: '화면 너비가 600px 이하일 때 <code>.card</code>의 width를 100%로, 그렇지 않을 때는 50%로 만드는 CSS를 작성하세요.',
+      starter: '',
+      rows: 6,
+      placeholder: '.card {\n  width: 50%;\n}\n@media (max-width: 600px) {\n  .card {\n    width: 100%;\n  }\n}',
+      accept: ['.card {width: 50%;}@media (max-width: 600px) {.card {width: 100%;}}'],
+      why: '평소에는 <code>.card { width: 50%; }</code>를 적용하고, <code>@media (max-width: 600px)</code> 안에서 100%로 덮어써요.',
+      hint: '.card { width: 50%; }를 먼저 쓰고, 그 아래 @media (max-width: 600px) { .card { width: 100%; } }를 이어서 쓰세요.'
+    }),
+  }
 };

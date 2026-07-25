@@ -84,6 +84,15 @@ FROM students;`,
             hint: '열 이름 두 개를 쉼표(,)로 구분해서 나열하면 돼요.'
           };
         },
+        () => ({
+          type: 'code',
+          q: 'students 표에서 name과 age 열만 가져오는 SQL을 작성하세요.',
+          starter: '',
+          placeholder: 'SELECT name, age FROM students;',
+          accept: ['SELECT name, age FROM students;'],
+          why: 'SELECT 뒤에 열 이름을 쉼표로 나열하고, FROM으로 표를 지정해요.',
+          hint: 'SELECT name, age FROM students; 형태를 그대로 써보세요.'
+        }),
       ],
       boss: () => {
         const cols = shuffle(['name', 'age', 'city']).slice(0, 2);
@@ -187,6 +196,15 @@ ORDER BY age DESC;`,
             hint: '"제한하다"라는 뜻의 영어 단어예요.'
           };
         },
+        () => ({
+          type: 'code',
+          q: 'students 표에서 age가 18 이상인 행만 가져오는 SQL을 작성하세요.',
+          starter: '',
+          placeholder: 'SELECT * FROM students WHERE age >= 18;',
+          accept: ['SELECT * FROM students WHERE age >= 18;'],
+          why: 'WHERE 뒤에 조건(age >= 18)을 붙이면 그 조건에 맞는 행만 걸러져요.',
+          hint: 'SELECT * FROM students WHERE age >= 18; 형태를 그대로 써보세요.'
+        }),
       ],
       boss: () => {
         const threshold = randInt(13, 18);
@@ -286,6 +304,15 @@ JOIN scores ON students.id = scores.student_id;`,
           why: '<code>ON</code> 뒤에 두 표를 연결할 조건(보통 id가 같다)을 적어요.',
           hint: '"~을 기준으로"라는 뜻의 아주 짧은 영어 단어예요.'
         }),
+        () => ({
+          type: 'code',
+          q: 'students 표에서 도시(city)별 학생 수를 세는 SQL을 작성하세요.',
+          starter: '',
+          placeholder: 'SELECT city, COUNT(*) FROM students GROUP BY city;',
+          accept: ['SELECT city, COUNT(*) FROM students GROUP BY city;'],
+          why: 'COUNT(*)로 행의 개수를 세고, GROUP BY city로 도시별로 묶어서 계산해요.',
+          hint: 'SELECT city, COUNT(*) FROM students GROUP BY city; 형태를 그대로 써보세요.'
+        }),
       ],
       boss: () => {
         const col = pick(['city', 'age', 'grade']);
@@ -298,5 +325,34 @@ JOIN scores ON students.id = scores.student_id;`,
           hint: 'SELECT 열, COUNT(*) FROM 표 GROUP BY 열; 순서를 그대로 따라 써보세요.'
         };
       }
-    }]
+    }],
+  tierBoss: {
+    beginner: () => ({
+      type: 'code',
+      q: 'students 표에서 이름(name), 나이(age), 도시(city) 세 열을 모두 조회하는 SQL을 작성하세요.',
+      starter: '',
+      placeholder: 'SELECT name, age, city FROM students;',
+      accept: ['SELECT name, age, city FROM students;'],
+      why: 'SELECT 뒤에 원하는 열들을 쉼표로 나열하고, FROM으로 표를 지정해요.',
+      hint: 'SELECT 열, 열, 열 FROM students; 형태로 세 열을 나열하세요.'
+    }),
+    intermediate: () => ({
+      type: 'code',
+      q: 'students 표에서 나이가 15 이상인 학생을 이름(name) 순으로 정렬해서 조회하는 SQL을 작성하세요.',
+      starter: '',
+      placeholder: 'SELECT * FROM students WHERE age >= 15 ORDER BY name;',
+      accept: ['SELECT * FROM students WHERE age >= 15 ORDER BY name;'],
+      why: 'WHERE로 조건을 걸고, 그 뒤에 ORDER BY로 정렬 기준을 이어 붙여요.',
+      hint: 'WHERE age >= 15 다음에 ORDER BY name을 이어서 쓰세요.'
+    }),
+    advanced: () => ({
+      type: 'code',
+      q: 'students 표에서 도시(city)별 평균 나이를 구하는 SQL을 작성하세요. (AVG와 GROUP BY를 사용하세요)',
+      starter: '',
+      placeholder: 'SELECT city, AVG(age) FROM students GROUP BY city;',
+      accept: ['SELECT city, AVG(age) FROM students GROUP BY city;'],
+      why: 'AVG(age)로 평균을 구하고, GROUP BY city로 도시별로 묶어서 계산해요.',
+      hint: 'SELECT city, AVG(age) FROM students GROUP BY city; 형태를 그대로 써보세요.'
+    }),
+  }
 };

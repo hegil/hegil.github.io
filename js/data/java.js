@@ -537,6 +537,15 @@ System.out.println(fruits[1]);`,
             hint: '리스트의 값을 감쌀 때 쓰는 그 대괄호예요.'
           };
         },
+        () => ({
+          type: 'code',
+          q: '정수 배열 <code>scores</code>에 <code>{90, 85, 100}</code>을 담아 선언하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'int[] scores = {90, 85, 100};',
+          accept: ['int[] scores = {90, 85, 100};'],
+          why: '<code>자료형[] 이름 = {값, 값, ...};</code> 형태로 배열을 선언해요.',
+          hint: 'int[] scores = { }; 안에 90, 85, 100을 순서대로 넣으세요.'
+        }),
       ],
       boss: () => {
         const items = shuffle([70, 80, 90, 100, 60, 55]).slice(0, randInt(3, 5));
@@ -549,5 +558,37 @@ System.out.println(fruits[1]);`,
           hint: 'length - 1은 배열의 "마지막 순번"을 가리켜요.'
         };
       }
-    }]
+    }],
+  tierBoss: {
+    beginner: () => ({
+      type: 'code',
+      q: 'int형 변수 <code>age</code>에 15를 저장하고, age가 18 이상이면 <code>System.out.println("성인")</code>을, 아니면 <code>System.out.println("미성년자")</code>를 실행하는 전체 코드를 작성하세요.',
+      starter: '',
+      rows: 5,
+      placeholder: 'int age = 15;\nif (age >= 18) {\n    System.out.println("성인");\n} else {\n    System.out.println("미성년자");\n}',
+      accept: ['int age = 15;if (age >= 18) {System.out.println("성인");} else {System.out.println("미성년자");}'],
+      why: '변수를 선언하고, if-else로 나눠서 각각 출력하면 돼요. 15는 18보다 작으니 "미성년자"가 맞아요.',
+      hint: 'int age = 15;를 먼저 쓰고, if (age >= 18) { } else { } 안에 각각 출력문을 넣으세요.'
+    }),
+    intermediate: () => ({
+      type: 'code',
+      q: '정수를 받아 제곱을 반환하는 메서드 <code>square</code>를 만들고(<code>static int square(int n)</code> 형태), for문으로 1부터 3까지 각각 결과를 출력하는 전체 코드를 작성하세요.',
+      starter: '',
+      rows: 6,
+      placeholder: 'static int square(int n) {\n    return n * n;\n}\n\nfor (int i = 1; i <= 3; i++) {\n    System.out.println(square(i));\n}',
+      accept: ['static int square(int n) {return n * n;}for (int i = 1; i <= 3; i++) {System.out.println(square(i));}'],
+      why: '메서드를 먼저 만들고, for문으로 1부터 3까지 반복하며 메서드를 호출해서 출력하면 돼요.',
+      hint: 'static int square(int n) { return n * n; } 다음에, for (int i = 1; i <= 3; i++) { System.out.println(square(i)); }를 쓰세요.'
+    }),
+    advanced: () => ({
+      type: 'code',
+      q: '정수 배열 <code>scores</code>에 <code>{3, 1, 4, 1, 5}</code>를 담아 선언하고, 배열의 길이(<code>scores.length</code>)를 출력하는 코드를 작성하세요.',
+      starter: '',
+      rows: 3,
+      placeholder: 'int[] scores = {3, 1, 4, 1, 5};\nSystem.out.println(scores.length);',
+      accept: ['int[] scores = {3, 1, 4, 1, 5};System.out.println(scores.length);'],
+      why: '배열을 선언한 뒤 <code>scores.length</code>로 길이를 출력하면 5가 나와요.',
+      hint: 'int[] scores = {3, 1, 4, 1, 5};를 쓰고, System.out.println(scores.length);로 길이를 출력하세요.'
+    }),
+  }
 };

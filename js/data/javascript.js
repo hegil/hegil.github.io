@@ -579,5 +579,40 @@ console.log(student.name);`,
           hint: 'push로 추가한 값은 배열 맨 마지막에 들어가고, length - 1은 "마지막 순번"을 가리켜요.'
         };
       }
-    }]
+    }],
+  tierBoss: {
+    beginner: () => ({
+      type: 'code',
+      mode: 'run-js',
+      q: 'let으로 변수 <code>age</code>에 15를 저장하고, age가 18 이상이면 "성인"을, 아니면 "미성년자"를 <code>console.log</code>로 출력하는 전체 코드를 작성하세요.',
+      starter: '',
+      rows: 4,
+      placeholder: 'let age = 15;\nif (age >= 18) {\n  console.log("성인");\n} else {\n  console.log("미성년자");\n}',
+      expectedOutput: '미성년자',
+      why: 'age가 15라서 18 이상 조건이 거짓이 되어 "미성년자"가 출력돼요.',
+      hint: 'let age = 15;로 변수를 만들고, if/else로 나눠서 console.log 하세요.'
+    }),
+    intermediate: () => ({
+      type: 'code',
+      mode: 'run-js',
+      q: '숫자를 받아 제곱을 반환하는 함수 <code>square</code>를 만들고, for문으로 1부터 3까지 각각 결과를 <code>console.log</code>로 출력하는 전체 코드를 작성하세요.',
+      starter: '',
+      rows: 5,
+      placeholder: 'function square(n) {\n  return n * n;\n}\nfor (let i = 1; i <= 3; i++) {\n  console.log(square(i));\n}',
+      expectedOutput: '1\n4\n9',
+      why: '1, 2, 3의 제곱은 각각 1, 4, 9예요. 함수를 만들고 반복문으로 호출해서 출력하면 돼요.',
+      hint: 'function square(n) { return n * n; }로 함수를 만들고, for문으로 1부터 3까지 호출·출력하세요.'
+    }),
+    advanced: () => ({
+      type: 'code',
+      mode: 'run-js',
+      q: '배열 <code>[3, 1, 4, 1, 5]</code>에서 가장 큰 값을 찾아 <code>console.log</code>로 출력하는 코드를 작성하세요. (Math.max, 전개 연산자, 반복문 등 자유롭게 사용하세요)',
+      starter: '',
+      rows: 3,
+      placeholder: 'const nums = [3, 1, 4, 1, 5];\nconsole.log(Math.max(...nums));',
+      expectedOutput: '5',
+      why: 'Math.max(...배열)은 배열 안에서 가장 큰 값을 찾아줘요. 반복문으로 직접 찾아도 결과는 같아요.',
+      hint: 'Math.max(...nums)를 쓰거나, 반복문으로 하나씩 비교하면서 가장 큰 값을 찾아보세요.'
+    }),
+  }
 };
