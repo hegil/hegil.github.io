@@ -325,6 +325,118 @@ JOIN scores ON students.id = scores.student_id;`,
           hint: 'SELECT 열, COUNT(*) FROM 표 GROUP BY 열; 순서를 그대로 따라 써보세요.'
         };
       }
+    },
+    {
+      id: 'subquery',
+      title: '서브쿼리와 고급 조회',
+      ready: true,
+      summary: '쿼리 안에 또 다른 쿼리를 넣어서, 더 복잡한 조건으로 데이터를 찾는 방법을 배워요.',
+      goals: ['서브쿼리(중첩 쿼리)', 'IN으로 여러 값 비교', 'HAVING으로 그룹 조건 걸기'],
+      blocks: [
+        {
+          h: '쿼리 안에 또 다른 쿼리: 서브쿼리',
+          html: `<p>"평균 나이보다 많은 학생"을 찾으려면, 평균 나이를 먼저 구하고 그 값과 비교해야 해요. 이럴 때 <code>WHERE</code> 조건 안에 <b>또 다른 SELECT문</b>(서브쿼리)을 괄호로 감싸서 넣을 수 있어요. 괄호 안의 쿼리가 먼저 계산되고, 그 결과가 바깥 조건에 쓰여요.</p>`,
+          code: {
+            label: 'subquery.sql',
+            lang: 'sql',
+            src: `SELECT name, age
+FROM students
+WHERE age > (SELECT AVG(age) FROM students);`,
+            out: `name | age\n-----+----\n서연  | 18`
+          }
+        },
+        {
+          h: '여러 값 중 하나와 비교하기: IN',
+          html: `<p>"서울이거나 부산인 학생"처럼 여러 값 중 하나와 같은지 비교할 땐, <code>OR</code>를 여러 번 쓰는 대신 <code>IN (값, 값, ...)</code>을 쓰면 훨씬 짧고 깔끔해요.</p>`,
+          code: {
+            label: 'in.sql',
+            lang: 'sql',
+            src: `SELECT name, city
+FROM students
+WHERE city IN ('서울', '부산');`,
+            out: `name | city\n-----+-----\n지수  | 서울\n민준  | 부산\n서연  | 서울`
+          }
+        },
+        {
+          h: '그룹으로 묶은 결과에 조건 걸기: HAVING',
+          html: `<p><code>WHERE</code>는 <b>묶기(GROUP BY) 전</b>의 개별 행에 조건을 걸 때 쓰고, <code>HAVING</code>은 <b>묶은 후</b>의 그룹 결과(예: COUNT(*) 같은 집계 함수 결과)에 조건을 걸 때 써요. "학생이 2명 이상인 도시만" 같은 조건은 HAVING이 필요해요.</p>`,
+          code: {
+            label: 'having.sql',
+            lang: 'sql',
+            src: `SELECT city, COUNT(*)
+FROM students
+GROUP BY city
+HAVING COUNT(*) >= 2;`,
+            out: `city | COUNT(*)\n-----+---------\n서울  | 2`
+          },
+          after: `<div class="note"><b>기억하기</b> — WHERE는 GROUP BY보다 <b>먼저</b>, HAVING은 GROUP BY보다 <b>나중에</b> 와요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const ages = Array.from({ length: randInt(4, 6) }, () => randInt(10, 25));
+          const avg = ages.reduce((a, b) => a + b, 0) / ages.length;
+          const count = ages.filter(a => a > avg).length;
+          return {
+            type: 'blank',
+            q: `학생들의 나이가 [${ages.join(', ')}]일 때, <code>WHERE age > (SELECT AVG(age) FROM students)</code> 조건에 맞는 학생은 몇 명일까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(count)], placeholder: '숫자',
+            why: `평균은 ${avg.toFixed(2)}이고, 그보다 큰 나이는 [${ages.filter(a => a > avg).join(', ') || '없음'}]이라 ${count}명이에요.`,
+            hint: '먼저 평균을 계산한 다음, 그 평균보다 큰 값이 몇 개인지 세어보세요.'
+          };
+        },
+        () => makeChoice(
+          '여러 값 중 하나와 같은지 비교할 때, OR를 여러 번 쓰는 대신 쓸 수 있는 키워드는?',
+          '<code>IN</code>', ['<code>OR</code>', '<code>AND</code>', '<code>ANY</code>'],
+          '<code>WHERE city IN (값, 값, ...)</code>은 여러 값 중 하나와 같은지 한 번에 비교해요.',
+          '"~안에 포함되는가"라는 뜻의 아주 짧은 영어 단어예요.'
+        ),
+        () => {
+          const cities = shuffle(['서울', '부산', '대구', '인천']).slice(0, 2);
+          return {
+            type: 'blank',
+            q: `도시가 ${cities.join(' 또는 ')}인 학생을 찾으려고 해요. 빈칸을 채우세요.`,
+            prefix: `WHERE city `, suffix: ` ('${cities[0]}', '${cities[1]}');`, accept: ['IN', 'in'], placeholder: '키워드',
+            why: `<code>IN ('${cities[0]}', '${cities[1]}')</code>은 두 값 중 하나와 같은 행을 모두 찾아줘요.`,
+            hint: '괄호 안에 여러 값을 나열해서 그중 하나와 같은지 비교하는 키워드예요.'
+          };
+        },
+        () => makeChoice(
+          'GROUP BY로 묶은 후의 그룹 결과(예: COUNT(*))에 조건을 걸 때 WHERE 대신 쓰는 키워드는?',
+          '<code>HAVING</code>', ['<code>WHERE</code>', '<code>ORDER BY</code>', '<code>LIMIT</code>'],
+          '<code>WHERE</code>는 묶기 전 개별 행에, <code>HAVING</code>은 묶은 후 그룹 결과에 조건을 걸어요.',
+          'WHERE는 GROUP BY보다 먼저, 이 키워드는 GROUP BY보다 나중에 와요.'
+        ),
+        () => {
+          const n = randInt(2, 4);
+          return {
+            type: 'blank',
+            q: `도시별 학생 수를 센 뒤, 학생이 ${n}명 이상인 도시만 남기려고 해요. 빈칸을 채우세요.`,
+            prefix: 'SELECT city, COUNT(*) FROM students GROUP BY city ', suffix: ` COUNT(*) >= ${n};`, accept: ['HAVING', 'having'], placeholder: '키워드',
+            why: `GROUP BY로 묶은 결과(COUNT(*))에 조건을 걸어야 하니 <code>HAVING COUNT(*) >= ${n}</code>을 써요.`,
+            hint: 'GROUP BY 다음, 집계 함수 결과에 조건을 걸 때 쓰는 키워드예요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: 'students 표에서 평균 나이(AVG(age))보다 나이가 많은 학생의 이름(name)을 조회하는 SQL을 작성하세요. (서브쿼리를 사용하세요)',
+          starter: '',
+          placeholder: 'SELECT name FROM students WHERE age > (SELECT AVG(age) FROM students);',
+          accept: ['SELECT name FROM students WHERE age > (SELECT AVG(age) FROM students);'],
+          why: 'WHERE 조건 안에 (SELECT AVG(age) FROM students)라는 서브쿼리를 괄호로 감싸서 넣으면, 그 평균값과 비교할 수 있어요.',
+          hint: 'WHERE age > ( ) 괄호 안에 SELECT AVG(age) FROM students를 그대로 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(2, 3);
+        return {
+          type: 'blank',
+          q: `도시별 학생 수를 센 뒤, 학생이 ${n}명 이상인 도시만 보여주는 SQL 문장을 처음부터 끝까지(세미콜론까지) 완성하세요.`,
+          prefix: '', suffix: '', accept: [`SELECT city, COUNT(*) FROM students GROUP BY city HAVING COUNT(*) >= ${n};`], placeholder: 'SELECT ...',
+          why: `<code>GROUP BY city</code>로 묶고, <code>HAVING COUNT(*) >= ${n}</code>으로 그룹 결과에 조건을 걸어요.`,
+          hint: 'SELECT city, COUNT(*) FROM students GROUP BY city HAVING COUNT(*) >= 숫자; 순서를 그대로 따라 써보세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
@@ -347,12 +459,12 @@ JOIN scores ON students.id = scores.student_id;`,
     }),
     advanced: () => ({
       type: 'code',
-      q: 'students 표에서 도시(city)별 평균 나이를 구하는 SQL을 작성하세요. (AVG와 GROUP BY를 사용하세요)',
+      q: 'students 표에서 평균 나이(AVG(age))보다 나이가 많은 학생의 이름과 나이를 조회하는 SQL을 서브쿼리를 이용해 작성하세요.',
       starter: '',
-      placeholder: 'SELECT city, AVG(age) FROM students GROUP BY city;',
-      accept: ['SELECT city, AVG(age) FROM students GROUP BY city;'],
-      why: 'AVG(age)로 평균을 구하고, GROUP BY city로 도시별로 묶어서 계산해요.',
-      hint: 'SELECT city, AVG(age) FROM students GROUP BY city; 형태를 그대로 써보세요.'
+      placeholder: 'SELECT name, age FROM students WHERE age > (SELECT AVG(age) FROM students);',
+      accept: ['SELECT name, age FROM students WHERE age > (SELECT AVG(age) FROM students);'],
+      why: 'WHERE 조건 안에 (SELECT AVG(age) FROM students)라는 서브쿼리를 괄호로 감싸서 넣으면, 평균값보다 큰 행만 걸러낼 수 있어요.',
+      hint: 'WHERE age > ( ) 괄호 안에 SELECT AVG(age) FROM students를 그대로 넣으세요.'
     }),
   }
 };

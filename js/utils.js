@@ -17,13 +17,19 @@ function makeChoice(q, correct, distractors, why, hint) {
   return { type: 'choice', q, opts, answer: opts.indexOf(correct), why, hint };
 }
 
-/* 한 언어 안에서 준비된(ready) 단원들을 순서대로 3등분해 초급/중급/고급을 매김 */
+/* 한 언어 안에서 준비된(ready) 단원들을 순서대로 3등분해 초급/중급/고급을 매김.
+   앞쪽 그룹부터 나머지를 하나씩 더 받아서, 단원 수가 3의 배수가 아니어도
+   세 티어 모두 최소 1개 이상의 단원을 갖도록 나눠요. */
 const TIER_LABEL = { beginner: '초급', intermediate: '중급', advanced: '고급' };
 const TIER_ORDER = ['beginner', 'intermediate', 'advanced'];
 function tierOfIndex(index, totalReady) {
-  const groupSize = Math.ceil(totalReady / 3);
-  const g = Math.min(2, Math.floor(index / groupSize));
-  return TIER_ORDER[g];
+  const base = Math.floor(totalReady / 3);
+  const remainder = totalReady % 3;
+  const size0 = base + (remainder > 0 ? 1 : 0);
+  const size1 = base + (remainder > 1 ? 1 : 0);
+  if (index < size0) return TIER_ORDER[0];
+  if (index < size0 + size1) return TIER_ORDER[1];
+  return TIER_ORDER[2];
 }
 
 const STREAK_GOAL = 5; // 이만큼 연속 정답을 맞히면 그 단원이 "완료"로 표시됨
@@ -58,14 +64,3 @@ const COURSES = {};
    함수는 호출될 때마다 무작위 값으로 새 문제 객체를 만들어 돌려줘야 합니다.
    ========================================================================= */
 
-const UPCOMING_CODE = [
-  { id: 'oop', title: '클래스와 객체' },
-  { id: 'error', title: '예외 처리' },
-];
-const UPCOMING_WEB = [
-  { id: 'js-interactive', title: '자바스크립트로 페이지 움직이기' },
-  { id: 'a11y',           title: '웹 접근성 기초' },
-];
-const UPCOMING_SQL = [
-  { id: 'subquery', title: '서브쿼리와 고급 조회' },
-];

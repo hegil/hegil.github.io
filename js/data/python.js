@@ -578,37 +578,231 @@ print(student["name"])`,
           hint: 'append로 추가한 값은 리스트 맨 마지막에 들어가고, len(fruits) - 1은 "마지막 순번"을 가리켜요.'
         };
       }
+    },
+    {
+      id: 'oop',
+      title: '클래스와 객체',
+      ready: true,
+      summary: '값과 행동을 하나로 묶는 "클래스"를 만들고, 그걸로 실제 객체를 만드는 법을 배워요.',
+      goals: ['class로 클래스 만들기', '__init__ 생성자', 'self', '메서드 만들기'],
+      blocks: [
+        {
+          h: '클래스는 "붕어빵 틀"이에요',
+          html: `<p>변수와 함수를 따로따로 여러 개 만드는 대신, 관련된 값과 동작을 하나로 묶어서 "학생"이라는 새로운 종류(자료형)를 직접 만들 수 있어요. 이 틀을 <b>클래스</b>라고 해요.</p>
+                 <p><code>class</code>로 클래스를 만들고, 그 틀로 찍어낸 실제 대상을 <b>객체(인스턴스)</b>라고 불러요. 붕어빵 틀이 클래스라면, 그 틀로 구운 붕어빵 하나하나가 객체예요.</p>`,
+          code: {
+            label: 'student.py',
+            src: `class Student:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+jisu = Student("지수", 17)
+print(jisu.name, jisu.age)`,
+            out: `지수 17`
+          }
+        },
+        {
+          h: '__init__과 self',
+          html: `<p><code>__init__</code>은 객체가 만들어지는 바로 그 순간에 자동으로 실행되는 특별한 메서드(생성자)예요. 여기서 객체가 처음 가질 값들을 정해줘요.</p>
+                 <p><code>self</code>는 "지금 만들어지고 있는(또는 다루고 있는) 이 객체 자기 자신"을 가리켜요. 클래스 안의 모든 메서드는 첫 번째 매개변수로 <code>self</code>를 받아요.</p>`
+        },
+        {
+          h: '메서드로 행동 추가하기',
+          html: `<p>클래스 안에 함수(메서드)를 추가하면, 객체가 "할 수 있는 일"을 정의할 수 있어요. 메서드를 부를 때는 <code>객체.메서드()</code>처럼 점을 찍어서 불러요.</p>`,
+          code: {
+            label: 'greet.py',
+            src: `class Student:
+    def __init__(self, name):
+        self.name = name
+
+    def greet(self):
+        print(f"안녕, 나는 {self.name}이야")
+
+jisu = Student("지수")
+jisu.greet()`,
+            out: `안녕, 나는 지수이야`
+          },
+          after: `<div class="note"><b>비유</b> — 클래스는 "설계도", 그 설계도로 만든 <code>jisu</code>는 "실제 물건(객체)"이에요. 같은 설계도로 객체를 여러 개 만들 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: '새로운 클래스를 만들 때 맨 앞에 쓰는 키워드는 무엇일까요?',
+          prefix: '', suffix: ' Student:', accept: ['class'], placeholder: '키워드',
+          why: '파이썬에서 클래스는 <code>class</code>로 시작해요.',
+          hint: '"종류, 부류"를 뜻하는 영어 단어예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: '객체가 만들어질 때 자동으로 실행되는 특별한 메서드의 이름을 쓰세요.',
+          prefix: 'class Student:\n    def ', suffix: '(self, name):\n        self.name = name', accept: ['__init__'], placeholder: '메서드 이름',
+          why: '<code>__init__</code>은 객체가 생성되는 순간 자동으로 실행돼서, 처음 값을 정해줘요.',
+          hint: '앞뒤로 밑줄(_) 두 개씩 붙은 특별한 이름이에요.'
+        }),
+        () => makeChoice(
+          '클래스 안 메서드에서 <code>self</code>가 가리키는 것은?',
+          '지금 다루고 있는 객체 자기 자신', ['클래스 이름', '가장 처음 만든 객체', '항상 고정된 값'],
+          '<code>self</code>는 메서드가 불릴 때, "그 메서드를 부른 객체" 자신을 가리켜요.',
+          '메서드를 호출한 객체가 누구인지를 나타내는 자리예요.'
+        ),
+        () => {
+          const name = pick(['민준', '서연', '도윤']);
+          const age = randInt(10, 19);
+          return {
+            type: 'blank',
+            q: `<code>class Student:</code> 안에 <code>def __init__(self, name, age): self.name = name; self.age = age</code>가 있을 때, <code>s = Student("${name}", ${age})</code> 후 <code>print(s.age)</code>를 실행하면 무엇이 출력될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(age)], placeholder: '숫자',
+            why: `생성자에서 <code>self.age = age</code>로 저장했으니, <code>s.age</code>는 넘겨준 값인 ${age}예요.`,
+            hint: '생성자에서 self.age = age로 저장한 값을 그대로 꺼내는 거예요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: '객체 <code>jisu</code>가 가진 <code>greet</code> 메서드를 호출하는 코드를 완성하세요.',
+          prefix: '', suffix: '()', accept: ['jisu.greet'], placeholder: '객체.메서드',
+          why: '메서드를 부를 때는 <code>객체.메서드()</code>처럼 점을 찍어서 불러요.',
+          hint: '객체 이름 뒤에 점(.)을 찍고 메서드 이름을 쓰면 돼요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['지수', '민준', '서연']);
+        const bonus = randInt(1, 10);
+        return {
+          type: 'blank',
+          q: `<code>class Player:</code> 안에 <code>def __init__(self, name): self.name = name; self.score = 0</code>과 <code>def add(self, point): self.score += point</code>가 있어요. <code>p = Player("${name}")</code> 후 <code>p.add(${bonus})</code>를 실행하고 <code>print(p.score)</code>를 하면 무엇이 출력될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(bonus)], placeholder: '숫자',
+          why: `score는 0에서 시작해서, <code>add(${bonus})</code>로 ${bonus}만큼 늘었으니 결과는 ${bonus}예요.`,
+          hint: '생성자에서 score를 0으로 시작하고, add 메서드가 그 값을 늘려요.'
+        };
+      }
+    },
+    {
+      id: 'error',
+      title: '예외 처리',
+      ready: true,
+      summary: '오류가 나도 프로그램이 멈추지 않도록 미리 대비하는 방법을 배워요.',
+      goals: ['try / except', '오류 종류 지정하기', 'finally'],
+      blocks: [
+        {
+          h: '오류가 나도 멈추지 않게: try / except',
+          html: `<p>코드를 실행하다가 오류(예외)가 나면 프로그램이 그 자리에서 멈춰버려요. <code>try</code> 블록 안에서 오류가 날 수도 있는 코드를 실행하고, 오류가 나면 <code>except</code> 블록이 대신 실행돼서 프로그램이 멈추지 않아요.</p>`,
+          code: {
+            label: 'try_basic.py',
+            src: `try:
+    num = int("abc")
+except:
+    print("숫자로 바꿀 수 없어요")`,
+            out: `숫자로 바꿀 수 없어요`
+          }
+        },
+        {
+          h: '어떤 오류인지 지정하기',
+          html: `<p>오류마다 이름(종류)이 있어요. <code>except</code> 뒤에 오류 이름을 적으면, 그 오류가 났을 때만 그 블록을 실행해요. 흔한 오류로 <code>ValueError</code>(값이 이상함), <code>ZeroDivisionError</code>(0으로 나눔)가 있어요.</p>`,
+          code: {
+            label: 'try_specific.py',
+            src: `try:
+    result = 10 / 0
+except ZeroDivisionError:
+    print("0으로 나눌 수 없어요")`,
+            out: `0으로 나눌 수 없어요`
+          }
+        },
+        {
+          h: '항상 실행되는 finally',
+          html: `<p><code>finally</code> 블록은 오류가 나든 안 나든 <b>항상</b> 마지막에 실행돼요. 파일 닫기처럼 "무슨 일이 있어도 꼭 해야 하는 마무리 작업"에 써요.</p>`,
+          after: `<div class="note"><b>순서</b> — <code>try</code>(시도) → 오류가 나면 <code>except</code>(처리) → 마지막에 <code>finally</code>(항상 실행) 순서예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: '오류가 날 수도 있는 코드를 감싸는, <code>try</code> 다음에 오는 블록의 이름을 쓰세요.',
+          prefix: 'try:\n    ...\n', suffix: ':\n    print("오류 발생")', accept: ['except'], placeholder: '키워드',
+          why: '<code>try</code> 블록에서 오류가 나면 <code>except</code> 블록이 실행돼요.',
+          hint: '"제외하다, 예외"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '숫자를 0으로 나눴을 때 발생하는 오류의 이름은?',
+          '<code>ZeroDivisionError</code>', ['<code>ValueError</code>', '<code>TypeError</code>', '<code>NameError</code>'],
+          '0으로 나누면 <code>ZeroDivisionError</code>가 발생해요.',
+          '"0으로 나누기 오류"를 그대로 영어로 옮긴 이름이에요.'
+        ),
+        () => makeChoice(
+          '<code>int("abc")</code>처럼 문자열을 숫자로 바꿀 수 없을 때 발생하는 오류는?',
+          '<code>ValueError</code>', ['<code>ZeroDivisionError</code>', '<code>IndexError</code>', '<code>KeyError</code>'],
+          '값 자체가 변환하기에 적절하지 않을 때 <code>ValueError</code>가 발생해요.',
+          '"값(value)이 잘못됐다"는 뜻의 오류예요.'
+        ),
+        () => {
+          const a = randInt(10, 50), b = pick([0, randInt(2, 9)]);
+          const isZero = b === 0;
+          const label = isZero ? '0으로 나눌 수 없어요' : String(Math.floor(a / b));
+          return {
+            type: 'blank',
+            q: `<code>try: result = ${a} / ${b}; print(result)</code> / <code>except ZeroDivisionError: print("0으로 나눌 수 없어요")</code>를 실행하면 무엇이 출력될까요? ${isZero ? '문장 그대로' : '숫자만'} 쓰세요.`,
+            prefix: '', suffix: '', accept: [label], placeholder: isZero ? '출력될 문장' : '숫자',
+            why: isZero
+              ? `${b}으로 나누면 <code>ZeroDivisionError</code>가 나서 except 블록이 실행돼요.`
+              : `${b}은(는) 0이 아니라서 오류 없이 ${a} / ${b}의 결과가 그대로 출력돼요.`,
+            hint: '나누는 수가 0인지 아닌지 먼저 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          '오류가 나든 안 나든 항상 마지막에 실행되는 블록은?',
+          '<code>finally</code>', ['<code>except</code>', '<code>try</code>', '<code>else</code>'],
+          '<code>finally</code>는 오류 발생 여부와 상관없이 항상 실행돼요.',
+          '"마침내, 결국"이라는 뜻의 영어 단어예요.'
+        ),
+      ],
+      boss: () => {
+        const b = pick([0, randInt(2, 9)]);
+        const isZero = b === 0;
+        return {
+          type: 'code',
+          q: `<code>10</code>을 <code>${b}</code>으로 나누되, 0으로 나누는 오류가 나면 <code>"0으로 나눌 수 없어요"</code>를 출력하고, 오류가 없으면 계산 결과를 출력하는 <code>try/except</code> 코드를 작성하세요.`,
+          starter: '',
+          rows: 4,
+          placeholder: `try:\n    print(10 / ${b})\nexcept ZeroDivisionError:\n    print("0으로 나눌 수 없어요")`,
+          accept: [`try:\n    print(10 / ${b})\nexcept ZeroDivisionError:\n    print("0으로 나눌 수 없어요")`],
+          why: isZero
+            ? '10을 0으로 나누면 ZeroDivisionError가 나서 except 블록의 메시지가 출력돼요.'
+            : `10을 ${b}로 나누면 오류 없이 결과(${10 / b})가 출력돼요.`,
+          hint: 'try 블록 안에 나눗셈과 출력을, except ZeroDivisionError: 블록 안에 오류 메시지 출력을 넣으세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
       type: 'code',
-      q: '변수 <code>age</code>에 15를 저장하고, age가 18 이상이면 "성인"을, 아니면 "미성년자"를 출력하는 전체 코드를 작성하세요. (변수와 조건문을 함께 사용하세요)',
+      q: '변수 <code>total</code>을 0으로 만들고, for문으로 1부터 5까지 더한 뒤, 총합이 10보다 크면 "많음"을, 아니면 "적음"을 출력하는 전체 코드를 작성하세요. (변수, 반복문, 조건문을 모두 사용하세요)',
       starter: '',
-      rows: 4,
-      placeholder: 'age = 15\nif age >= 18:\n    print("성인")\nelse:\n    print("미성년자")',
-      accept: ['age = 15\nif age >= 18:\n    print("성인")\nelse:\n    print("미성년자")'],
-      why: '변수를 만들고(<code>age = 15</code>), 조건문으로 나눠서 출력해요. 15는 18보다 작으니 "미성년자"가 맞아요.',
-      hint: '먼저 age = 15로 변수를 만들고, 그 아래에 if/else 조건문을 이어서 쓰세요.'
+      rows: 6,
+      placeholder: 'total = 0\nfor i in range(1, 6):\n    total += i\nif total > 10:\n    print("많음")\nelse:\n    print("적음")',
+      accept: ['total = 0\nfor i in range(1, 6):\n    total += i\nif total > 10:\n    print("많음")\nelse:\n    print("적음")'],
+      why: '1부터 5까지 더하면 15고, 15는 10보다 크니까 "많음"이 출력돼요.',
+      hint: 'total = 0으로 시작해서 for문으로 다 더한 뒤, 그 결과를 if/else로 비교하세요.'
     }),
     intermediate: () => ({
       type: 'code',
-      q: '숫자를 받아 그 제곱을 반환하는 함수 <code>square</code>를 만들고, for문으로 1부터 3까지 각각 <code>square</code> 결과를 출력하는 전체 코드를 작성하세요.',
+      q: '리스트를 받아 그 중 가장 큰 값을 반환하는 함수 <code>find_max</code>를 만들고, <code>numbers = [3, 1, 4, 1, 5]</code>에 대해 호출한 결과를 출력하는 전체 코드를 작성하세요. (<code>max()</code> 함수를 사용하세요)',
       starter: '',
       rows: 5,
-      placeholder: 'def square(n):\n    return n * n\n\nfor i in range(1, 4):\n    print(square(i))',
-      accept: ['def square(n):\n    return n * n\nfor i in range(1, 4):\n    print(square(i))'],
-      why: '함수를 먼저 만들고, range(1, 4)로 1부터 3까지 반복하며 함수를 호출해서 출력하면 돼요.',
-      hint: 'def square(n): return n * n으로 함수를 만들고, for i in range(1, 4): print(square(i))로 반복하세요.'
+      placeholder: 'def find_max(nums):\n    return max(nums)\n\nnumbers = [3, 1, 4, 1, 5]\nprint(find_max(numbers))',
+      accept: ['def find_max(nums):\n    return max(nums)\nnumbers = [3, 1, 4, 1, 5]\nprint(find_max(numbers))'],
+      why: '함수 안에서 <code>max(nums)</code>로 가장 큰 값을 찾고, 리스트를 넘겨 호출한 결과(5)를 출력해요.',
+      hint: 'def find_max(nums): return max(nums)로 함수를 만들고, 리스트를 넘겨 호출한 값을 출력하세요.'
     }),
     advanced: () => ({
       type: 'code',
-      q: '리스트 <code>numbers = [3, 1, 4, 1, 5]</code>에서 가장 큰 값을 찾아 출력하는 코드를 작성하세요. (<code>max()</code> 함수를 사용하세요)',
+      q: '<code>Calculator</code>라는 클래스를 만들고, <code>divide(self, a, b)</code> 메서드에서 0으로 나누면 <code>"0으로 나눌 수 없어요"</code>를 출력하도록 예외 처리를 하는 코드를 작성하세요.',
       starter: '',
-      rows: 3,
-      placeholder: 'numbers = [3, 1, 4, 1, 5]\nprint(max(numbers))',
-      accept: ['numbers = [3, 1, 4, 1, 5]\nprint(max(numbers))'],
-      why: '<code>max(리스트)</code>는 리스트 안에서 가장 큰 값을 찾아줘요.',
-      hint: 'numbers 리스트를 만들고, max(numbers)의 결과를 print로 출력하세요.'
+      rows: 6,
+      placeholder: 'class Calculator:\n    def divide(self, a, b):\n        try:\n            print(a / b)\n        except ZeroDivisionError:\n            print("0으로 나눌 수 없어요")',
+      accept: ['class Calculator:\n    def divide(self, a, b):\n        try:\n            print(a / b)\n        except ZeroDivisionError:\n            print("0으로 나눌 수 없어요")'],
+      why: '클래스와 메서드 안에서도 <code>try/except</code>를 똑같이 쓸 수 있어요. b가 0이면 ZeroDivisionError를 처리해요.',
+      hint: 'class Calculator: 안에 def divide(self, a, b): 를 만들고, 그 안에 try/except를 넣으세요.'
     }),
   }
 };

@@ -57,7 +57,7 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 16px/1.7 -apple-system, "Segoe UI", "Malgun Gothic", Roboto, sans-serif;
+    font: 16px/1.7 "Pretendard", -apple-system, "Segoe UI", "Malgun Gothic", Roboto, sans-serif;
     -webkit-text-size-adjust: 100%;
   }
   code, pre, kbd { font-family: ui-monospace, SFMono-Regular, Consolas, "D2Coding", monospace; }
@@ -302,12 +302,64 @@
   /* ---------- 미니게임 ---------- */
   .minigame-btn { background: linear-gradient(135deg, var(--accent), #9d6bff); border: 0; color: #fff; }
   .game-hud { display: flex; gap: 10px; margin-bottom: 14px; }
-  .game-area { position: relative; height: 280px; border: 1px dashed var(--border); border-radius: 10px; background: var(--surface-2); overflow: hidden; }
-  .bug { position: absolute; width: 40px; height: 40px; border: 0; background: none; font-size: 26px; line-height: 1; padding: 0; cursor: pointer; transition: transform .1s; }
-  .bug:hover { transform: scale(1.15); }
+  .bug-lines { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--code-bg); }
+  .bug-line {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    border: 0; border-bottom: 1px solid rgba(255,255,255,.08); background: none; color: var(--code-text);
+    padding: 10px 14px; cursor: pointer; font-family: ui-monospace, Consolas, "D2Coding", monospace; font-size: 14.5px;
+  }
+  .bug-line:last-child { border-bottom: 0; }
+  .bug-line:hover:not(:disabled) { background: rgba(255,255,255,.06); }
+  .bug-line:disabled { cursor: default; }
+  .bug-line-no { flex: none; width: 20px; color: #7f8a99; font-size: 12px; text-align: right; }
+  .bug-line.correct { background: rgba(23,134,75,.35); }
+  .bug-line.wrong { background: rgba(196,52,43,.35); }
   .type-target { font-family: ui-monospace, Consolas, "D2Coding", monospace; font-size: 16px; background: var(--code-bg); color: var(--code-text); padding: 14px 16px; border-radius: 9px; white-space: pre-wrap; margin-bottom: 14px; }
   .typing-input { width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: 15px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); }
   .typing-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .reorder-pool, .reorder-answer { display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; padding: 10px; border: 1px dashed var(--border); border-radius: 9px; background: var(--surface-2); }
   .reorder-line { font-family: ui-monospace, Consolas, monospace; font-size: 13.5px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 8px 12px; border-radius: 7px; cursor: pointer; white-space: pre; }
   .reorder-line:hover { border-color: var(--accent); }
+
+  /* 미니게임 허브 */
+  .minigame-hub { display: grid; gap: 16px; }
+  .minigame-lang-row { padding: 18px 20px; }
+  .minigame-lang-row h3 { margin: 0 0 12px; font-size: 16px; }
+  .minigame-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .minigame-slot {
+    display: flex; flex-direction: column; gap: 4px; align-items: flex-start; text-align: left;
+    border: 1px solid var(--border); background: var(--surface-2); border-radius: 10px; padding: 12px 14px; cursor: pointer;
+  }
+  .minigame-slot:hover:not(:disabled) { border-color: var(--accent); }
+  .minigame-slot:disabled { opacity: .55; cursor: not-allowed; }
+  .minigame-slot-tier { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+  .minigame-slot-name { font-size: 14.5px; font-weight: 600; color: var(--text); }
+  .minigame-slot.locked .minigame-slot-tier { color: var(--text-dim); }
+  .minigame-slot.locked .minigame-slot-name { color: var(--text-dim); font-weight: 500; }
+
+  /* 짝 맞추기 */
+  .match-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  .match-card {
+    min-height: 72px; display: flex; align-items: center; justify-content: center; text-align: center;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text);
+    font-size: 13.5px; padding: 8px; cursor: pointer; word-break: keep-all;
+  }
+  .match-card.flipped { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .match-card.matched { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); font-weight: 600; cursor: default; }
+
+  /* 출력 맞히기 스피드런 */
+  .speed-opts { display: grid; gap: 8px; }
+  .speed-opt { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 9px; padding: 10px 14px; font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+  .speed-opt:hover:not(:disabled) { border-color: var(--accent); }
+  .speed-opt.correct { border-color: var(--ok); background: var(--ok-soft); }
+  .speed-opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+
+  /* 키워드 골라내기 */
+  .keyword-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; }
+  .keyword-tile {
+    font-family: ui-monospace, Consolas, monospace; font-size: 14px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); border-radius: 9px; padding: 12px 8px; cursor: pointer;
+  }
+  .keyword-tile:hover:not(:disabled) { border-color: var(--accent); }
+  .keyword-tile.correct { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+  .keyword-tile.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }

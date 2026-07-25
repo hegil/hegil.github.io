@@ -1,9 +1,3 @@
-/* 준비중 단원을 각 언어에 덧붙임 (아직 강의 내용은 없고 이름만 있는 상태) */
-for (const key in COURSES) {
-  const upcoming = key === 'webpage' ? UPCOMING_WEB : key === 'sql' ? UPCOMING_SQL : UPCOMING_CODE;
-  upcoming.forEach(u => COURSES[key].units.push({ ...u, ready: false }));
-}
-
 /* =========================================================================
    2) 문법 강조 (외부 라이브러리 없이 최소 구현)
    ========================================================================= */
@@ -118,10 +112,11 @@ const el = id => document.getElementById(id);
 function renderNav() {
   const homeChip = `<button class="chip home-chip" type="button" aria-pressed="${view === 'home'}">홈</button>`;
   const reviewChip = `<button class="chip review-chip" type="button" aria-pressed="${view === 'review'}">복습</button>`;
+  const minigameChip = `<button class="chip minigame-chip" type="button" aria-pressed="${view === 'minigames' || view === 'minigame'}">미니게임</button>`;
   const langChips = Object.entries(COURSES).map(([k, c]) =>
     `<button class="chip" type="button" data-lang="${k}" aria-pressed="${view === 'lesson' && k === langKey}">${c.name}</button>`
   ).join('');
-  el('langbar').innerHTML = homeChip + reviewChip + langChips;
+  el('langbar').innerHTML = homeChip + reviewChip + minigameChip + langChips;
 }
 
 function renderAuthArea() {
@@ -308,10 +303,10 @@ function renderUnits() {
     const gauntletBtn = `<button class="btn ${cleared ? 'ghost' : ''} small" type="button" data-gauntlet="${tier}">
       ${TIER_LABEL[tier]} 최종 도전${cleared ? ' (클리어! 다시 도전)' : ''}
     </button>`;
-    const gameBtn = cleared
-      ? `<button class="btn small minigame-btn" type="button" data-minigame="${tier}">${MINIGAME_LABEL[tier]} 하러 가기</button>`
+    const gameHint = cleared
+      ? `<button class="btn small minigame-btn" type="button" data-goto-minigames="1">미니게임에서 플레이하기</button>`
       : '';
-    return gauntletBtn + gameBtn;
+    return gauntletBtn + gameHint;
   }).join('');
 }
 
@@ -725,6 +720,7 @@ document.addEventListener('click', async e => {
   if (chip) {
     if (chip.classList.contains('home-chip')) goHome();
     else if (chip.classList.contains('review-chip')) goReview();
+    else if (chip.classList.contains('minigame-chip')) goMinigameHub();
     else goLesson(chip.dataset.lang, 0);
     return;
   }
@@ -746,8 +742,7 @@ document.addEventListener('click', async e => {
   if (e.target.id === 'startBoss') { startBossChallenge(langKey, COURSES[langKey].units[unitIdx].id); return; }
   const gauntletBtn = e.target.closest('[data-gauntlet]');
   if (gauntletBtn) { startGauntlet(langKey, gauntletBtn.dataset.gauntlet); return; }
-  const minigameBtn = e.target.closest('[data-minigame]');
-  if (minigameBtn) { startMinigame(langKey, minigameBtn.dataset.minigame); return; }
+  if (e.target.closest('[data-goto-minigames]')) { goMinigameHub(); return; }
 
   if (e.target.id === 'challengeCheck') { checkChallengeAnswer(); return; }
   if (e.target.id === 'challengeHint') { showChallengeHint(); return; }

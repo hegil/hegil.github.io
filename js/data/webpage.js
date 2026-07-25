@@ -563,41 +563,248 @@ COURSES.webpage = {
           'max-width는 "이 값 이하일 때"를 뜻해요. min-width와 헷갈리지 마세요.'
         );
       }
+    },
+    {
+      id: 'jsInteractive',
+      title: '자바스크립트로 페이지 움직이기',
+      ready: true,
+      summary: 'HTML/CSS로 만든 페이지를 자바스크립트로 살아 움직이게 만드는 법을 배워요.',
+      goals: ['querySelector로 요소 찾기', 'addEventListener', 'textContent 바꾸기', 'classList.toggle'],
+      blocks: [
+        {
+          h: 'HTML 요소를 자바스크립트로 찾기: querySelector',
+          html: `<p>자바스크립트로 페이지의 특정 요소를 조작하려면, 먼저 <code>document.querySelector("선택자")</code>로 그 요소를 "찾아야" 해요. 선택자는 CSS에서 쓰던 것과 똑같아요 — <code>.클래스</code>, <code>#아이디</code>, 태그이름 그대로도 됩니다.</p>`,
+          code: {
+            label: 'find.js',
+            src: `const title = document.querySelector("h1");
+const box = document.querySelector(".box");
+const btn = document.querySelector("#myBtn");`
+          }
+        },
+        {
+          h: '클릭에 반응하기: addEventListener',
+          html: `<p><code>요소.addEventListener("click", 함수)</code>라고 쓰면, 그 요소를 클릭할 때마다 함수가 실행돼요. "이 이벤트(click)가 일어나면, 이 일을 해라"라는 뜻이에요.</p>`,
+          code: {
+            label: 'click.html',
+            lang: 'html',
+            src: `<button id="myBtn">눌러보세요</button>
+<p id="msg">아직 안 눌렀어요</p>
+
+<script>
+document.querySelector("#myBtn").addEventListener("click", () => {
+  document.querySelector("#msg").textContent = "눌렀어요!";
+});
+</script>`,
+            preview: `<style>body{font-family:sans-serif;margin:14px}</style><button id="myBtn">눌러보세요</button><p id="msg">아직 안 눌렀어요</p><script>document.querySelector("#myBtn").addEventListener("click", () => { document.querySelector("#msg").textContent = "눌렀어요!"; });</script>`
+          }
+        },
+        {
+          h: '내용 바꾸기와 클래스 토글',
+          html: `<p><code>요소.textContent = "새 글자"</code>는 그 요소 안의 글자를 통째로 바꿔요. <code>요소.classList.toggle("클래스이름")</code>은 그 클래스가 있으면 빼고, 없으면 붙여줘요 — 스위치를 켰다 껐다 하는 것과 비슷해요.</p>`,
+          after: `<div class="note"><b>팁</b> — <code>&lt;script&gt;</code> 태그는 보통 <code>&lt;/body&gt;</code> 바로 앞에 둬요. HTML이 먼저 다 만들어진 다음에 자바스크립트가 요소를 찾아야 하기 때문이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const kind = pick([
+            { sel: '.box', desc: '클래스가 "box"인' },
+            { sel: '#title', desc: '아이디가 "title"인' },
+            { sel: 'p', desc: '모든 문단(p)' },
+          ]);
+          return {
+            type: 'blank',
+            q: `${kind.desc} 요소를 찾는 코드를 완성하세요.`,
+            prefix: 'document.querySelector("', suffix: '");', accept: [kind.sel], placeholder: '선택자',
+            why: `<code>querySelector</code> 안의 선택자는 CSS 선택자와 똑같아요. ${kind.desc} 요소는 <code>${kind.sel}</code>예요.`,
+            hint: 'CSS에서 쓰던 선택자(마침표=클래스, 샵=아이디)를 그대로 큰따옴표 안에 넣으면 돼요.'
+          };
+        },
+        () => makeChoice(
+          '요소를 클릭했을 때 어떤 동작을 실행하고 싶을 때 쓰는 메서드는?',
+          '<code>addEventListener</code>', ['<code>querySelector</code>', '<code>textContent</code>', '<code>classList</code>'],
+          '<code>요소.addEventListener("click", 함수)</code>는 클릭할 때마다 함수를 실행해요.',
+          '"이벤트를 듣는다(listen)"는 뜻의 영어 단어가 들어가요.'
+        ),
+        () => {
+          const word = pick(['완료!', '성공', '눌렀어요', '변경됨']);
+          return {
+            type: 'blank',
+            q: `<code>id="msg"</code>인 요소의 글자를 "${word}"로 바꾸는 코드를 완성하세요.`,
+            prefix: 'document.querySelector("#msg").', suffix: ` = "${word}";`, accept: ['textContent'], placeholder: '속성 이름',
+            why: '<code>textContent</code>에 새 값을 대입하면 그 요소 안의 글자가 통째로 바뀌어요.',
+            hint: '"글자 내용"을 뜻하는 영어 단어 조합이에요.'
+          };
+        },
+        () => makeChoice(
+          '클래스가 있으면 빼고, 없으면 붙여주는(스위치처럼 켰다 껐다 하는) 메서드는?',
+          '<code>classList.toggle</code>', ['<code>classList.add</code>', '<code>classList.remove</code>', '<code>classList.get</code>'],
+          '<code>classList.toggle("이름")</code>은 그 클래스가 있으면 빼고, 없으면 붙여요.',
+          '"뒤집다, 전환하다"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `버튼을 클릭했을 때 동작을 실행하도록 이벤트 이름을 빈칸에 쓰세요.`,
+          prefix: 'btn.addEventListener("', suffix: '", () => { ... });', accept: ['click'], placeholder: '이벤트 이름',
+          why: '클릭 이벤트의 이름은 <code>"click"</code>이에요.',
+          hint: '"누르다, 클릭하다"라는 뜻의 영어 단어 그대로예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>id="btn"</code>인 버튼을 클릭하면, <code>id="msg"</code>인 요소의 <code>textContent</code>를 <code>"클릭됨"</code>으로 바꾸는 자바스크립트 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'document.querySelector("#btn").addEventListener("click", () => {\n  document.querySelector("#msg").textContent = "클릭됨";\n});',
+          accept: ['document.querySelector("#btn").addEventListener("click", () => {document.querySelector("#msg").textContent = "클릭됨";});'],
+          why: '#btn 요소를 찾아 클릭 이벤트를 걸고, 그 안에서 #msg의 textContent를 바꾸면 돼요.',
+          hint: 'querySelector로 버튼을 찾고, addEventListener("click", ...) 안에서 다른 요소의 textContent를 바꾸세요.'
+        }),
+      ],
+      boss: () => {
+        const word = pick(['완료!', '성공!', '눌렀어요!']);
+        return {
+          type: 'blank',
+          q: `<code>&lt;button id="btn"&gt;누르기&lt;/button&gt;&lt;p id="msg"&gt;대기중&lt;/p&gt;</code>이 있고, <code>document.querySelector("#btn").addEventListener("click", () =&gt; { document.querySelector("#msg").textContent = "${word}"; });</code>가 있어요. 버튼을 클릭하면 <code>#msg</code>의 글자는 무엇으로 바뀔까요? (따옴표 없이)`,
+          prefix: '', suffix: '', accept: [word], placeholder: '값',
+          why: `클릭 이벤트가 일어나면 <code>#msg</code>의 <code>textContent</code>가 "${word}"로 바뀌어요.`,
+          hint: 'addEventListener 안의 함수가 클릭할 때 무엇을 textContent에 대입하는지 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'a11y',
+      title: '웹 접근성 기초',
+      ready: true,
+      summary: '눈이 불편하거나 마우스를 쓰기 어려운 사람도 잘 쓸 수 있는 페이지를 만드는 법을 배워요.',
+      goals: ['alt 속성', 'label과 input 연결', '시맨틱 태그', '키보드로 접근 가능하게'],
+      blocks: [
+        {
+          h: '이미지에는 설명을: alt 속성',
+          html: `<p>화면을 볼 수 없는 사용자는 스크린 리더가 페이지를 읽어줘요. 이미지는 소리로 읽어줄 수 없으니, <code>alt="설명"</code>으로 그 그림이 무엇인지 글로 적어둬야 해요.</p>`,
+          code: {
+            label: 'alt.html',
+            lang: 'html',
+            src: `<img src="cat.jpg" alt="갈색 고양이가 창가에 앉아있는 사진">`
+          }
+        },
+        {
+          h: '입력칸과 이름표 연결하기: label',
+          html: `<p><code>&lt;label for="아이디"&gt;</code>와 <code>&lt;input id="아이디"&gt;</code>를 같은 값으로 연결해두면, 스크린 리더가 "이 입력칸은 무엇을 입력하는 곳인지" 읽어줄 수 있고, 라벨을 눌러도 입력칸에 포커스가 가요.</p>`,
+          code: {
+            label: 'label.html',
+            lang: 'html',
+            src: `<label for="name">이름</label>
+<input id="name" type="text">`,
+            preview: `<style>body{font-family:sans-serif;margin:14px}</style><label for="name">이름</label> <input id="name" type="text">`
+          }
+        },
+        {
+          h: '의미가 담긴 태그 쓰기: 시맨틱 태그',
+          html: `<p>모든 걸 <code>&lt;div&gt;</code>로만 만들 수도 있지만, <code>&lt;nav&gt;</code>(메뉴), <code>&lt;main&gt;</code>(본문), <code>&lt;header&gt;</code>, <code>&lt;footer&gt;</code>, <code>&lt;button&gt;</code>처럼 <b>뜻이 담긴 태그</b>를 쓰면 스크린 리더와 키보드 사용자 모두에게 더 도움이 돼요. 특히 클릭 가능한 요소는 <code>&lt;div&gt;</code> 대신 <code>&lt;button&gt;</code>을 쓰면 자동으로 키보드(Tab, Enter)로도 눌러져요.</p>`,
+          after: `<div class="note"><b>팁</b> — "이 요소가 무슨 역할을 하는가"를 태그 이름만 보고 알 수 있다면, 좋은 시맨틱 태그를 쓴 거예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const desc = pick(['노란 우산을 쓴 아이 그림', '초록색 산 풍경 사진', '웃고 있는 강아지 사진']);
+          return {
+            type: 'blank',
+            q: `"${desc}"를 설명하는 이미지 태그를 완성하세요.`,
+            prefix: '<img src="pic.jpg" alt="', suffix: '">', accept: [desc], placeholder: '설명',
+            why: `<code>alt</code> 속성에 그림 내용을 그대로 글로 적으면, 화면을 볼 수 없는 사용자도 스크린 리더로 어떤 그림인지 알 수 있어요.`,
+            hint: '문제에서 설명한 그림 내용을 그대로 큰따옴표 안에 쓰면 돼요.'
+          };
+        },
+        () => makeChoice(
+          '이미지가 무엇을 나타내는지 스크린 리더가 읽어줄 수 있게 하는 속성은?',
+          '<code>alt</code>', ['<code>title</code>', '<code>name</code>', '<code>desc</code>'],
+          '<code>alt</code>는 이미지를 대신 설명하는 텍스트예요.',
+          '"대체 텍스트(alternative text)"의 줄임말이에요.'
+        ),
+        () => {
+          const field = pick(['name', 'email', 'phone']);
+          const ko = { name: '이름', email: '이메일', phone: '전화번호' }[field];
+          return {
+            type: 'blank',
+            q: `<code>&lt;input id="${field}"&gt;</code>과 연결되는 ${ko} 라벨을 완성하세요.`,
+            prefix: `<label for="`, suffix: `">${ko}</label>`, accept: [field], placeholder: 'id 값',
+            why: `<code>label</code>의 <code>for</code> 값은 연결할 <code>input</code>의 <code>id</code>와 똑같아야 해요.`,
+            hint: 'label의 for 속성 값은 input의 id 값과 정확히 같아야 서로 연결돼요.'
+          };
+        },
+        () => makeChoice(
+          '클릭 가능한 요소를 만들 때, 키보드(Tab, Enter)로도 자동으로 눌리게 하려면 어떤 태그를 쓰는 게 좋을까요?',
+          '<code>&lt;button&gt;</code>', ['<code>&lt;div&gt;</code>', '<code>&lt;span&gt;</code>', '<code>&lt;p&gt;</code>'],
+          '<code>&lt;button&gt;</code>은 태그만으로도 키보드 접근(Tab으로 이동, Enter로 클릭)이 자동으로 돼요.',
+          '<div>는 뜻이 없는 상자일 뿐이라, 키보드 접근을 직접 다 만들어줘야 해요.'
+        ),
+        () => {
+          const tag = pick([
+            { name: 'nav', ko: '메뉴(내비게이션)' },
+            { name: 'main', ko: '페이지의 본문' },
+            { name: 'footer', ko: '페이지 하단' },
+          ]);
+          return {
+            type: 'blank',
+            q: `${tag.ko}을(를) 나타내는 뜻이 담긴(시맨틱) 태그를 쓰세요.`,
+            prefix: '<', suffix: '>...</' + tag.name + '>', accept: [tag.name], placeholder: '태그 이름',
+            why: `<code>&lt;${tag.name}&gt;</code>은 ${tag.ko}을(를) 나타내는 시맨틱 태그예요.`,
+            hint: '닫는 태그 이름을 보면 여는 태그도 똑같이 쓰면 된다는 걸 알 수 있어요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          preview: true,
+          q: '<code>id="email"</code>인 입력칸과, 그 입력칸을 위한 "이메일"이라는 라벨을 서로 연결해서 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: '<label for="email">이메일</label>\n<input id="email" type="text">',
+          accept: ['<label for="email">이메일</label>\n<input id="email" type="text">'],
+          why: 'label의 for와 input의 id를 똑같이 "email"로 맞춰야 서로 연결돼요.',
+          hint: '<label for="email">이메일</label> 다음 줄에 <input id="email" type="text">를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const id = pick(['search', 'query', 'keyword']);
+        return {
+          type: 'blank',
+          q: `<code>&lt;label for="${id}"&gt;검색어&lt;/label&gt;</code>가 있을 때, 이 라벨과 연결되는 입력칸의 <code>id</code> 값은 무엇이어야 할까요?`,
+          prefix: '', suffix: '', accept: [id], placeholder: 'id 값',
+          why: `<code>label</code>의 <code>for="${id}"</code>와 연결되려면 <code>input</code>의 <code>id</code>도 정확히 "${id}"여야 해요.`,
+          hint: 'label의 for 값과 input의 id 값은 글자 하나까지 똑같아야 연결돼요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
       type: 'code',
       preview: true,
-      q: '제목 <code>&lt;h1&gt;환영합니다&lt;/h1&gt;</code>과, 항목이 사과·바나나인 목록 <code>&lt;ul&gt;</code>을 순서대로 작성하세요.',
+      q: '제목 <code>&lt;h1&gt;환영합니다&lt;/h1&gt;</code>과, 항목이 사과·바나나인 목록 <code>&lt;ul&gt;</code>을 만들고, 그 아래 클래스가 "row"인 div 안에 클래스가 "card"인 div 두 개를 나란히 배치하세요. <code>&lt;style&gt;</code> 태그 안에 <code>.row</code>에는 <code>display: flex;</code>와 <code>gap: 10px;</code>를 지정하는 코드까지 작성하세요.',
       starter: '',
-      rows: 4,
-      placeholder: '<h1>환영합니다</h1>\n<ul>\n  <li>사과</li>\n  <li>바나나</li>\n</ul>',
-      accept: ['<h1>환영합니다</h1>\n<ul><li>사과</li><li>바나나</li></ul>'],
-      why: '제목은 <code>&lt;h1&gt;</code>, 목록은 <code>&lt;ul&gt;</code> 안에 <code>&lt;li&gt;</code> 두 개를 넣어서 순서대로 쓰면 돼요.',
-      hint: '<h1>환영합니다</h1> 다음 줄에 <ul><li>사과</li><li>바나나</li></ul>을 써보세요.'
+      rows: 12,
+      placeholder: '<h1>환영합니다</h1>\n<ul>\n  <li>사과</li>\n  <li>바나나</li>\n</ul>\n<div class="row">\n  <div class="card">딸기</div>\n  <div class="card">포도</div>\n</div>\n\n<style>\n.row {\n  display: flex;\n  gap: 10px;\n}\n</style>',
+      accept: ['<h1>환영합니다</h1>\n<ul><li>사과</li><li>바나나</li></ul>\n<div class="row"><div class="card">딸기</div><div class="card">포도</div></div>\n\n<style>.row {display: flex;gap: 10px;}</style>'],
+      why: '제목·목록은 <code>&lt;h1&gt;</code>, <code>&lt;ul&gt;</code>+<code>&lt;li&gt;</code>로, 가로 배치는 <code>display: flex;</code>와 <code>gap</code>으로 만들어요.',
+      hint: '<h1>, <ul><li>...</li></ul>, class="row" div 안에 class="card" div 두 개, 그리고 <style> 안에 .row { display: flex; gap: 10px; }를 순서대로 써보세요.'
     }),
     intermediate: () => ({
       type: 'code',
-      q: '<code>.row</code>에는 <code>display: flex;</code>와 <code>gap: 10px;</code>를, <code>.card</code>에는 <code>padding: 10px;</code>와 <code>border-radius: 8px;</code>를 지정하는 CSS를 작성하세요.',
+      q: '<code>.card</code>에는 <code>padding: 16px;</code>와 <code>border-radius: 8px;</code>를 지정하고, 화면 너비가 600px 이하일 때는 <code>.card</code>의 width를 100%로 만드는 미디어 쿼리도 함께 작성하세요.',
       starter: '',
-      rows: 6,
-      placeholder: '.row {\n  display: flex;\n  gap: 10px;\n}\n.card {\n  padding: 10px;\n  border-radius: 8px;\n}',
-      accept: [
-        '.row {display: flex;gap: 10px;}.card {padding: 10px;border-radius: 8px;}',
-        '.row {gap: 10px;display: flex;}.card {border-radius: 8px;padding: 10px;}'
-      ],
-      why: '<code>.row</code>는 가로 배치(display: flex)와 간격(gap), <code>.card</code>는 안쪽 여백(padding)과 둥근 모서리(border-radius)를 각각 지정해요.',
-      hint: '.row { } 안에 display와 gap을, .card { } 안에 padding과 border-radius를 넣으세요.'
+      rows: 8,
+      placeholder: '.card {\n  padding: 16px;\n  border-radius: 8px;\n}\n\n@media (max-width: 600px) {\n  .card {\n    width: 100%;\n  }\n}',
+      accept: ['.card {padding: 16px;border-radius: 8px;}\n\n@media (max-width: 600px) {.card {width: 100%;}}'],
+      why: '<code>.card</code>는 안쪽 여백(padding)과 둥근 모서리(border-radius)를 지정하고, <code>@media (max-width: 600px)</code> 안에서 화면이 좁을 때 width를 100%로 덮어써요.',
+      hint: '.card { padding: 16px; border-radius: 8px; }를 먼저 쓰고, 그 아래 @media (max-width: 600px) { .card { width: 100%; } }를 이어서 쓰세요.'
     }),
     advanced: () => ({
       type: 'code',
-      q: '화면 너비가 600px 이하일 때 <code>.card</code>의 width를 100%로, 그렇지 않을 때는 50%로 만드는 CSS를 작성하세요.',
+      q: '<code>&lt;button id="msg"&gt;알림&lt;/button&gt;</code>을 만들고(클릭 가능한 요소는 div 대신 button을 써야 키보드로도 접근할 수 있어요), 이 버튼을 클릭하면 <code>classList.toggle("active")</code>가 실행되도록 <code>&lt;script&gt;</code> 코드를 작성하세요.',
       starter: '',
       rows: 6,
-      placeholder: '.card {\n  width: 50%;\n}\n@media (max-width: 600px) {\n  .card {\n    width: 100%;\n  }\n}',
-      accept: ['.card {width: 50%;}@media (max-width: 600px) {.card {width: 100%;}}'],
-      why: '평소에는 <code>.card { width: 50%; }</code>를 적용하고, <code>@media (max-width: 600px)</code> 안에서 100%로 덮어써요.',
-      hint: '.card { width: 50%; }를 먼저 쓰고, 그 아래 @media (max-width: 600px) { .card { width: 100%; } }를 이어서 쓰세요.'
+      placeholder: '<button id="msg">알림</button>\n\n<script>\ndocument.querySelector("#msg").addEventListener("click", () => {\n  document.querySelector("#msg").classList.toggle("active");\n});\n</script>',
+      accept: ['<button id="msg">알림</button>\n\n<script>document.querySelector("#msg").addEventListener("click", () => {document.querySelector("#msg").classList.toggle("active");});</script>'],
+      why: '<button>은 태그만으로 키보드 접근이 가능해서 접근성에 좋고, addEventListener로 클릭 이벤트를 걸어 classList.toggle로 클래스를 켰다 껐다 해요.',
+      hint: '클릭 가능한 요소는 <button>으로 만들고, querySelector로 그 버튼을 찾아 addEventListener("click", ...) 안에서 classList.toggle("active")를 실행하세요.'
     }),
   }
 };

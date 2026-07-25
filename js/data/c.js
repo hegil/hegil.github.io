@@ -555,36 +555,275 @@ for (int i = 0; i < 3; i++) {
           hint: 'for문으로 배열 처음부터 끝까지 하나씩 훑으면서 다 더해보세요.'
         };
       }
+    },
+    {
+      id: 'struct',
+      title: '구조체',
+      ready: true,
+      summary: '서로 다른 자료형의 값들을 하나로 묶어서 관리하는 구조체(struct)를 배워요.',
+      goals: ['struct 정의', '점(.)으로 접근', 'typedef'],
+      blocks: [
+        {
+          h: '서로 다른 값들을 한 묶음으로: struct',
+          html: `<p>배열은 <b>같은</b> 자료형만 담을 수 있지만, <code>struct</code>는 이름·나이처럼 <b>서로 다른</b> 자료형의 값들을 하나로 묶어서 관리할 수 있어요. 학생 한 명의 정보를 표현하기에 딱 좋아요.</p>`,
+          code: {
+            label: 'struct.c',
+            src: `struct Player {
+    char name[20];
+    int score;
+};
+
+int main(void) {
+    struct Player p;
+    p.score = 0;
+    p.score = p.score + 10;
+
+    printf("%d\\n", p.score);
+    return 0;
+}`,
+            out: `10`
+          }
+        },
+        {
+          h: '점(.)으로 속성에 접근해요',
+          html: `<p>구조체 변수 안의 값(속성, 흔히 <b>멤버</b>라고 불러요)에 접근할 땐 점(<code>.</code>)을 찍어요. <code>p.score</code>는 "p의 score 값"이라는 뜻이에요.</p>`
+        },
+        {
+          h: '매번 struct를 쓰기 귀찮다면: typedef',
+          html: `<p><code>typedef struct { ... } Player;</code>처럼 쓰면, 이후로는 <code>struct Player</code> 대신 그냥 <code>Player</code>라고만 써도 돼요.</p>`,
+          code: {
+            label: 'typedef.c',
+            src: `typedef struct {
+    char name[20];
+    int score;
+} Player;
+
+Player p;
+p.score = 100;
+printf("%d\\n", p.score);`,
+            out: `100`
+          },
+          after: `<div class="note"><b>비유</b> — struct는 서류 양식이에요. 이름 칸, 나이 칸이 미리 정해진 서류를 여러 장 찍어내는 것과 비슷해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const score = randInt(1, 100);
+          return {
+            type: 'blank',
+            q: `<code>struct Player { char name[20]; int score; };</code>이고 <code>struct Player p; p.score = ${score};</code>일 때, <code>printf("%d", p.score);</code>의 출력은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(score)], placeholder: '숫자',
+            why: `<code>p.score</code>에 ${score}를 대입했으니 그대로 ${score}가 출력돼요.`,
+            hint: '점(.)으로 구조체 안의 값을 그대로 꺼내 읽으면 돼요.'
+          };
+        },
+        () => makeChoice(
+          '구조체 변수 안의 값(멤버)에 접근할 때 쓰는 문장 부호는?',
+          '<code>.</code>(점)', ['<code>->화살표</code>', '<code>[]</code>(대괄호)', '<code>::</code>'],
+          '구조체 변수는 점(.)을 찍어서 멤버에 접근해요.',
+          '자바스크립트의 객체 접근과 똑같은 문장 부호예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `여러 자료형을 하나로 묶어서 새로운 자료형을 만드는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' Player { char name[20]; int score; };', accept: ['struct'], placeholder: '키워드',
+          why: '<code>struct</code>는 서로 다른 자료형의 값들을 하나로 묶어요.',
+          hint: '"구조"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '배열과 구조체의 차이로 옳은 것은?',
+          '배열은 같은 자료형만, 구조체는 다른 자료형도 함께 담을 수 있다',
+          ['배열도 구조체도 다른 자료형을 섞을 수 없다', '구조체는 크기를 지정할 필요가 없다', '배열은 점(.)으로, 구조체는 대괄호로 접근한다'],
+          '배열은 같은 자료형끼리만, 구조체는 이름(문자열)+나이(정수)처럼 서로 다른 자료형을 함께 담을 수 있어요.',
+          '학생 한 명의 이름과 점수를 함께 담으려면 어떤 게 더 적합할지 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>struct Player</code>라고 매번 쓰지 않고 그냥 <code>Player</code>라고 쓸 수 있게 해주는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' struct { char name[20]; int score; } Player;', accept: ['typedef'], placeholder: '키워드',
+          why: '<code>typedef</code>는 긴 자료형 이름에 짧은 별명을 붙여줘요.',
+          hint: '"자료형을 정의한다"는 뜻의 영어 단어 조합이에요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>char name[20];</code>과 <code>int age;</code> 멤버를 가진 구조체 <code>Student</code>를 <code>typedef struct { ... } Student;</code> 형태로 정의하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'typedef struct {\n    char name[20];\n    int age;\n} Student;',
+          accept: ['typedef struct {char name[20];int age;} Student;'],
+          why: '<code>typedef struct { 멤버들; } 이름;</code> 형태로 구조체를 정의하고 동시에 짧은 별명도 붙여요.',
+          hint: 'typedef struct { } 안에 멤버 두 개를 세미콜론으로 각각 끝내고, 마지막에 별명(Student)을 붙이세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['지수', '민준', '서연']);
+        const score = randInt(1, 100);
+        return {
+          type: 'blank',
+          q: `<code>typedef struct { char name[20]; int score; } Player;</code>이고 <code>Player p; p.score = ${score};</code>일 때, <code>printf("%d", p.score);</code>의 출력은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(score)], placeholder: '숫자',
+          why: `typedef로 만든 <code>Player</code>도 일반 구조체와 똑같이 점(.)으로 멤버에 접근해요. <code>p.score</code>는 ${score}예요.`,
+          hint: 'typedef는 이름만 짧게 해줄 뿐, 점(.)으로 멤버에 접근하는 방식은 똑같아요.'
+        };
+      }
+    },
+    {
+      id: 'pointer',
+      title: '포인터 기초',
+      ready: true,
+      summary: '변수가 저장된 "위치(주소)"를 담는 특별한 변수, 포인터를 배워요.',
+      goals: ['& (주소 연산자)', '* (역참조)', '포인터 선언', 'NULL', '-> (구조체 포인터)'],
+      blocks: [
+        {
+          h: '변수에는 "주소"가 있어요',
+          html: `<p>모든 변수는 메모리의 어딘가에 저장되고, 그 위치를 <b>주소</b>라고 불러요. <code>&변수</code>라고 쓰면 그 변수의 주소를 알 수 있어요.</p>`,
+          code: {
+            label: 'address.c',
+            src: `int age = 17;
+printf("%d\\n", age);     // 값 자체: 17
+printf("%p\\n", &age);    // 주소 (예: 0x7ffee...)`,
+            out: `17\n0x7ffee...`
+          }
+        },
+        {
+          h: '주소를 담는 변수: 포인터',
+          html: `<p><b>포인터</b>는 값이 아니라 "다른 변수의 주소"를 담는 특별한 변수예요. <code>자료형 *이름;</code>으로 선언하고, <code>*포인터</code>를 쓰면 그 주소에 있는 <b>진짜 값</b>을 가져와요(역참조).</p>`,
+          code: {
+            label: 'pointer.c',
+            src: `int age = 17;
+int *p = &age;      // p는 age의 주소를 담고 있음
+
+printf("%d\\n", *p);  // p가 가리키는 곳의 값: 17
+*p = 20;             // p가 가리키는 곳의 값을 20으로 바꿈
+printf("%d\\n", age); // age도 20으로 바뀜!`,
+            out: `17\n20`
+          }
+        },
+        {
+          h: '포인터로 값을 바꾸면, 원래 변수도 바뀌어요',
+          html: `<p><code>*p = 20;</code>은 "p가 가리키는 곳(즉 age가 저장된 자리)에 20을 넣어라"는 뜻이라서, <code>age</code> 자체의 값도 함께 바뀌어요. 이 성질은 함수에 변수를 "진짜로" 전달할 때 아주 유용해요.</p>`,
+          after: `<div class="note"><b>주의</b> — 아직 아무 주소도 가리키지 않는 포인터는 <code>NULL</code>로 초기화해두는 습관을 들이세요. 엉뚱한 주소를 가리키는 포인터를 역참조하면 프로그램이 멈출 수 있어요.</div>`
+        },
+        {
+          h: '구조체를 가리키는 포인터: -> (화살표)',
+          html: `<p>구조체를 가리키는 포인터에서 멤버에 접근할 땐 <code>(*포인터).멤버</code> 대신 <code>포인터-&gt;멤버</code>라는 더 짧은 표기를 써요. 둘은 완전히 같은 뜻이에요.</p>`,
+          code: {
+            label: 'arrow.c',
+            src: `typedef struct { int score; } Player;
+
+Player p;
+p.score = 0;
+
+Player *ptr = &p;
+ptr->score = ptr->score + 10;   // (*ptr).score와 완전히 같음
+
+printf("%d\\n", p.score);`,
+            out: `10`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '변수의 주소를 알아낼 때 앞에 붙이는 기호는?',
+          '<code>&</code>', ['<code>*</code>', '<code>#</code>', '<code>@</code>'],
+          '<code>&변수</code>는 그 변수가 저장된 주소를 알려줘요.',
+          '"and" 기호로도 잘 알려진 그 기호예요.'
+        ),
+        () => makeChoice(
+          '포인터가 가리키는 곳의 실제 값을 가져올 때(역참조) 쓰는 기호는?',
+          '<code>*</code>', ['<code>&</code>', '<code>%</code>', '<code>-&gt;</code>'],
+          '<code>*포인터</code>는 포인터가 가리키는 주소에 있는 진짜 값을 꺼내요.',
+          '포인터를 선언할 때도 쓰는 그 별표 기호예요.'
+        ),
+        () => {
+          const start = randInt(1, 20);
+          const newVal = randInt(21, 40);
+          return {
+            type: 'blank',
+            q: `<code>int age = ${start}; int *p = &age; *p = ${newVal};</code>를 실행한 뒤 <code>printf("%d", age);</code>의 출력은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(newVal)], placeholder: '숫자',
+            why: `<code>*p = ${newVal};</code>은 p가 가리키는 age의 자리에 직접 ${newVal}을 넣는 것이라서, age도 ${newVal}로 바뀌어요.`,
+            hint: '포인터로 값을 바꾸면, 그 포인터가 가리키는 원래 변수도 함께 바뀌어요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `<code>int age = 17;</code>일 때, age의 주소를 담는 포인터 <code>p</code>를 선언하는 코드를 완성하세요.`,
+          prefix: 'int ', suffix: ' = &age;', accept: ['*p'], placeholder: '변수 이름',
+          why: '포인터는 <code>자료형 *이름;</code> 형태로 선언해요.',
+          hint: '자료형 뒤, 이름 앞에 별표(*)를 붙이면 포인터가 돼요.'
+        }),
+        () => makeChoice(
+          '아직 어떤 변수도 가리키지 않는 포인터를 안전하게 초기화할 때 쓰는 값은?',
+          '<code>NULL</code>', ['<code>0.0</code>', '<code>""</code>', '<code>undefined</code>'],
+          '<code>NULL</code>은 "아무것도 가리키지 않는다"는 뜻으로 포인터를 초기화할 때 써요.',
+          '자바스크립트의 null과 이름이 똑같은 값이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>int score = 90;</code>을 선언하고, score의 주소를 담는 포인터 <code>p</code>를 만든 뒤, <code>*p</code>를 이용해 score의 값을 100으로 바꾸는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'int score = 90;\nint *p = &score;\n*p = 100;',
+          accept: ['int score = 90;int *p = &score;*p = 100;'],
+          why: '<code>&score</code>로 주소를 얻어 포인터에 담고, <code>*p = 100;</code>으로 그 주소의 값을 직접 바꿔요.',
+          hint: 'int *p = &score;로 포인터를 만들고, *p = 100;으로 값을 바꾸세요.'
+        }),
+        () => {
+          const start = randInt(1, 20);
+          const bonus = randInt(1, 10);
+          return {
+            type: 'blank',
+            q: `<code>typedef struct { int score; } Player; Player p; p.score = ${start}; Player *ptr = &p; ptr->score = ptr->score + ${bonus};</code>를 실행한 뒤 <code>printf("%d", p.score);</code>의 출력은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(start + bonus)], placeholder: '숫자',
+            why: `<code>ptr-&gt;score</code>는 <code>p.score</code>와 완전히 같은 값을 가리켜요. ${start} + ${bonus} = ${start + bonus}예요.`,
+            hint: 'ptr->score는 (*ptr).score와 같고, 결국 p.score를 가리키는 것과 똑같아요.'
+          };
+        },
+      ],
+      boss: () => {
+        const start = randInt(1, 20);
+        const bonus = randInt(1, 10);
+        const result = start + bonus;
+        return {
+          type: 'blank',
+          q: `<code>int score = ${start}; int *p = &score; *p = *p + ${bonus};</code>를 실행한 뒤 <code>printf("%d", score);</code>의 출력은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(result)], placeholder: '숫자',
+          why: `<code>*p</code>는 score 자체를 가리키므로, <code>*p = *p + ${bonus}</code>는 score에 ${bonus}를 더하는 것과 같아요. ${start} + ${bonus} = ${result}이에요.`,
+          hint: '*p는 p가 가리키는 원래 변수(score)와 완전히 같은 값이라고 생각하고 계산해보세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
       type: 'code',
-      q: '정수 변수 <code>age</code>에 15를 저장하고, age가 18 이상이면 <code>printf("성인")</code>을, 아니면 <code>printf("미성년자")</code>를 실행하는 전체 코드를 작성하세요.',
+      q: '정수 변수 <code>total</code>을 0으로 만들고, for문으로 1부터 5까지 더한 뒤, 총합이 10보다 크면 <code>printf("많음")</code>을, 아니면 <code>printf("적음")</code>을 실행하는 전체 코드를 작성하세요. (변수, 반복문, 조건문을 모두 사용하세요)',
       starter: '',
-      rows: 5,
-      placeholder: 'int age = 15;\nif (age >= 18) {\n    printf("성인");\n} else {\n    printf("미성년자");\n}',
-      accept: ['int age = 15;if (age >= 18) {printf("성인");} else {printf("미성년자");}'],
-      why: '변수를 선언하고, if-else로 나눠서 각각 printf 하면 돼요. 15는 18보다 작으니 "미성년자"가 맞아요.',
-      hint: 'int age = 15;를 먼저 쓰고, if (age >= 18) { } else { } 안에 각각 printf를 넣으세요.'
+      rows: 7,
+      placeholder: 'int total = 0;\nfor (int i = 1; i <= 5; i++) {\n    total += i;\n}\nif (total > 10) {\n    printf("많음");\n} else {\n    printf("적음");\n}',
+      accept: ['int total = 0;for (int i = 1; i <= 5; i++) {total += i;}if (total > 10) {printf("많음");} else {printf("적음");}'],
+      why: '1부터 5까지 더하면 15고, 15는 10보다 크니까 "많음"이 출력돼요.',
+      hint: 'total = 0으로 시작해서 for문으로 다 더한 뒤, 그 결과를 if/else로 비교하세요.'
     }),
     intermediate: () => ({
       type: 'code',
-      q: '정수를 받아 제곱을 반환하는 함수 <code>square</code>를 만들고, for문으로 1부터 3까지 각각 결과를 <code>printf("%d\\n", ...)</code>로 출력하는 전체 코드를 작성하세요.',
+      q: '정수 배열 <code>{3, 7, 2, 9, 4}</code>에서 가장 큰 값을 찾아 반환하는 함수 <code>findMax</code>를 만들고(<code>int findMax(int nums[], int size)</code> 형태, 반복문 이용), 그 결과를 <code>printf("%d\\n", ...)</code>로 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 6,
-      placeholder: 'int square(int n) {\n    return n * n;\n}\n\nfor (int i = 1; i <= 3; i++) {\n    printf("%d\\n", square(i));\n}',
-      accept: ['int square(int n) {return n * n;}for (int i = 1; i <= 3; i++) {printf("%d\\n", square(i));}'],
-      why: '함수를 먼저 만들고, for문으로 1부터 3까지 반복하며 함수를 호출해서 출력하면 돼요.',
-      hint: 'int square(int n) { return n * n; } 다음에, for (int i = 1; i <= 3; i++) { printf("%d\\n", square(i)); }를 쓰세요.'
+      rows: 10,
+      placeholder: 'int findMax(int nums[], int size) {\n    int max = nums[0];\n    for (int i = 1; i < size; i++) {\n        if (nums[i] > max) {\n            max = nums[i];\n        }\n    }\n    return max;\n}\n\nint nums[5] = {3, 7, 2, 9, 4};\nprintf("%d\\n", findMax(nums, 5));',
+      accept: ['int findMax(int nums[], int size) {int max = nums[0];for (int i = 1; i < size; i++) {if (nums[i] > max) {max = nums[i];}}return max;}int nums[5] = {3, 7, 2, 9, 4};printf("%d\\n", findMax(nums, 5));'],
+      why: '배열의 첫 값을 최댓값 후보로 놓고, 반복문으로 하나씩 비교하며 더 큰 값이 나오면 갱신하면 최댓값 9를 찾을 수 있어요.',
+      hint: '배열의 첫 값을 기준으로 삼고, 반복문으로 하나씩 비교하면서 더 큰 값이 나오면 바꿔치기 하세요.'
     }),
     advanced: () => ({
       type: 'code',
-      q: '정수 배열 <code>scores</code>에 <code>{3, 1, 4, 1, 5}</code>를 담아 선언하는 코드를 작성하세요.',
+      q: '<code>int score;</code> 멤버를 가진 구조체 <code>Player</code>를 <code>typedef struct { ... } Player;</code>로 정의하세요. <code>Player p;</code>를 만들어 <code>p.score = 0;</code>으로 초기화하고, 포인터 <code>Player *ptr = &p;</code>를 만든 뒤 <code>ptr-&gt;score</code>를 이용해 10을 더하고, 마지막으로 <code>p.score</code>를 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      placeholder: 'int scores[5] = {3, 1, 4, 1, 5};',
-      accept: ['int scores[5] = {3, 1, 4, 1, 5};', 'int scores[] = {3, 1, 4, 1, 5};'],
-      why: '자료형 이름[개수] = {값, 값, ...}; 형태로 배열을 선언해요.',
-      hint: 'int scores[5] = { }; 안에 3, 1, 4, 1, 5를 순서대로 넣으세요.'
+      rows: 8,
+      placeholder: 'typedef struct {\n    int score;\n} Player;\n\nPlayer p;\np.score = 0;\nPlayer *ptr = &p;\nptr->score = ptr->score + 10;\nprintf("%d\\n", p.score);',
+      accept: ['typedef struct {int score;} Player;Player p;p.score = 0;Player *ptr = &p;ptr->score = ptr->score + 10;printf("%d\\n", p.score);'],
+      why: 'ptr->score는 p.score와 완전히 같은 자리를 가리키므로, ptr을 통해 10을 더하면 p.score도 0에서 10으로 바뀌어요.',
+      hint: 'typedef struct로 Player를 정의하고, &p로 얻은 주소를 포인터에 담아 ->로 멤버를 수정하세요.'
     }),
   }
 };

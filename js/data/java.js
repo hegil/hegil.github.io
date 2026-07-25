@@ -558,37 +558,256 @@ System.out.println(fruits[1]);`,
           hint: 'length - 1은 배열의 "마지막 순번"을 가리켜요.'
         };
       }
+    },
+    {
+      id: 'oop',
+      title: '클래스와 객체',
+      ready: true,
+      summary: '비슷한 객체를 여러 개 찍어내는 설계도, class를 배워요.',
+      goals: ['class와 생성자', 'this', 'new로 객체 만들기', '메서드'],
+      blocks: [
+        {
+          h: '객체를 찍어내는 설계도: class',
+          html: `<p><code>class</code>는 비슷한 모양의 객체를 여러 개 만들기 위한 "설계도"예요. 클래스 이름과 똑같은 이름의 메서드를 <b>생성자</b>라고 하는데, <code>new</code>로 객체를 만들 때 자동으로 실행되면서 초기값을 정해줘요.</p>`,
+          code: {
+            label: 'Player.java',
+            src: `class Player {
+    String name;
+    int score;
+
+    Player(String name) {
+        this.name = name;
+        this.score = 0;
+    }
+    void add(int point) {
+        this.score += point;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Player p = new Player("지수");
+        p.add(10);
+        System.out.println(p.name + " " + p.score);
+    }
+}`,
+            out: `지수 10`
+          }
+        },
+        {
+          h: 'this는 "지금 이 객체"를 가리켜요',
+          html: `<p>생성자나 메서드 안에서 <code>this</code>는 <code>new</code>로 방금 만든 그 객체 자신을 가리켜요. <code>this.score</code>는 "이 객체의 score 속성"이라는 뜻이에요. 매개변수 이름과 속성 이름이 같을 때 특히 <code>this</code>로 구분해줘야 해요.</p>`
+        },
+        {
+          h: '메서드 — 객체 안에 들어있는 함수',
+          html: `<p>클래스 안에 정의한 함수를 <b>메서드</b>라고 불러요. <code>객체.메서드()</code> 형태로 호출하면, 그 메서드 안에서 <code>this</code>는 항상 호출한 객체를 가리켜요.</p>`,
+          after: `<div class="note"><b>비유</b> — class는 붕어빵 틀, <code>new</code>로 만든 객체 하나하나는 붕어빵이에요. 틀은 하나지만 붕어빵은 여러 개 만들 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const name = pick(['지수', '민준', '서연', '하늘']);
+          return {
+            type: 'blank',
+            q: `<code>class Player { String name; Player(String name) { this.name = name; } }</code>일 때, <code>Player p = new Player("${name}");</code> 후 <code>System.out.println(p.name);</code>을 실행하면? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [name], placeholder: '값',
+            why: `<code>new Player("${name}")</code>이 실행되면 생성자의 <code>this.name = name</code>에 의해 <code>p.name</code>은 "${name}"이 돼요.`,
+            hint: 'new로 객체를 만들면 생성자가 자동으로 실행되면서 매개변수 값을 this에 저장해요.'
+          };
+        },
+        () => makeChoice(
+          'class로 객체를 만들 때 새 객체를 실제로 만들어내는(생성하는) 키워드는?',
+          '<code>new</code>', ['<code>class</code>', '<code>this</code>', '<code>make</code>'],
+          '<code>new 클래스이름(...)</code>이 실제로 객체를 만들어요.',
+          '"새로운"이라는 뜻의 영어 단어예요.'
+        ),
+        () => makeChoice(
+          '자바에서 클래스 안에서 "지금 이 객체"를 가리키는 키워드는?',
+          '<code>this</code>', ['<code>new</code>', '<code>self</code>', '<code>me</code>'],
+          '자바는 파이썬의 self 대신 <code>this</code>를 써요.',
+          '파이썬의 self와 같은 역할을 하는 자바 키워드예요.'
+        ),
+        () => {
+          const start = randInt(1, 5);
+          const times = randInt(2, 4);
+          return {
+            type: 'blank',
+            q: `<code>class Counter { int count; Counter() { this.count = ${start}; } void increase() { this.count = this.count + 1; } }</code>일 때, <code>increase()</code>를 ${times}번 호출하면 <code>count</code>는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(start + times)], placeholder: '숫자',
+            why: `${start}에서 시작해서 increase()를 ${times}번 호출하면 ${times}만큼 늘어서 ${start + times}가 돼요.`,
+            hint: '시작값에서 increase()를 호출한 횟수만큼 1씩 늘려보세요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `<code>new</code>로 객체를 만들 때 자동으로 실행되는, 클래스 이름과 똑같은 이름을 가진 초기화 메서드를 무엇이라고 부르나요? (한글 두 글자)`,
+          prefix: '', suffix: '', accept: ['생성자'], placeholder: '이름',
+          why: '이 초기화 메서드를 <b>생성자</b>라고 불러요. 클래스와 이름이 같고 반환 타입이 없어요.',
+          hint: '"객체를 생성하는 사람"이라는 뜻의 한글 단어예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>Dog</code>이라는 클래스를 만들어서 <code>String name;</code> 속성과, 생성자에서 <code>this.name</code>을 저장하고, <code>bark()</code> 메서드는 <code>System.out.println(this.name + ": 멍멍!");</code>을 실행하게 하는 클래스 전체 코드를 작성하세요.',
+          starter: '',
+          rows: 8,
+          placeholder: 'class Dog {\n    String name;\n\n    Dog(String name) {\n        this.name = name;\n    }\n    void bark() {\n        System.out.println(this.name + ": 멍멍!");\n    }\n}',
+          accept: ['class Dog {String name;Dog(String name) {this.name = name;}void bark() {System.out.println(this.name + ": 멍멍!");}}'],
+          why: '생성자에서 name을 저장해두면, bark() 메서드 안의 this.name으로 그 값을 꺼내 쓸 수 있어요.',
+          hint: 'class 안에 String name; 속성, 생성자, bark() 메서드를 각각 만들고 this.name으로 값을 이어주세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['지수', '민준', '서연']);
+        const bonus = randInt(1, 10);
+        return {
+          type: 'blank',
+          q: `<code>class Player { String name; int score; Player(String name) { this.name = name; this.score = 0; } void add(int point) { this.score += point; } }</code>일 때, <code>Player p = new Player("${name}");</code> 후 <code>p.add(${bonus});</code>를 실행하고 <code>System.out.println(p.score);</code>를 하면 무엇이 출력될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(bonus)], placeholder: '숫자',
+          why: `score는 0에서 시작해서, <code>add(${bonus})</code>로 ${bonus}만큼 늘었으니 결과는 ${bonus}예요.`,
+          hint: '생성자에서 score를 0으로 시작하고, add 메서드가 그 값을 늘려요.'
+        };
+      }
+    },
+    {
+      id: 'error',
+      title: '예외 처리',
+      ready: true,
+      summary: '오류가 나도 프로그램이 멈추지 않게 대비하는 try/catch를 배워요.',
+      goals: ['try / catch', 'throw', 'finally', 'Exception'],
+      blocks: [
+        {
+          h: '오류가 나도 안전하게: try / catch',
+          html: `<p><code>try { ... }</code> 안의 코드에서 오류(예외)가 나면, 프로그램이 멈추는 대신 <code>catch (Exception e) { ... }</code> 부분이 실행돼요. <code>e</code>에는 오류 정보가 담겨요.</p>`,
+          code: {
+            label: 'TryCatch.java',
+            src: `try {
+    int result = 10 / 0;
+    System.out.println(result);
+} catch (ArithmeticException e) {
+    System.out.println("오류 잡음: " + e.getMessage());
+}`,
+            out: `오류 잡음: / by zero`
+          }
+        },
+        {
+          h: '일부러 오류 던지기: throw',
+          html: `<p>내 코드 안에서 "이건 잘못됐다"고 판단되면 <code>throw new RuntimeException("설명")</code>으로 직접 오류를 만들어 던질 수 있어요. 던져진 오류는 가장 가까운 <code>catch</code>가 잡아요.</p>`,
+          code: {
+            label: 'Throw.java',
+            src: `static int checkAge(int age) {
+    if (age < 0) {
+        throw new RuntimeException("나이는 음수일 수 없어요");
+    }
+    return age;
+}
+
+try {
+    checkAge(-5);
+} catch (RuntimeException e) {
+    System.out.println(e.getMessage());
+}`,
+            out: `나이는 음수일 수 없어요`
+          }
+        },
+        {
+          h: '항상 실행되는 finally',
+          html: `<p><code>finally { ... }</code>는 오류가 나든 안 나든 <b>항상</b> 마지막에 실행돼요. 파일 닫기, 정리 작업 등에 자주 씁니다.</p>`,
+          after: `<div class="note"><b>주의</b> — <code>catch</code>로 잡지 않은 예외는 프로그램을 그대로 멈추게 만들어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '오류가 날 수도 있는 코드를 감싸서 프로그램이 멈추지 않게 하는 블록은?',
+          '<code>try</code>', ['<code>catch</code>', '<code>throw</code>', '<code>finally</code>'],
+          '<code>try { ... }</code> 안의 코드에서 오류가 나면 catch가 대신 처리해줘요.',
+          '"시도하다"라는 뜻의 영어 단어예요.'
+        ),
+        () => makeChoice(
+          'try 블록에서 오류가 발생했을 때 실행되는 블록은?',
+          '<code>catch</code>', ['<code>try</code>', '<code>throw</code>', '<code>error</code>'],
+          '<code>catch (Exception e) { ... }</code>가 오류를 넘겨받아 처리해요.',
+          '"붙잡다"라는 뜻의 영어 단어예요.'
+        ),
+        () => makeChoice(
+          '내 코드에서 일부러 오류를 만들어 던지고 싶을 때 쓰는 키워드는?',
+          '<code>throw</code>', ['<code>catch</code>', '<code>try</code>', '<code>new</code>'],
+          '<code>throw new RuntimeException("설명")</code>으로 직접 오류를 던질 수 있어요.',
+          '"던지다"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `오류가 나든 안 나든 항상 마지막에 실행되는 블록의 이름을 쓰세요.`,
+          prefix: 'try { ... } catch (Exception e) { ... } ', suffix: ' { System.out.println("정리"); }', accept: ['finally'], placeholder: '블록 이름',
+          why: '<code>finally</code>는 오류 여부와 상관없이 항상 실행돼요.',
+          hint: '"마침내, 결국"이라는 뜻의 영어 단어예요.'
+        }),
+        () => {
+          const msg = pick(['잘못된 값이에요', '범위를 벗어났어요', '입력이 비어있어요']);
+          return {
+            type: 'blank',
+            q: `<code>try { throw new RuntimeException("${msg}"); } catch (RuntimeException e) { System.out.println(e.getMessage()); }</code>를 실행하면 무엇이 출력될까요? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [msg], placeholder: '출력될 문장',
+            why: `<code>e.getMessage()</code>는 <code>throw new RuntimeException(...)</code>에 넣은 문자열 그대로 담겨있어요.`,
+            hint: 'catch (e)의 e.getMessage()에는 throw할 때 넣은 문자열이 그대로 들어있어요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '나이를 받아 음수면 <code>new RuntimeException("나이는 음수일 수 없어요")</code>를 던지는 메서드 <code>checkAge</code>를 만들고(<code>static int checkAge(int age)</code> 형태), <code>try/catch</code>로 <code>checkAge(-1)</code>을 호출해서 오류 메시지를 <code>e.getMessage()</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 10,
+          placeholder: 'static int checkAge(int age) {\n    if (age < 0) {\n        throw new RuntimeException("나이는 음수일 수 없어요");\n    }\n    return age;\n}\n\ntry {\n    checkAge(-1);\n} catch (RuntimeException e) {\n    System.out.println(e.getMessage());\n}',
+          accept: ['static int checkAge(int age) {if (age < 0) {throw new RuntimeException("나이는 음수일 수 없어요");}return age;}try {checkAge(-1);} catch (RuntimeException e) {System.out.println(e.getMessage());}'],
+          why: 'checkAge(-1)은 나이가 음수라서 예외를 던지고, catch (RuntimeException e)가 그 오류를 잡아 e.getMessage()를 출력해요.',
+          hint: 'if (age < 0) { throw new RuntimeException(...); }를 메서드 안에 쓰고, try/catch로 감싸서 호출하세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(1, 20);
+        const zero = Math.random() < 0.5;
+        const b = zero ? 0 : randInt(1, 10);
+        const result = zero ? '나눌 수 없어요' : String(Math.floor(a / b));
+        return {
+          type: 'blank',
+          q: `메서드 <code>divide(int a, int b)</code>는 b가 0이면 <code>throw new RuntimeException("나눌 수 없어요")</code>를 던지고, 아니면 <code>a / b</code>를 반환해요. <code>try { System.out.println(divide(${a}, ${b})); } catch (RuntimeException e) { System.out.println(e.getMessage()); }</code>를 실행하면 무엇이 출력될까요? (따옴표 없이)`,
+          prefix: '', suffix: '', accept: [result], placeholder: '출력될 값',
+          why: zero
+            ? `b가 0이라서 divide가 예외를 던지고, catch가 그 오류의 메시지 "나눌 수 없어요"를 출력해요.`
+            : `b가 0이 아니라서 정상적으로 ${a} / ${b} = ${result}(정수 나눗셈)가 반환되고 그대로 출력돼요.`,
+          hint: 'b가 0인지 아닌지에 따라 정상 결과가 나올지, catch로 잡힌 오류 메시지가 나올지 갈려요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
       type: 'code',
-      q: 'int형 변수 <code>age</code>에 15를 저장하고, age가 18 이상이면 <code>System.out.println("성인")</code>을, 아니면 <code>System.out.println("미성년자")</code>를 실행하는 전체 코드를 작성하세요.',
+      q: 'int형 변수 <code>total</code>을 0으로 만들고, for문으로 1부터 5까지 더한 뒤, 총합이 10보다 크면 <code>System.out.println("많음")</code>을, 아니면 <code>System.out.println("적음")</code>을 실행하는 전체 코드를 작성하세요. (변수, 반복문, 조건문을 모두 사용하세요)',
       starter: '',
-      rows: 5,
-      placeholder: 'int age = 15;\nif (age >= 18) {\n    System.out.println("성인");\n} else {\n    System.out.println("미성년자");\n}',
-      accept: ['int age = 15;if (age >= 18) {System.out.println("성인");} else {System.out.println("미성년자");}'],
-      why: '변수를 선언하고, if-else로 나눠서 각각 출력하면 돼요. 15는 18보다 작으니 "미성년자"가 맞아요.',
-      hint: 'int age = 15;를 먼저 쓰고, if (age >= 18) { } else { } 안에 각각 출력문을 넣으세요.'
+      rows: 7,
+      placeholder: 'int total = 0;\nfor (int i = 1; i <= 5; i++) {\n    total += i;\n}\nif (total > 10) {\n    System.out.println("많음");\n} else {\n    System.out.println("적음");\n}',
+      accept: ['int total = 0;for (int i = 1; i <= 5; i++) {total += i;}if (total > 10) {System.out.println("많음");} else {System.out.println("적음");}'],
+      why: '1부터 5까지 더하면 15고, 15는 10보다 크니까 "많음"이 출력돼요.',
+      hint: 'total = 0으로 시작해서 for문으로 다 더한 뒤, 그 결과를 if/else로 비교하세요.'
     }),
     intermediate: () => ({
       type: 'code',
-      q: '정수를 받아 제곱을 반환하는 메서드 <code>square</code>를 만들고(<code>static int square(int n)</code> 형태), for문으로 1부터 3까지 각각 결과를 출력하는 전체 코드를 작성하세요.',
+      q: '정수 배열 <code>{3, 7, 2, 9, 4}</code>에서 가장 큰 값을 찾아 반환하는 메서드 <code>findMax</code>를 만들고(<code>static int findMax(int[] nums)</code> 형태, 반복문 이용), 그 결과를 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 6,
-      placeholder: 'static int square(int n) {\n    return n * n;\n}\n\nfor (int i = 1; i <= 3; i++) {\n    System.out.println(square(i));\n}',
-      accept: ['static int square(int n) {return n * n;}for (int i = 1; i <= 3; i++) {System.out.println(square(i));}'],
-      why: '메서드를 먼저 만들고, for문으로 1부터 3까지 반복하며 메서드를 호출해서 출력하면 돼요.',
-      hint: 'static int square(int n) { return n * n; } 다음에, for (int i = 1; i <= 3; i++) { System.out.println(square(i)); }를 쓰세요.'
+      rows: 9,
+      placeholder: 'static int findMax(int[] nums) {\n    int max = nums[0];\n    for (int i = 1; i < nums.length; i++) {\n        if (nums[i] > max) {\n            max = nums[i];\n        }\n    }\n    return max;\n}\n\nint[] nums = {3, 7, 2, 9, 4};\nSystem.out.println(findMax(nums));',
+      accept: ['static int findMax(int[] nums) {int max = nums[0];for (int i = 1; i < nums.length; i++) {if (nums[i] > max) {max = nums[i];}}return max;}int[] nums = {3, 7, 2, 9, 4};System.out.println(findMax(nums));'],
+      why: '배열의 첫 값을 최댓값 후보로 놓고, 반복문으로 하나씩 비교하며 더 큰 값이 나오면 갱신하면 최댓값 9를 찾을 수 있어요.',
+      hint: '배열의 첫 값을 기준으로 삼고, 반복문으로 하나씩 비교하면서 더 큰 값이 나오면 바꿔치기 하세요.'
     }),
     advanced: () => ({
       type: 'code',
-      q: '정수 배열 <code>scores</code>에 <code>{3, 1, 4, 1, 5}</code>를 담아 선언하고, 배열의 길이(<code>scores.length</code>)를 출력하는 코드를 작성하세요.',
+      q: '<code>Calculator</code> 클래스를 만들어서, <code>divide(int a, int b)</code> 메서드가 <code>b</code>가 0이면 <code>throw new RuntimeException("0으로 나눌 수 없어요")</code>를 던지고, 아니면 <code>a / b</code>를 반환하게 하세요. <code>new Calculator()</code>를 만들고, <code>try/catch</code>로 <code>divide(10, 0)</code>을 호출해서 오류 메시지를 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 3,
-      placeholder: 'int[] scores = {3, 1, 4, 1, 5};\nSystem.out.println(scores.length);',
-      accept: ['int[] scores = {3, 1, 4, 1, 5};System.out.println(scores.length);'],
-      why: '배열을 선언한 뒤 <code>scores.length</code>로 길이를 출력하면 5가 나와요.',
-      hint: 'int[] scores = {3, 1, 4, 1, 5};를 쓰고, System.out.println(scores.length);로 길이를 출력하세요.'
+      rows: 12,
+      placeholder: 'class Calculator {\n    int divide(int a, int b) {\n        if (b == 0) {\n            throw new RuntimeException("0으로 나눌 수 없어요");\n        }\n        return a / b;\n    }\n}\n\nCalculator calc = new Calculator();\ntry {\n    System.out.println(calc.divide(10, 0));\n} catch (RuntimeException e) {\n    System.out.println(e.getMessage());\n}',
+      accept: ['class Calculator {int divide(int a, int b) {if (b == 0) {throw new RuntimeException("0으로 나눌 수 없어요");}return a / b;}}Calculator calc = new Calculator();try {System.out.println(calc.divide(10, 0));} catch (RuntimeException e) {System.out.println(e.getMessage());}'],
+      why: 'divide(10, 0)은 b가 0이라서 예외를 던지고, catch (RuntimeException e)가 그 오류를 잡아 e.getMessage()인 "0으로 나눌 수 없어요"를 출력해요.',
+      hint: 'divide 메서드 안에서 b == 0일 때 throw로 예외를 던지고, 호출하는 쪽은 try/catch로 감싸세요.'
     }),
   }
 };
