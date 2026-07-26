@@ -167,12 +167,16 @@
   .backup-title { font-weight: 600; }
   .backup-actions { display: flex; gap: 8px; flex: none; }
   .lang-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-  .lang-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; cursor: pointer; transition: .15s; display: flex; flex-direction: column; }
+  .lang-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; cursor: pointer; transition: .15s; display: flex; flex-direction: column; }
   .lang-card:hover { border-color: var(--accent); transform: translateY(-2px); }
   .lang-card h3 { margin: 0 0 6px; font-size: 17px; }
   .lang-card p { margin: 0 0 12px; color: var(--text-dim); font-size: 13.5px; flex-grow: 1; }
   .lang-card-meta { font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px; }
   .lang-card .btn { align-self: flex-start; }
+  .lang-card-badge {
+    position: absolute; top: -9px; right: 14px; background: var(--accent); color: #fff;
+    font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  }
   .review-langs { display: flex; flex-wrap: wrap; gap: 10px; }
   .review-lang-opt {
     display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--surface-2);

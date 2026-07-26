@@ -259,19 +259,20 @@ function renderNav() {
   ).join('');
 
   const langLabel = view === 'lesson' ? COURSES[langKey].name : '언어';
-  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', dashboard: '통계', minigames: '미니게임', minigame: '미니게임', search: '검색' }[view] || '도구';
+  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', dashboard: '통계', minigames: '미니게임', minigame: '미니게임' }[view] || '도구';
   const langOpen = navDropdownOpen === 'lang';
   const toolsOpen = navDropdownOpen === 'tools';
 
   el('langbar').innerHTML = `
     ${homeChip}
+    ${searchChip}
     <div class="nav-dropdown">
       <button class="chip nav-dropdown-btn" type="button" data-nav-dd="lang" aria-expanded="${langOpen}" aria-pressed="${view === 'lesson'}">${esc(langLabel)} ▾</button>
       <div class="nav-dropdown-menu" ${langOpen ? '' : 'hidden'}>${langChips}</div>
     </div>
     <div class="nav-dropdown">
       <button class="chip nav-dropdown-btn" type="button" data-nav-dd="tools" aria-expanded="${toolsOpen}" aria-pressed="${toolLabel !== '도구'}">${esc(toolLabel)} ▾</button>
-      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${searchChip}${reviewChip}${wrongNoteChip}${playgroundChip}${statsChip}${minigameChip}</div>
+      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${reviewChip}${wrongNoteChip}${playgroundChip}${statsChip}${minigameChip}</div>
     </div>
   `;
 }
@@ -399,7 +400,7 @@ function renderHome() {
         ${badgeCount > 0 ? `<div class="home-stat badge">뱃지 ${badgeCount}/${ACHIEVEMENTS.length}개 보유</div>` : ''}
       </div>
       ${totalDone === 0
-        ? `<p class="muted" style="margin:0">아래에서 배우고 싶은 언어를 골라 바로 시작해보세요.${user ? '' : ' 회원가입하면 이 기기에서 나만의 진도를 따로 기록할 수 있어요.'}</p>`
+        ? `<p class="muted" style="margin:0">뭐부터 볼지 모르겠다면 아래 <b>파이썬(Python)</b>부터 시작해보는 걸 추천해요 — 문법이 쉬워서 프로그래밍 자체를 처음 배우기에 좋아요. 눈에 바로 보이는 결과를 원한다면 <b>HTML/CSS</b>도 좋은 선택이에요. 물론 어떤 언어로 시작해도 괜찮아요!${user ? '' : ' 회원가입하면 이 기기에서 나만의 진도를 따로 기록할 수 있어요.'}</p>`
         : ''}
       <div class="tip-line" style="margin-top:16px"><b>팁</b> ${pick(TIPS)}</div>
     </section>
@@ -423,7 +424,9 @@ function renderHome() {
       ${entries.map(([key, c]) => {
         const readyUnits = c.units.filter(u => u.ready);
         const doneCount = readyUnits.filter(u => progress[`${key}.${u.id}`]?.done).length;
+        const recommended = totalDone === 0 && key === 'python';
         return `<article class="lang-card" data-goto="${key}">
+          ${recommended ? '<span class="lang-card-badge">추천</span>' : ''}
           <h3>${c.name}</h3>
           <p>${c.tagline}</p>
           <div class="lang-card-meta">${readyUnits.length}개 단원 준비됨 · ${doneCount}개 완료</div>
