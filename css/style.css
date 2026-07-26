@@ -114,6 +114,18 @@
      트랙 자체가 화면 너비보다 커져서 페이지 전체가 옆으로 밀려날 수 있어요.
      min-width:0으로 트랙이 줄어들 수 있게 하고, 넘치는 내용은 각 요소 안에서만 스크롤되게 해요. */
   #main, #sidebar { min-width: 0; }
+  /* 여러 언어의 강의 데이터를 다 불러오는 동안(script 태그가 실행을 마칠 때까지)
+     #main이 비어 보이지 않도록 보여주는 초기 로딩 표시예요. app.js가 첫 렌더링을
+     하면(innerHTML을 새로 채우면) 이 내용은 자동으로 사라져요. */
+  .initial-loading {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 100px 20px; color: var(--text-dim);
+  }
+  .spinner {
+    width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ---------- 사이드바 ---------- */
   aside { position: sticky; top: 78px; display: grid; gap: 16px; }
