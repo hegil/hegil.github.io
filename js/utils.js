@@ -17,6 +17,30 @@ function makeChoice(q, correct, distractors, why, hint) {
   return { type: 'choice', q, opts, answer: opts.indexOf(correct), why, hint };
 }
 
+/* "오늘의 문제"처럼 모두에게 똑같은 결과가 나와야 할 때 쓰는 시드 기반 난수 생성기.
+   같은 seed를 넣으면 항상 똑같은 순서의 "무작위" 값이 나와요(mulberry32 알고리즘). */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/* 문자열을 하나의 정수 시드값으로 바꿔줌(날짜 문자열을 난수 시드로 쓰기 위해) */
+function hashStringToSeed(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return h;
+}
+/* 오늘 날짜를 "YYYY-MM-DD" 형태로(기기의 로컬 시간 기준) */
+function todayDateString() {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 /* 한 언어 안에서 준비된(ready) 단원들을 순서대로 3등분해 초급/중급/고급을 매김.
    앞쪽 그룹부터 나머지를 하나씩 더 받아서, 단원 수가 3의 배수가 아니어도
    세 티어 모두 최소 1개 이상의 단원을 갖도록 나눠요. */

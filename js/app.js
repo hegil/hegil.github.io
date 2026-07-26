@@ -9,7 +9,9 @@ const SYNTAX = {
   kotlin:     { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['val','var','fun','if','else','when','for','while','in','return','class','object','interface','data','companion','override','private','public','is','as','null','true','false','Int','String','Boolean','Double'] },
   csharp:     { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['public','private','protected','static','void','class','new','return','if','else','for','foreach','while','int','float','double','bool','string','true','false','null','using','namespace','override','var'] },
   c:          { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['include','int','float','double','char','void','return','if','else','for','while','sizeof','const','unsigned','struct','printf','scanf','main'] },
-  sql:        { comment:'--[^\\n]*', keywords:['SELECT','FROM','WHERE','ORDER','BY','GROUP','JOIN','ON','ASC','DESC','LIMIT','AS','COUNT','SUM','AVG','MAX','MIN','AND','OR','NOT','IN','LIKE','NULL','INSERT','INTO','VALUES','UPDATE','DELETE','CREATE','TABLE'] }
+  sql:        { comment:'--[^\\n]*', keywords:['SELECT','FROM','WHERE','ORDER','BY','GROUP','JOIN','ON','ASC','DESC','LIMIT','AS','COUNT','SUM','AVG','MAX','MIN','AND','OR','NOT','IN','LIKE','NULL','INSERT','INTO','VALUES','UPDATE','DELETE','CREATE','TABLE'] },
+  go:         { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['package','import','func','var','const','type','struct','interface','map','chan','go','defer','return','if','else','for','range','switch','case','default','break','continue','select','fallthrough','nil','true','false','int','string','bool','float64','error','make','len','cap'] },
+  php:        { comment:'//[^\\n]*|#[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['echo','print','function','fn','return','if','elseif','else','foreach','for','while','as','class','new','public','private','protected','static','true','false','null','array','use','namespace','try','catch','throw','extends','implements','interface','abstract','const','match','switch','case','default','break','continue','require','include'] }
 };
 const STRING_PAT = `"""[\\s\\S]*?"""|'''[\\s\\S]*?'''|\`(?:\\\\.|[^\`\\\\])*\`|"(?:\\\\.|[^"\\\\\\n])*"|'(?:\\\\.|[^'\\\\\\n])*'|<[a-z.]+\\.h>`;
 
@@ -254,12 +256,14 @@ function renderNav() {
   const statsChip = `<button class="chip stats-chip" type="button" aria-pressed="${view === 'dashboard'}">통계</button>`;
   const minigameChip = `<button class="chip minigame-chip" type="button" aria-pressed="${view === 'minigames' || view === 'minigame'}">미니게임</button>`;
   const searchChip = `<button class="chip search-chip" type="button" aria-pressed="${view === 'search'}">검색</button>`;
+  const cheatSheetChip = `<button class="chip cheatsheet-chip" type="button" aria-pressed="${view === 'cheatsheet'}">치트시트</button>`;
+  const dailyChip = `<button class="chip daily-chip" type="button" aria-pressed="${view === 'daily'}">오늘의 문제</button>`;
   const langChips = Object.entries(COURSES).map(([k, c]) =>
     `<button class="chip" type="button" data-lang="${k}" aria-pressed="${view === 'lesson' && k === langKey}">${c.name}</button>`
   ).join('');
 
   const langLabel = view === 'lesson' ? COURSES[langKey].name : '언어';
-  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', dashboard: '통계', minigames: '미니게임', minigame: '미니게임' }[view] || '도구';
+  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', dashboard: '통계', minigames: '미니게임', minigame: '미니게임', cheatsheet: '치트시트', daily: '오늘의 문제' }[view] || '도구';
   const langOpen = navDropdownOpen === 'lang';
   const toolsOpen = navDropdownOpen === 'tools';
 
@@ -272,7 +276,7 @@ function renderNav() {
     </div>
     <div class="nav-dropdown">
       <button class="chip nav-dropdown-btn" type="button" data-nav-dd="tools" aria-expanded="${toolsOpen}" aria-pressed="${toolLabel !== '도구'}">${esc(toolLabel)} ▾</button>
-      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${reviewChip}${wrongNoteChip}${playgroundChip}${statsChip}${minigameChip}</div>
+      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${dailyChip}${reviewChip}${wrongNoteChip}${cheatSheetChip}${playgroundChip}${statsChip}${minigameChip}</div>
     </div>
   `;
 }
@@ -386,6 +390,7 @@ function renderHome() {
   const continuing = entries
     .map(([key, c]) => ({ key, c, next: nextUnitFor(key) }))
     .filter(({ next }) => next && next.doneCount > 0);
+  const dailyDone = !!progress[`daily.${todayDateString()}`];
 
   el('main').innerHTML = `
     <section class="home-hero">
@@ -403,6 +408,17 @@ function renderHome() {
         ? `<p class="muted" style="margin:0">뭐부터 볼지 모르겠다면 아래 <b>파이썬(Python)</b>부터 시작해보는 걸 추천해요 — 문법이 쉬워서 프로그래밍 자체를 처음 배우기에 좋아요. 눈에 바로 보이는 결과를 원한다면 <b>HTML/CSS</b>도 좋은 선택이에요. 물론 어떤 언어로 시작해도 괜찮아요!${user ? '' : ' 회원가입하면 이 기기에서 나만의 진도를 따로 기록할 수 있어요.'}</p>`
         : ''}
       <div class="tip-line" style="margin-top:16px"><b>팁</b> ${pick(TIPS)}</div>
+    </section>
+    <section class="block card boss-cta">
+      <div class="body">
+        <div>
+          <h3>오늘의 문제 ${dailyDone ? '✅' : ''}</h3>
+          <p class="muted">${dailyDone
+            ? '오늘 문제는 이미 풀었어요. 내일 새 문제로 다시 만나요!'
+            : '오늘 하루, 모두에게 똑같은 문제가 나와요. 한번 도전해보세요!'}</p>
+        </div>
+        <button class="btn ${dailyDone ? 'ghost' : ''} small" type="button" id="goDailyBtn">${dailyDone ? '결과 다시 보기' : '도전하기'}</button>
+      </div>
     </section>
     ${continuing.length ? `
     <section class="block card continue-card">
@@ -519,7 +535,9 @@ const PLAYGROUND_TABS = [
   { key: 'java', label: 'Java', kind: 'highlight' },
   { key: 'kotlin', label: 'Kotlin', kind: 'highlight' },
   { key: 'c', label: 'C', kind: 'highlight' },
-  { key: 'unity', label: 'Unity(C#)', kind: 'highlight', highlightLang: 'csharp' }
+  { key: 'unity', label: 'Unity(C#)', kind: 'highlight', highlightLang: 'csharp' },
+  { key: 'go', label: 'Go', kind: 'highlight' },
+  { key: 'php', label: 'PHP', kind: 'highlight' }
 ];
 let playgroundLang = 'javascript';
 const playgroundCode = {
@@ -531,7 +549,9 @@ const playgroundCode = {
   java: '// 여기에 자바 코드를 자유롭게 써보세요\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
   kotlin: '// 여기에 Kotlin 코드를 자유롭게 써보세요\nfun main() {\n    println("Hello, World!")\n}',
   c: '// 여기에 C 코드를 자유롭게 써보세요\n#include <stdio.h>\n\nint main(void) {\n    printf("Hello, World!\\n");\n    return 0;\n}',
-  unity: '// 여기에 Unity C# 스크립트를 자유롭게 써보세요\npublic class PlayerScript : MonoBehaviour\n{\n    void Start()\n    {\n        Debug.Log("게임 시작!");\n    }\n}'
+  unity: '// 여기에 Unity C# 스크립트를 자유롭게 써보세요\npublic class PlayerScript : MonoBehaviour\n{\n    void Start()\n    {\n        Debug.Log("게임 시작!");\n    }\n}',
+  go: '// 여기에 Go 코드를 자유롭게 써보세요\npackage main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello, World!")\n}',
+  php: '<?php\n// 여기에 PHP 코드를 자유롭게 써보세요\necho "Hello, World!";'
 };
 
 /* 외부 스크립트(Pyodide, sql.js)를 한 번만 불러오는 헬퍼. 실습장에서 그 언어를
@@ -979,6 +999,185 @@ function renderSearchView() {
   const val = el('searchInput').value;
   el('searchInput').value = '';
   el('searchInput').value = val; // 커서를 맨 끝으로 이동시켜요
+}
+
+/* =========================================================================
+   5.9) 치트시트 — 언어별 핵심 문법을 한 페이지로 압축해서 보여주고, 인쇄도 가능해요
+   ========================================================================= */
+function goCheatSheet(lang) {
+  view = 'cheatsheet';
+  el('sidebar').hidden = true;
+  el('wrap').classList.add('home-view');
+  renderNav();
+  if (lang) renderCheatSheetView(lang); else renderCheatSheetPicker();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderCheatSheetPicker() {
+  const entries = Object.entries(COURSES);
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">치트시트</div>
+      <h1>어떤 언어의 치트시트를 볼까요?</h1>
+      <p>언어별 핵심 문법을 한 페이지로 압축해서 보여줘요. 인쇄하거나 저장해서 옆에 두고 참고하기 좋아요.</p>
+    </div>
+    <section class="lang-grid">
+      ${entries.map(([key, c]) => `
+        <article class="lang-card" data-cheatsheet="${key}">
+          <h3>${esc(c.name)}</h3>
+          <p>${esc(c.tagline)}</p>
+          <button class="btn" type="button" data-cheatsheet="${key}">보기</button>
+        </article>`).join('')}
+    </section>`;
+}
+
+function renderCheatSheetView(key) {
+  const c = COURSES[key];
+  const units = c.units.filter(u => u.ready);
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">치트시트</div>
+      <h1>${esc(c.name)} 핵심 문법 요약</h1>
+      <p>배운 문법을 빠르게 훑어보거나, 인쇄해서 옆에 두고 참고할 수 있어요.</p>
+      <div class="no-print" style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn ghost small" type="button" id="printCheatSheet">인쇄하기</button>
+        <button class="text-btn" type="button" id="cheatSheetChangeLang">다른 언어 보기</button>
+      </div>
+    </div>
+    <section class="cheatsheet-grid">
+      ${units.map((u, i) => {
+        const firstCodeBlock = u.blocks.find(b => b.code);
+        return `<article class="block card cheatsheet-item">
+          <h3>${i + 1}. ${esc(u.title)}</h3>
+          <p class="muted">${esc(u.summary)}</p>
+          ${firstCodeBlock ? codeFigure(firstCodeBlock.code, key) : ''}
+        </article>`;
+      }).join('')}
+    </section>`;
+}
+
+/* =========================================================================
+   5.10) 오늘의 문제 — 날짜로 난수 시드를 고정해서, 그날 하루는 누구에게나 똑같은 문제가 나와요
+   ========================================================================= */
+let dailyChallenge = null; // { dateStr, langKey, unit, question, answered, ok }
+
+function todaysChallenge() {
+  const dateStr = todayDateString();
+  const rng = mulberry32(hashStringToSeed('daily-' + dateStr));
+  const langKeys = Object.keys(COURSES);
+  const langKey = langKeys[Math.floor(rng() * langKeys.length)];
+  const readyUnits = COURSES[langKey].units.filter(u => u.ready);
+  const unit = readyUnits[Math.floor(rng() * readyUnits.length)];
+  const genIndex = Math.floor(rng() * unit.quizGenerators.length);
+
+  const originalRandom = Math.random;
+  Math.random = rng; // 이 문제를 만드는 동안만, 단원 안의 randInt/pick도 같은 시드를 쓰게 해요
+  let question;
+  try { question = unit.quizGenerators[genIndex](); }
+  finally { Math.random = originalRandom; }
+
+  return { dateStr, langKey, unit, question };
+}
+
+function goDaily() {
+  view = 'daily';
+  el('sidebar').hidden = true;
+  el('wrap').classList.add('home-view');
+  renderNav();
+
+  const { dateStr, langKey, unit, question } = todaysChallenge();
+  const saved = progress[`daily.${dateStr}`];
+  dailyChallenge = { dateStr, langKey, unit, question, answered: !!saved, ok: saved ? saved.correct : null };
+  renderDaily();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function dailyFoot() {
+  if (dailyChallenge.answered) return '';
+  return `
+    <button class="btn" type="button" id="dailyCheck">확인하기</button>
+    <button class="btn ghost" type="button" id="dailyHint">힌트 보기</button>`;
+}
+
+function renderDaily() {
+  const course = COURSES[dailyChallenge.langKey];
+  const bodyHTML = dailyChallenge.answered
+    ? `<div class="verdict ${dailyChallenge.ok ? 'ok' : 'no'}">
+         <div class="q-text" style="margin-bottom:8px">${dailyChallenge.question.q}</div>
+         ${dailyChallenge.ok ? '정답이었어요! 🎉' : '아쉽게 오답이었어요.'} ${dailyChallenge.question.why}
+         <div class="muted" style="margin-top:8px">오늘의 문제는 이미 풀었어요. 내일 새 문제로 다시 만나요!</div>
+       </div>`
+    : `<div id="qlist">${quizItem(dailyChallenge.question)}</div>
+       <div class="hint-box" id="hintBox" hidden></div>`;
+
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">오늘의 문제 · ${esc(dailyChallenge.dateStr)}</div>
+      <h1>${esc(course.name)} · ${esc(dailyChallenge.unit.title)}</h1>
+      <p>오늘 하루, 모두에게 똑같은 문제가 나와요. 하루에 한 번만 도전할 수 있고, 날짜가 바뀌면 새 문제로 바뀌어요.</p>
+    </div>
+    <section class="block card">
+      <div class="body" style="padding-top:20px;padding-bottom:6px">
+        ${bodyHTML}
+      </div>
+      ${dailyChallenge.answered ? '' : `<div class="quiz-foot">${dailyFoot()}</div>`}
+    </section>
+    ${dailyHistoryHTML()}`;
+}
+
+/* 최근 N일치 오늘의 문제 참여 기록을 { dateStr, state: 'ok'|'no'|'none' } 배열로 돌려줘요 */
+function dailyHistoryDays(count = 28) {
+  const days = [];
+  const today = new Date();
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${d.getFullYear()}-${mm}-${dd}`;
+    const rec = progress[`daily.${dateStr}`];
+    days.push({ dateStr, state: rec ? (rec.correct ? 'ok' : 'no') : 'none' });
+  }
+  return days;
+}
+
+function dailyHistoryHTML() {
+  const history = dailyHistoryDays(28);
+  const participated = history.filter(d => d.state !== 'none').length;
+  const correctCount = history.filter(d => d.state === 'ok').length;
+  return `
+    <section class="block card">
+      <h2>지난 28일 기록</h2>
+      <div class="body">
+        <p class="muted" style="margin:0 0 12px">최근 28일 중 ${participated}일 참여, ${correctCount}일 정답</p>
+        <div class="daily-history-grid">
+          ${history.map(d => `<span class="daily-history-cell ${d.state}" data-date="${d.dateStr}" title="${d.dateStr}"></span>`).join('')}
+        </div>
+      </div>
+    </section>`;
+}
+
+function checkDailyAnswer() {
+  const box = document.querySelector('.q[data-q="0"]');
+  const ok = gradeQuestion(dailyChallenge.question, box);
+  if (ok === null) return;
+
+  touchDailyStreak();
+  dailyChallenge.answered = true;
+  dailyChallenge.ok = ok;
+  progress[`daily.${dailyChallenge.dateStr}`] = { correct: ok };
+  saveProgress(progress);
+  el('main').querySelector('.quiz-foot').innerHTML = dailyFoot();
+
+  const cell = document.querySelector(`.daily-history-cell[data-date="${dailyChallenge.dateStr}"]`);
+  if (cell) cell.className = `daily-history-cell ${ok ? 'ok' : 'no'}`;
+}
+
+function showDailyHint() {
+  const box = el('hintBox');
+  if (!box) return;
+  box.hidden = false;
+  box.innerHTML = `<b>힌트</b> ${dailyChallenge.question?.hint || '이 문제는 따로 힌트가 없어요.'}`;
 }
 
 function renderUnits() {
@@ -1464,6 +1663,8 @@ document.addEventListener('click', async e => {
     else if (chip.classList.contains('stats-chip')) goStatsDashboard();
     else if (chip.classList.contains('minigame-chip')) goMinigameHub();
     else if (chip.classList.contains('search-chip')) goSearch();
+    else if (chip.classList.contains('cheatsheet-chip')) goCheatSheet();
+    else if (chip.classList.contains('daily-chip')) goDaily();
     else goLesson(chip.dataset.lang, 0);
     return;
   }
@@ -1481,6 +1682,15 @@ document.addEventListener('click', async e => {
 
   const gotoEl = e.target.closest('[data-goto]');
   if (gotoEl) { goLesson(gotoEl.dataset.goto, Number(gotoEl.dataset.gotoIdx || 0)); return; }
+
+  const cheatSheetEl = e.target.closest('[data-cheatsheet]');
+  if (cheatSheetEl) { goCheatSheet(cheatSheetEl.dataset.cheatsheet); return; }
+
+  if (e.target.id === 'printCheatSheet') { window.print(); return; }
+  if (e.target.id === 'cheatSheetChangeLang') { goCheatSheet(); return; }
+  if (e.target.id === 'goDailyBtn') { goDaily(); return; }
+  if (e.target.id === 'dailyCheck') { checkDailyAnswer(); return; }
+  if (e.target.id === 'dailyHint') { showDailyHint(); return; }
 
   const unitBtn = e.target.closest('.unit-btn');
   if (unitBtn && !unitBtn.disabled) {

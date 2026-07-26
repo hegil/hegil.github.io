@@ -17,6 +17,8 @@ const GAME_MATRIX = {
   typescript: { beginner: 'reorder',  intermediate: 'keywords', advanced: 'speed' },
   kotlin:     { beginner: 'typing',   intermediate: 'match',   advanced: 'keywords' },
   unity:      { beginner: 'speed',    intermediate: 'bug',     advanced: 'typing' },
+  go:         { beginner: 'match',    intermediate: 'reorder', advanced: 'bug' },
+  php:        { beginner: 'bug',      intermediate: 'keywords', advanced: 'typing' },
 };
 
 const GAME_TYPE_LABEL = {
@@ -149,6 +151,22 @@ const BUG_SNIPPETS = {
     { lines: ['void Update()', '{', '    if (Input.GetKeyDown(KeyCode.Space))', '        Debug.Log("점프!")', '}'], buggy: 3,
       why: 'C# 문장 끝에는 세미콜론(;)이 있어야 해요. <code>Debug.Log("점프!");</code>가 맞아요.' },
   ],
+  go: [
+    { lines: ['age := 17', 'fmt.Println("%d", age)'], buggy: 1,
+      why: '<code>Println</code>은 서식 문자열을 해석하지 않아요. 그대로 <code>%d 17</code>이 출력돼요. 서식이 필요하면 <code>fmt.Printf("%d\\n", age)</code>를 써야 해요.' },
+    { lines: ['var age int', 'age := 20', 'fmt.Println(age)'], buggy: 1,
+      why: '이미 선언된 변수를 <code>:=</code>로 다시 선언하면 오류가 나요("no new variables"). <code>age = 20</code>처럼 그냥 대입해야 해요.' },
+    { lines: ['func main() {', '    name := "지수"', '}'], buggy: 1,
+      why: '선언만 하고 쓰지 않은 변수가 있으면 Go는 컴파일 오류를 내요("declared and not used"). name을 어딘가에서 사용해야 해요.' },
+  ],
+  php: [
+    { lines: ['name = "지수";', 'echo $name;'], buggy: 0,
+      why: 'PHP 변수는 항상 <code>$</code>로 시작해야 해요. <code>$name = "지수";</code>가 맞아요.' },
+    { lines: ['$age = 17', 'echo $age;'], buggy: 0,
+      why: '문장 끝에 세미콜론(;)이 빠졌어요. <code>$age = 17;</code>이 맞아요.' },
+    { lines: ['$name = "지수";', 'echo "안녕하세요, " + $name;'], buggy: 1,
+      why: 'PHP에서 문자열을 이어붙일 때는 <code>+</code>가 아니라 마침표(<code>.</code>)를 써야 해요. <code>"안녕하세요, " . $name</code>이 맞아요.' },
+  ],
 };
 const BUG_ROUNDS = 6;
 
@@ -252,6 +270,8 @@ const TYPING_SNIPPETS = {
   sql: ['SELECT * FROM students;', 'WHERE age >= 18;', 'ORDER BY age DESC;', 'GROUP BY city;', 'SELECT name FROM students;'],
   kotlin: ['println("Hello, World!")', 'val age = 17', 'if (age >= 18) {', 'for (i in 1..5) {', 'fun add(a: Int, b: Int) = a + b'],
   unity: ['Debug.Log("Hello!");', 'void Update()', 'transform.position += Vector3.up;', 'public float speed = 5.0f;', 'if (Input.GetKeyDown(KeyCode.Space))'],
+  go: ['fmt.Println("Hello, World!")', 'age := 17', 'if age >= 18 {', 'for i := 0; i < 5; i++ {', 'func add(a int, b int) int {'],
+  php: ['echo "Hello, World!";', '$age = 17;', 'if ($age >= 18) {', 'foreach ($items as $item) {', 'function add($a, $b) {'],
 };
 
 function renderTypingGame(lang) {
@@ -329,6 +349,14 @@ const REORDER_SNIPPETS = {
   typescript: [
     ['function add(a: number, b: number): number {', '  return a + b;', '}'],
     ['interface Student {', '  name: string;', '  age: number;', '}'],
+  ],
+  go: [
+    ['age := 17', 'if age >= 18 {', '    fmt.Println("성인")', '} else {', '    fmt.Println("미성년자")', '}'],
+    ['total := 0', 'for i := 0; i < 5; i++ {', '    total += i', '}', 'fmt.Println(total)'],
+  ],
+  php: [
+    ['$age = 17;', 'if ($age >= 18) {', '    echo "성인";', '} else {', '    echo "미성년자";', '}'],
+    ['$total = 0;', 'for ($i = 0; $i < 5; $i++) {', '    $total += $i;', '}'],
   ],
 };
 
@@ -443,6 +471,22 @@ const MATCH_PAIRS = {
     { term: 'when', def: '여러 경우를 깔끔하게 나누는 조건문' },
     { term: 'data class', def: '값 비교 기능을 자동으로 만들어주는 클래스' },
     { term: '1..5', def: '1부터 5까지(양 끝 포함)를 나타내는 범위' },
+  ],
+  go: [
+    { term: 'func', def: '함수를 만드는 키워드' },
+    { term: ':=', def: '타입을 안 적고 새 변수를 선언하는 기호' },
+    { term: 'fmt.Println', def: '화면에 값을 출력하고 줄바꿈하는 함수' },
+    { term: 'slice', def: '크기가 자유롭게 늘어나는 배열 같은 자료형' },
+    { term: 'goroutine', def: 'go 키워드로 시작하는 가벼운 동시 실행 단위' },
+    { term: 'nil', def: '값이 없음을 나타내는 특별한 값' },
+  ],
+  php: [
+    { term: 'echo', def: '화면에 값을 출력하는 명령' },
+    { term: '$변수', def: '변수 이름 앞에 항상 붙이는 기호' },
+    { term: '.', def: '문자열을 이어붙일 때 쓰는 연산자' },
+    { term: 'foreach', def: '배열의 각 값을 순회하는 반복문' },
+    { term: '===', def: '값과 타입까지 함께 비교하는 연산자' },
+    { term: 'array()', def: '배열을 만드는 방법 중 하나' },
   ],
 };
 
@@ -625,6 +669,8 @@ const KEYWORD_BANK = {
   sql: ['SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'JOIN', 'COUNT', 'AVG', 'SUM', 'INSERT', 'UPDATE', 'DELETE'],
   typescript: ['interface', 'type', 'string', 'number', 'boolean', 'let', 'const', 'function', 'readonly', 'enum', 'as', 'keyof'],
   kotlin: ['val', 'var', 'fun', 'when', 'data', 'class', 'Int', 'String', 'Boolean', 'override', 'companion', 'null'],
+  go: ['func', 'package', 'import', 'var', 'if', 'for', 'range', 'return', 'struct', 'interface', 'defer', 'go'],
+  php: ['echo', 'function', 'if', 'foreach', 'for', 'while', 'true', 'false', 'null', 'class', 'return', 'array'],
 };
 function pickKeywordDistractors(lang, count) {
   const validSet = new Set((KEYWORD_BANK[lang] || []).map(w => w.toLowerCase()));
