@@ -1096,6 +1096,601 @@ print(greet())`,
           hint: '1의 제곱, 2의 제곱, ... 순서대로 하나씩 계산해보세요.'
         };
       }
+    },
+    {
+      id: 'string',
+      title: '문자열 다루기',
+      ready: true,
+      summary: '글자를 잘라내고, 다듬고, 나누고 합치는 등 실전에서 정말 자주 쓰는 문자열 다루기를 배워요.',
+      goals: ['슬라이싱', 'upper/lower/strip', 'split과 join', 'replace'],
+      blocks: [
+        {
+          h: '문자열도 순서대로 잘라낼 수 있어요: 슬라이싱',
+          html: `<p>문자열도 리스트처럼 순번(인덱스)이 있어서 <code>[시작:끝]</code>으로 일부만 잘라낼 수 있어요. 이걸 <b>슬라이싱</b>이라고 해요. <b>끝 번호는 포함되지 않는다</b>는 걸 꼭 기억하세요.</p>`,
+          code: {
+            label: 'slice.py',
+            src: `word = "PYTHON"
+
+print(word[0:3])   # 0번부터 2번까지
+print(word[3:])    # 3번부터 끝까지
+print(word[-1])    # 맨 뒤 글자`,
+            out: `PYT\nHON\nN`
+          }
+        },
+        {
+          h: '대소문자와 공백 다듬기',
+          html: `<p><code>.upper()</code>는 모두 대문자로, <code>.lower()</code>는 모두 소문자로 바꿔요. <code>.strip()</code>은 문자열 앞뒤에 붙은 필요 없는 공백을 없애줘요(가운데 공백은 그대로 둬요).</p>`,
+          code: {
+            label: 'clean.py',
+            src: `text = "  Hello World  "
+
+print(text.strip())
+print(text.strip().upper())`,
+            out: `Hello World\nHELLO WORLD`
+          }
+        },
+        {
+          h: '나누고 합치기: split과 join',
+          html: `<p><code>.split(구분자)</code>는 문자열을 구분자 기준으로 잘라 리스트로 만들어요. 반대로 <code>"구분자".join(리스트)</code>는 리스트의 값들을 그 구분자로 이어 붙여서 다시 하나의 문자열로 만들어요.</p>`,
+          code: {
+            label: 'split_join.py',
+            src: `csv = "지수,민준,서연"
+
+names = csv.split(",")
+print(names)
+print("-".join(names))`,
+            out: `['지수', '민준', '서연']\n지수-민준-서연`
+          },
+          after: `<div class="note"><b>덤</b> — <code>.replace(old, new)</code>는 문자열 안의 <code>old</code>를 전부 <code>new</code>로 바꿔줘요. 예: <code>"hi hi".replace("hi", "bye")</code> → <code>"bye bye"</code>.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const words = ['PYTHON', 'BANANA', 'STUDENT', 'KOREA'];
+          const w = pick(words);
+          const start = randInt(0, w.length - 3);
+          const end = randInt(start + 1, w.length - 1);
+          return {
+            type: 'blank',
+            q: `<code>word = "${w}"</code>일 때, <code>word[${start}:${end}]</code>의 결과는 무엇일까요? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [w.slice(start, end)], placeholder: '값',
+            why: `<code>[${start}:${end}]</code>는 ${start}번부터 ${end - 1}번까지(끝 번호 ${end}는 포함 안 됨) 글자를 잘라내서 "${w.slice(start, end)}"가 돼요.`,
+            hint: '끝 번호는 포함되지 않는다는 걸 잊지 마세요. 시작 번호부터 끝 번호 바로 앞까지예요.'
+          };
+        },
+        () => makeChoice(
+          '문자열 앞뒤의 필요 없는 공백만 없애주는 메서드는?',
+          '<code>.strip()</code>', ['<code>.upper()</code>', '<code>.split()</code>', '<code>.join()</code>'],
+          '<code>.strip()</code>은 문자열 양 끝의 공백을 없애줘요.',
+          '"벗겨내다"라는 뜻의 영어 단어예요.'
+        ),
+        () => {
+          const items = shuffle(['사과', '바나나', '포도', '딸기', '수박']).slice(0, randInt(3, 5));
+          const csv = items.join(',');
+          return {
+            type: 'blank',
+            q: `<code>"${csv}".split(",")</code>의 결과로 만들어지는 리스트의 길이(<code>len()</code>)는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(items.length)], placeholder: '숫자',
+            why: `쉼표를 기준으로 나누면 ${items.length}개의 값으로 이루어진 리스트가 만들어져요.`,
+            hint: '쉼표(,)가 몇 개 있는지 세어보고 그보다 하나 더 많은 조각이 나온다는 걸 떠올려보세요.'
+          };
+        },
+        () => {
+          const items = shuffle(['지수', '민준', '서연']).slice(0, 3);
+          const sep = pick(['-', ' & ', '/']);
+          return {
+            type: 'blank',
+            q: `리스트 <code>names = [${items.map(v => `'${v}'`).join(', ')}]</code>를 <code>"${sep}"</code>로 이어 붙인 하나의 문자열로 만드는 코드를 완성하세요.`,
+            prefix: `"${sep}".`, suffix: '(names)', accept: ['join'], placeholder: '메서드 이름',
+            why: `<code>"${sep}".join(names)</code>는 결과로 "${items.join(sep)}"를 만들어요.`,
+            hint: '구분자 문자열 뒤에 점을 찍고, 리스트를 이어 붙이는 메서드를 쓰세요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `문자열 <code>"hi hi"</code> 안의 <code>"hi"</code>를 전부 <code>"bye"</code>로 바꾸는 코드를 완성하세요.`,
+          prefix: '"hi hi".', suffix: '("hi", "bye")', accept: ['replace'], placeholder: '메서드 이름',
+          why: `<code>.replace("hi", "bye")</code>는 문자열 안의 모든 "hi"를 "bye"로 바꿔서 "bye bye"가 돼요.`,
+          hint: '"바꾸다, 대체하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '문자열 <code>"  hello  "</code>의 앞뒤 공백을 없앤 뒤 모두 대문자로 바꿔서 출력하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'print("  hello  ".strip().upper())',
+          accept: ['print("  hello  ".strip().upper())'],
+          why: '<code>.strip()</code>으로 공백을 없앤 뒤 <code>.upper()</code>로 대문자로 바꿔서 출력해요.',
+          hint: '.strip()과 .upper()를 점(.)으로 이어서 붙여 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const items = shuffle(['지수', '민준', '서연', '도윤']).slice(0, randInt(3, 4));
+        const csv = items.join(',');
+        return {
+          type: 'blank',
+          q: `<code>"${csv}".split(",")</code>로 만든 리스트를 다시 <code>" / ".join(...)</code>으로 이어 붙이면 어떤 문자열이 될까요? (따옴표 없이)`,
+          prefix: '', suffix: '', accept: [items.join(' / ')], placeholder: '값',
+          why: `split으로 쉼표 기준으로 나눈 리스트 [${items.map(v => `'${v}'`).join(', ')}]를 " / "로 다시 이어 붙이면 "${items.join(' / ')}"가 돼요.`,
+          hint: 'split으로 먼저 나눈 뒤, 그 결과 리스트를 join으로 다른 구분자를 써서 다시 이어 붙이는 순서를 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'tupleset',
+      title: '튜플과 집합',
+      ready: true,
+      summary: '한 번 정하면 못 바꾸는 튜플과, 중복 없이 값을 모으는 집합(set)을 배워요.',
+      goals: ['튜플 만들기와 특징', '집합(set) 만들기', '중복 제거', '교집합/합집합'],
+      blocks: [
+        {
+          h: '한 번 정하면 못 바꾸는 상자: 튜플',
+          html: `<p><b>튜플</b>은 리스트와 비슷하게 여러 값을 순서대로 담지만, 대괄호 <code>[ ]</code> 대신 소괄호 <code>( )</code>를 쓰고 <b>한 번 만들면 값을 바꿀 수 없어요</b>. 좌표처럼 "절대 바뀌면 안 되는 값 묶음"에 잘 어울려요.</p>`,
+          code: {
+            label: 'tuple.py',
+            src: `point = (3, 4)
+print(point[0], point[1])`,
+            out: `3 4`
+          },
+          after: `<div class="note"><b>자주 하는 실수</b> — <code>point[0] = 10</code>처럼 튜플 값을 바꾸려 하면 <code>TypeError</code>가 나요. 바꾸고 싶다면 리스트를 쓰세요.</div>`
+        },
+        {
+          h: '중복을 허용하지 않는 상자: 집합(set)',
+          html: `<p><b>집합</b>은 중괄호 <code>{ }</code>로 만들고, 같은 값이 여러 번 들어와도 <b>딱 하나만</b> 남겨요. 순서도 따로 정해져 있지 않아요. 그래서 "중복 제거"가 필요할 때 아주 유용해요.</p>`,
+          code: {
+            label: 'set.py',
+            src: `nums = {1, 2, 2, 3, 3, 3}
+print(nums)`,
+            out: `{1, 2, 3}`
+          }
+        },
+        {
+          h: '집합끼리 비교하기: 교집합과 합집합',
+          html: `<p>두 집합에 <b>공통으로</b> 들어있는 값만 보고 싶으면 <code>&</code>(교집합), <b>둘 중 하나에라도</b> 있는 값을 모두 모으고 싶으면 <code>|</code>(합집합)를 써요.</p>`,
+          code: {
+            label: 'set_ops.py',
+            src: `a = {1, 2, 3}
+b = {2, 3, 4}
+
+print(a & b)
+print(a | b)`,
+            out: `{2, 3}\n{1, 2, 3, 4}`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const x = randInt(1, 20), y = randInt(1, 20);
+          const idx = pick([0, 1]);
+          return {
+            type: 'blank',
+            q: `<code>point = (${x}, ${y})</code>일 때, <code>point[${idx}]</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(idx === 0 ? x : y)], placeholder: '숫자',
+            why: `튜플도 리스트처럼 순번으로 꺼내서, <code>[${idx}]</code>는 ${idx === 0 ? x : y}예요.`,
+            hint: '튜플도 리스트와 똑같이 0번부터 순번을 세요.'
+          };
+        },
+        () => makeChoice(
+          '이미 만든 튜플의 값을 바꾸려고 하면 어떻게 될까요?',
+          '<code>TypeError</code>가 난다', ['조용히 바뀐다', '아무 일도 안 일어난다', '자동으로 리스트가 된다'],
+          '튜플은 한 번 만들면 값을 바꿀 수 없어서(불변), 바꾸려 하면 <code>TypeError</code>가 나요.',
+          '튜플의 가장 큰 특징은 "바꿀 수 없다"는 점이에요.'
+        ),
+        () => {
+          const nums = Array.from({ length: randInt(6, 9) }, () => randInt(1, 4));
+          const uniqueCount = new Set(nums).size;
+          return {
+            type: 'blank',
+            q: `<code>nums = [${nums.join(', ')}]</code>일 때, <code>len(set(nums))</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(uniqueCount)], placeholder: '숫자',
+            why: `<code>set(nums)</code>는 중복을 없애서 서로 다른 값 ${uniqueCount}개만 남겨요.`,
+            hint: '리스트 안에서 서로 다른 값이 몇 종류인지 세어보세요.'
+          };
+        },
+        () => {
+          const a = shuffle([1, 2, 3, 4, 5]).slice(0, 3).sort((x, y) => x - y);
+          const b = shuffle([1, 2, 3, 4, 5]).slice(0, 3).sort((x, y) => x - y);
+          const inter = a.filter(v => b.includes(v)).sort((x, y) => x - y);
+          return {
+            type: 'blank',
+            q: `<code>a = {${a.join(', ')}}</code>, <code>b = {${b.join(', ')}}</code>일 때, <code>a & b</code>(교집합)의 결과를 중괄호 없이 쉼표로 구분해서 쓰세요. (없으면 "없음")`,
+            prefix: '', suffix: '', accept: [inter.length ? inter.join(', ') : '없음'], placeholder: '값, 값, ...',
+            why: inter.length
+              ? `두 집합에 공통으로 들어있는 값은 ${inter.join(', ')}예요.`
+              : `두 집합에 공통으로 들어있는 값이 하나도 없어요.`,
+            hint: '두 집합에 동시에 들어있는 값만 골라보세요.'
+          };
+        },
+        () => makeChoice(
+          '두 집합 중 하나에라도 들어있는 값을 모두 모으고 싶을 때 쓰는 연산자는?',
+          '<code>|</code>', ['<code>&</code>', '<code>+</code>', '<code>and</code>'],
+          '<code>|</code>(합집합)은 두 집합 중 하나에라도 있는 값을 모두 모아요.',
+          '교집합(&)과 반대로, "둘 중 하나만 있어도" 되는 쪽이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '리스트 <code>[1, 2, 2, 3, 3, 3]</code>에서 중복을 없앤 집합을 만들어 출력하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'print(set([1, 2, 2, 3, 3, 3]))',
+          accept: ['print(set([1, 2, 2, 3, 3, 3]))'],
+          why: '<code>set(리스트)</code>는 리스트를 집합으로 바꾸면서 중복된 값을 자동으로 없애줘요.',
+          hint: 'set( ) 안에 리스트를 그대로 넣어보세요.'
+        }),
+      ],
+      boss: () => {
+        const a = shuffle([1, 2, 3, 4, 5, 6]).slice(0, 4).sort((x, y) => x - y);
+        const b = shuffle([1, 2, 3, 4, 5, 6]).slice(0, 4).sort((x, y) => x - y);
+        const union = [...new Set([...a, ...b])].sort((x, y) => x - y);
+        return {
+          type: 'blank',
+          q: `<code>a = {${a.join(', ')}}</code>, <code>b = {${b.join(', ')}}</code>일 때, <code>a | b</code>(합집합)의 결과를 중괄호 없이 쉼표로 구분해서 쓰세요.`,
+          prefix: '', suffix: '', accept: [union.join(', ')], placeholder: '값, 값, ...',
+          why: `합집합은 두 집합에 있는 값을 모두 모으되 중복은 한 번만 남겨서 ${union.join(', ')}가 돼요.`,
+          hint: '두 집합의 값을 전부 모은 뒤, 겹치는 값은 한 번만 세면 돼요.'
+        };
+      }
+    },
+    {
+      id: 'comprehension',
+      title: '컴프리헨션과 람다',
+      ready: true,
+      summary: '반복문을 한 줄로 줄이는 리스트 컴프리헨션과, 이름 없는 짧은 함수인 람다를 배워요.',
+      goals: ['리스트 컴프리헨션', '조건 붙이기', 'lambda', 'map으로 값 변환하기'],
+      blocks: [
+        {
+          h: '반복문을 한 줄로: 리스트 컴프리헨션',
+          html: `<p><code>[값 for 항목 in 반복대상]</code> 형태로 쓰면, for문으로 리스트를 만드는 코드를 한 줄로 줄일 수 있어요. 이걸 <b>리스트 컴프리헨션</b>이라고 해요.</p>`,
+          code: {
+            label: 'comp.py',
+            src: `squares = [n * n for n in range(1, 6)]
+print(squares)`,
+            out: `[1, 4, 9, 16, 25]`
+          }
+        },
+        {
+          h: '조건을 붙여 골라내기',
+          html: `<p>맨 뒤에 <code>if 조건</code>을 붙이면, 그 조건을 만족하는 값만 골라서 리스트에 담아요.</p>`,
+          code: {
+            label: 'comp_if.py',
+            src: `nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+evens = [n for n in nums if n % 2 == 0]
+print(evens)`,
+            out: `[2, 4, 6, 8, 10]`
+          }
+        },
+        {
+          h: '이름 없는 짧은 함수: 람다',
+          html: `<p><code>lambda 매개변수: 결과식</code>은 이름 없이 값 하나만 계산해서 바로 돌려주는 아주 짧은 함수예요. <code>map(함수, 리스트)</code>와 함께 쓰면, 리스트의 값 전부에 그 함수를 적용한 새 리스트를 만들 수 있어요.</p>`,
+          code: {
+            label: 'lambda.py',
+            src: `square = lambda x: x * x
+print(square(5))
+
+nums = [1, 2, 3]
+print(list(map(lambda x: x * 2, nums)))`,
+            out: `25\n[2, 4, 6]`
+          },
+          after: `<div class="note"><b>비교</b> — <code>def</code>는 이름 붙은 여러 줄짜리 함수를 만들 때, <code>lambda</code>는 계산 하나만 바로 하고 버려도 되는 아주 짧은 함수를 만들 때 써요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(3, 6);
+          const squares = Array.from({ length: n }, (_, i) => (i + 1) * (i + 1));
+          return {
+            type: 'blank',
+            q: `<code>[n * n for n in range(1, ${n + 1})]</code>의 결과를 대괄호 포함해서 쓰세요.`,
+            prefix: '', suffix: '', accept: [`[${squares.join(', ')}]`], placeholder: '[숫자, 숫자, ...]',
+            why: `1부터 ${n}까지 각각 제곱하면 [${squares.join(', ')}]이 돼요.`,
+            hint: '1의 제곱, 2의 제곱, ... 순서대로 계산해서 리스트로 만들어보세요.'
+          };
+        },
+        () => {
+          const max = randInt(8, 12);
+          const odds = [];
+          for (let i = 1; i <= max; i++) if (i % 2 !== 0) odds.push(i);
+          return {
+            type: 'blank',
+            q: `<code>[n for n in range(1, ${max + 1}) if n % 2 != 0]</code>의 결과를 대괄호 포함해서 쓰세요.`,
+            prefix: '', suffix: '', accept: [`[${odds.join(', ')}]`], placeholder: '[숫자, 숫자, ...]',
+            why: `1부터 ${max}까지 중 홀수(2로 나눈 나머지가 0이 아닌 수)만 골라내면 [${odds.join(', ')}]이 돼요.`,
+            hint: 'n % 2 != 0은 "홀수일 때"라는 뜻이에요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `이름 없는 짧은 함수를 만들 때 쓰는 키워드는 무엇일까요?`,
+          prefix: 'square = ', suffix: ' x: x * x', accept: ['lambda'], placeholder: '키워드',
+          why: '<code>lambda 매개변수: 결과식</code> 형태로 이름 없는 짧은 함수를 만들어요.',
+          hint: '그리스 문자 이름을 딴 파이썬 키워드예요.'
+        }),
+        () => {
+          const nums = Array.from({ length: 3 }, () => randInt(1, 10));
+          const doubled = nums.map(n => n * 2);
+          return {
+            type: 'blank',
+            q: `<code>nums = [${nums.join(', ')}]</code>일 때, <code>list(map(lambda x: x * 2, nums))</code>의 결과를 대괄호 포함해서 쓰세요.`,
+            prefix: '', suffix: '', accept: [`[${doubled.join(', ')}]`], placeholder: '[숫자, 숫자, ...]',
+            why: `map은 리스트의 각 값에 lambda를 적용해서, 각 값을 2배로 만들면 [${doubled.join(', ')}]이 돼요.`,
+            hint: '리스트 안의 각 숫자를 하나씩 2배로 만들어보세요.'
+          };
+        },
+        () => makeChoice(
+          '리스트의 모든 값에 함수를 하나씩 적용한 새 리스트를 만들고 싶을 때 쓰는 함수는?',
+          '<code>map</code>', ['<code>zip</code>', '<code>sorted</code>', '<code>range</code>'],
+          '<code>map(함수, 리스트)</code>는 리스트의 각 값에 함수를 적용한 결과를 만들어줘요.',
+          '"대응시키다, 변환하다"라는 뜻과 관련 있는 단어예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '1부터 5까지의 세제곱(n ** 3)을 담은 리스트를 컴프리헨션으로 만들어 출력하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'print([n ** 3 for n in range(1, 6)])',
+          accept: ['print([n ** 3 for n in range(1, 6)])'],
+          why: '<code>[n ** 3 for n in range(1, 6)]</code>은 1부터 5까지 각각 세제곱한 값을 리스트로 만들어요.',
+          hint: 'range(1, 6)은 1부터 5까지고, n ** 3은 세제곱이에요.'
+        }),
+      ],
+      boss: () => {
+        const max = randInt(10, 15);
+        const result = [];
+        for (let i = 1; i <= max; i++) if (i % 3 === 0) result.push(i * i);
+        return {
+          type: 'blank',
+          q: `<code>[n * n for n in range(1, ${max + 1}) if n % 3 == 0]</code>의 결과를 대괄호 포함해서 쓰세요.`,
+          prefix: '', suffix: '', accept: [`[${result.join(', ')}]`], placeholder: '[숫자, 숫자, ...]',
+          why: `1부터 ${max}까지 중 3의 배수만 골라 제곱하면 [${result.join(', ')}]이 돼요.`,
+          hint: '먼저 3의 배수를 골라낸 뒤, 그 수들을 각각 제곱해보세요.'
+        };
+      }
+    },
+    {
+      id: 'recursion',
+      title: '재귀 함수',
+      ready: true,
+      summary: '함수가 자기 자신을 다시 부르는 재귀를 배우고, 언제 멈추는지(기저 조건)를 이해해요.',
+      goals: ['재귀 함수란', '기저 조건(base case)', '팩토리얼 계산'],
+      blocks: [
+        {
+          h: '자기 자신을 다시 부르는 함수: 재귀',
+          html: `<p><b>재귀 함수</b>는 함수 안에서 자기 자신을 다시 호출하는 함수예요. 러시아 인형(마트료시카)처럼, 안을 열면 똑같이 생긴 조금 더 작은 인형이 또 나오는 모습을 떠올리면 이해하기 쉬워요.</p>`,
+          code: {
+            label: 'countdown.py',
+            src: `def countdown(n):
+    if n == 0:
+        print("발사!")
+    else:
+        print(n)
+        countdown(n - 1)
+
+countdown(3)`,
+            out: `3\n2\n1\n발사!`
+          }
+        },
+        {
+          h: '꼭 필요한 멈추는 조건: 기저 조건',
+          html: `<p>재귀 함수는 반드시 <b>더 이상 자기 자신을 부르지 않고 끝내는 조건</b>(기저 조건, base case)이 있어야 해요. 위 코드에서는 <code>n == 0</code>일 때가 그 조건이에요. 기저 조건이 없거나 절대 만족되지 않으면, 함수가 끝없이 자기 자신을 불러서 결국 <code>RecursionError</code>가 나요.</p>`
+        },
+        {
+          h: '재귀로 계산하기: 팩토리얼',
+          html: `<p>팩토리얼(<code>n!</code>)은 "1부터 n까지 모두 곱한 값"이에요. <code>n! = n × (n-1)!</code>로 정의할 수 있어서 재귀와 잘 어울려요. 기저 조건은 <code>n이 1 이하일 때 1을 반환</code>하는 거예요.</p>`,
+          code: {
+            label: 'factorial.py',
+            src: `def factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+
+print(factorial(4))`,
+            out: `24`
+          },
+          after: `<div class="note"><b>참고</b> — 팩토리얼은 for문(반복문)으로도 똑같이 계산할 수 있어요. 재귀는 "더 작은 같은 문제로 쪼개지는" 상황을 더 자연스럽게 표현할 때 자주 써요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(2, 5);
+          return {
+            type: 'blank',
+            q: `<code>def countdown(n): if n == 0: print("발사!") else: print(n); countdown(n - 1)</code> 함수에 <code>countdown(${n})</code>을 호출하면, 맨 마지막 줄에 무엇이 출력될까요? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: ['발사!'], placeholder: '출력될 문장',
+            why: `${n}, ${n - 1}, ... 1까지 세어 내려간 뒤 마지막엔 항상 기저 조건(n == 0)에 도달해서 "발사!"가 출력돼요.`,
+            hint: '재귀는 결국 기저 조건에 도달할 때까지 계속 자기 자신을 불러요.'
+          };
+        },
+        () => {
+          const n = randInt(3, 6);
+          let fact = 1;
+          for (let i = 2; i <= n; i++) fact *= i;
+          return {
+            type: 'blank',
+            q: `<code>def factorial(n): if n &lt;= 1: return 1; return n * factorial(n - 1)</code> 함수에 <code>factorial(${n})</code>을 호출하면 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(fact)], placeholder: '숫자',
+            why: `${n}! = ${Array.from({ length: n }, (_, i) => i + 1).join(' × ')} = ${fact}이에요.`,
+            hint: '1부터 그 수까지 순서대로 전부 곱해보세요.'
+          };
+        },
+        () => makeChoice(
+          '재귀 함수에서 더 이상 자기 자신을 부르지 않고 끝내는 조건을 부르는 이름은?',
+          '기저 조건(base case)', ['반복 조건', '예외 조건', '초기 조건'],
+          '기저 조건은 재귀 호출을 멈추고 바로 값을 돌려주는 조건이에요.',
+          '"기초가 되는, 바탕이 되는"이라는 뜻의 단어가 들어가요.'
+        ),
+        () => makeChoice(
+          '재귀 함수에 기저 조건이 없거나 절대 만족되지 않으면 어떤 일이 생길까요?',
+          '<code>RecursionError</code>가 난다', ['자동으로 멈춘다', '0을 반환한다', '아무 일도 안 일어난다'],
+          '기저 조건 없이 계속 자기 자신을 부르면 결국 호출 한도를 넘어서 <code>RecursionError</code>가 나요.',
+          '무한 루프처럼, 재귀도 멈추는 조건이 없으면 끝없이 반복돼요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '1부터 <code>n</code>까지 더한 값을 재귀로 계산하는 함수 <code>sum_to(n)</code>을 작성하세요. (기저 조건: <code>n</code>이 0이면 0을 반환)',
+          starter: '',
+          rows: 4,
+          placeholder: 'def sum_to(n):\n    if n == 0:\n        return 0\n    return n + sum_to(n - 1)',
+          accept: ['def sum_to(n):\n    if n == 0:\n        return 0\n    return n + sum_to(n - 1)'],
+          why: '기저 조건(n == 0일 때 0 반환)에 도달할 때까지, 매번 n을 더하고 더 작은 문제(n - 1)로 자기 자신을 불러요.',
+          hint: 'if n == 0: return 0을 먼저 쓰고, 그 다음 줄에 return n + sum_to(n - 1)을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(4, 7);
+        let sum = 0;
+        for (let i = 1; i <= n; i++) sum += i;
+        return {
+          type: 'blank',
+          q: `<code>def sum_to(n): if n == 0: return 0; return n + sum_to(n - 1)</code> 함수에 <code>sum_to(${n})</code>을 호출하면 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(sum)], placeholder: '숫자',
+          why: `1부터 ${n}까지 재귀적으로 더하면 ${sum}이에요.`,
+          hint: '기저 조건에 도달할 때까지 n, n-1, n-2, ... 순서로 더해진다고 생각해보세요.'
+        };
+      }
+    },
+    {
+      id: 'customexc',
+      title: '나만의 예외와 클래스 심화',
+      ready: true,
+      summary: '직접 오류를 발생시키는 raise와 나만의 예외 클래스, 그리고 객체 없이도 부를 수 있는 메서드를 배워요.',
+      goals: ['raise로 오류 직접 내기', '나만의 예외 클래스 만들기', '@staticmethod', '__str__로 출력 모습 바꾸기'],
+      blocks: [
+        {
+          h: '직접 오류를 일으키기: raise',
+          html: `<p><code>raise 오류종류("메시지")</code>를 쓰면, 조건에 맞지 않는 상황에서 내가 직접 오류를 발생시킬 수 있어요. 이렇게 발생시킨 오류도 <code>try/except</code>로 잡을 수 있어요.</p>`,
+          code: {
+            label: 'raise.py',
+            src: `def set_age(age):
+    if age < 0:
+        raise ValueError("나이는 음수일 수 없어요")
+    return age
+
+try:
+    set_age(-5)
+except ValueError as e:
+    print(e)`,
+            out: `나이는 음수일 수 없어요`
+          }
+        },
+        {
+          h: '나만의 예외 클래스 만들기',
+          html: `<p><code>Exception</code>을 상속받는 클래스를 만들면, "이 상황에서 왜 오류가 났는지"를 이름만 봐도 알 수 있는 나만의 예외를 만들 수 있어요.</p>`,
+          code: {
+            label: 'custom_error.py',
+            src: `class NotEnoughMoneyError(Exception):
+    pass
+
+def buy(money, price):
+    if money < price:
+        raise NotEnoughMoneyError("돈이 부족해요")
+    return "구매 완료"
+
+try:
+    buy(1000, 5000)
+except NotEnoughMoneyError as e:
+    print(e)`,
+            out: `돈이 부족해요`
+          }
+        },
+        {
+          h: '객체 없이도 부를 수 있는 메서드: @staticmethod',
+          html: `<p><code>@staticmethod</code>가 붙은 메서드는 <code>self</code>를 받지 않고, 객체를 만들지 않아도 <code>클래스이름.메서드()</code>로 바로 부를 수 있어요. 그 클래스와 관련은 있지만 객체의 값이 필요 없는 기능에 써요.</p>`,
+          code: {
+            label: 'staticmethod.py',
+            src: `class MathUtil:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+print(MathUtil.add(3, 4))`,
+            out: `7`
+          }
+        },
+        {
+          h: '객체를 print할 때의 모습 바꾸기: __str__',
+          html: `<p><code>__str__(self)</code> 메서드를 정의하면, 그 객체를 <code>print()</code>할 때 보여줄 문자열을 직접 정할 수 있어요. 정의하지 않으면 알아보기 힘든 기본 모습이 출력돼요.</p>`,
+          code: {
+            label: 'str_method.py',
+            src: `class Item:
+    def __init__(self, name, price):
+        self.name = name
+        self.price = price
+    def __str__(self):
+        return f"{self.name} ({self.price}원)"
+
+apple = Item("사과", 1000)
+print(apple)`,
+            out: `사과 (1000원)`
+          },
+          after: `<div class="note"><b>기억하기</b> — 이름 앞뒤로 밑줄 두 개가 붙은 <code>__init__</code>, <code>__str__</code> 같은 메서드를 "매직 메서드"라고 불러요. 파이썬이 특정 상황(객체 생성, print 등)에서 자동으로 불러줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `조건에 맞지 않을 때 직접 오류를 발생시키는 키워드는 무엇일까요?`,
+          prefix: '', suffix: ' ValueError("나이는 음수일 수 없어요")', accept: ['raise'], placeholder: '키워드',
+          why: '<code>raise 오류종류(메시지)</code>로 직접 오류를 발생시켜요.',
+          hint: '"일으키다, 발생시키다"라는 뜻의 영어 단어예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `나만의 예외 클래스를 만들려고 해요. <code>Exception</code>을 물려받는 빈 클래스를 완성하세요.`,
+          prefix: 'class NotEnoughMoneyError(', suffix: '):\n    pass', accept: ['Exception'], placeholder: '클래스 이름',
+          why: '나만의 예외는 <code>Exception</code>을 상속받아서 만들어요.',
+          hint: '모든 예외의 "조상"이 되는 기본 클래스 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>@staticmethod</code>가 붙은 메서드의 특징으로 알맞은 것은?',
+          '객체를 만들지 않아도 클래스이름으로 바로 부를 수 있다',
+          ['self를 반드시 받아야 한다', '객체를 만들어야만 부를 수 있다', '항상 자동으로 실행된다'],
+          '<code>@staticmethod</code>는 self 없이, 객체 없이도 클래스이름으로 바로 부를 수 있어요.',
+          '"정적인, 고정된"이라는 뜻의 static이 붙은 이유를 생각해보세요.'
+        ),
+        () => makeChoice(
+          '객체를 print()할 때 보여줄 모습을 직접 정하고 싶을 때 정의하는 메서드는?',
+          '<code>__str__</code>', ['<code>__init__</code>', '<code>__main__</code>', '<code>__len__</code>'],
+          '<code>__str__(self)</code>은 그 객체를 print()할 때 어떤 문자열로 보여줄지 정해줘요.',
+          '"문자열(string)"과 관련된 매직 메서드 이름이에요.'
+        ),
+        () => {
+          const money = randInt(1000, 4000);
+          const price = randInt(1000, 5000);
+          const ok = money >= price;
+          return {
+            type: 'blank',
+            q: `<code>money = ${money}</code>, <code>price = ${price}</code>일 때, <code>if money &lt; price: raise NotEnoughMoneyError("돈이 부족해요")</code>를 <code>try/except NotEnoughMoneyError as e: print(e)</code>로 감쌌어요. 무엇이 출력될까요? (오류가 안 나면 "정상")`,
+            prefix: '', suffix: '', accept: [ok ? '정상' : '돈이 부족해요'], placeholder: '출력될 문장',
+            why: ok
+              ? `${money}는 ${price}보다 크거나 같아서 오류가 나지 않아요.`
+              : `${money}는 ${price}보다 작아서 <code>NotEnoughMoneyError</code>가 나고, except가 그 메시지를 출력해요.`,
+            hint: 'money가 price보다 작은지 아닌지 먼저 비교해보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Exception</code>을 상속받는 <code>InvalidScoreError</code>라는 나만의 예외 클래스를 만드세요. (내용은 <code>pass</code>만 있으면 돼요)',
+          starter: '',
+          placeholder: 'class InvalidScoreError(Exception):\n    pass',
+          accept: ['class InvalidScoreError(Exception):\n    pass'],
+          why: '<code>class 이름(Exception): pass</code> 형태로 나만의 예외를 만들 수 있어요.',
+          hint: 'class InvalidScoreError(Exception): 다음 줄에 pass를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const price = randInt(1000, 3000);
+        const stock = randInt(0, 5);
+        const ok = stock > 0;
+        return {
+          type: 'code',
+          q: `<code>OutOfStockError</code>라는 나만의 예외 클래스(<code>Exception</code> 상속)를 만드세요. <code>stock = ${stock}</code>일 때, <code>stock</code>이 0이면 <code>raise OutOfStockError("품절이에요")</code>를, 아니면 <code>print(f"재고 {stock}개 남음")</code>을 실행하는 <code>try/except OutOfStockError as e: print(e)</code> 전체 코드를 작성하세요.`,
+          starter: '',
+          rows: 9,
+          placeholder: `class OutOfStockError(Exception):\n    pass\n\nstock = ${stock}\ntry:\n    if stock == 0:\n        raise OutOfStockError("품절이에요")\n    print(f"재고 {stock}개 남음")\nexcept OutOfStockError as e:\n    print(e)`,
+          accept: [`class OutOfStockError(Exception):\n    pass\nstock = ${stock}\ntry:\n    if stock == 0:\n        raise OutOfStockError("품절이에요")\n    print(f"재고 {stock}개 남음")\nexcept OutOfStockError as e:\n    print(e)`],
+          why: ok
+            ? `stock이 ${stock}로 0이 아니라서 오류 없이 "재고 ${stock}개 남음"이 출력돼요.`
+            : `stock이 0이라서 OutOfStockError가 발생하고, except가 그 메시지 "품절이에요"를 출력해요.`,
+          hint: '클래스를 먼저 정의한 뒤, try 블록 안에서 stock이 0인지 확인해 raise하거나 print하고, except OutOfStockError로 감싸세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({

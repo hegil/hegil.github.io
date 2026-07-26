@@ -61,13 +61,13 @@
     <p class="muted auth-note">이 계정은 이 브라우저 안에서만 동작하는 간단한 기능이에요. 다른 기기와 진도를 함께 보여주진 않지만, 한 기기를 여러 명이 쓸 때 진도를 서로 따로 기록할 수 있어요.</p>
     <form id="authForm" class="auth-form" autocomplete="on">
       <label>아이디
-        <input type="text" id="authUsername" autocomplete="username" required minlength="2">
+        <input type="text" id="authUsername" name="username" autocomplete="username" required minlength="2">
       </label>
       <label>비밀번호
-        <input type="password" id="authPassword" autocomplete="current-password" required minlength="4">
+        <input type="password" id="authPassword" name="password" autocomplete="current-password" required minlength="4">
       </label>
       <label id="authConfirmWrap" hidden>비밀번호 확인
-        <input type="password" id="authConfirm" autocomplete="new-password">
+        <input type="password" id="authConfirm" name="new-password" autocomplete="new-password">
       </label>
       <div class="auth-error" id="authError" hidden></div>
       <button class="btn" type="submit" id="authSubmit">로그인</button>

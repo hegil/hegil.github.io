@@ -1519,6 +1519,13 @@ document.addEventListener('submit', async e => {
   } else if (wasGuestProgress) {
     saveProgress(wasGuestProgress);
   }
+  /* 이 사이트는 페이지 이동 없이 화면만 바뀌는 SPA라, 브라우저가 "비밀번호를 저장할까요?"를
+     스스로 잘 못 알아챌 때가 있어요. 그래서 로그인/회원가입에 성공하면 Credential Management API로
+     직접 저장을 요청해요(크롬 계열에서 지원, 지원 안 하면 조용히 무시돼요). */
+  if (window.PasswordCredential) {
+    try { await navigator.credentials.store(new PasswordCredential({ id: result.username, password, name: result.username })); }
+    catch {}
+  }
   closeAuthModal();
   refreshAfterAuthChange();
 });
