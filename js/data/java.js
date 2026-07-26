@@ -777,37 +777,358 @@ try {
           hint: 'b가 0인지 아닌지에 따라 정상 결과가 나올지, catch로 잡힌 오류 메시지가 나올지 갈려요.'
         };
       }
+    },
+    {
+      id: 'inherit',
+      title: '상속과 인터페이스',
+      ready: true,
+      summary: '이미 만든 클래스를 물려받는 상속과, "이런 메서드는 꼭 있어야 한다"는 약속인 인터페이스를 배워요.',
+      goals: ['클래스 상속(extends)', 'super()', '메서드 오버라이딩', '인터페이스(interface)'],
+      blocks: [
+        {
+          h: '이미 있는 클래스를 물려받기: extends',
+          html: `<p>완전히 새로운 클래스를 처음부터 만들지 않고, 이미 있는 클래스의 필드와 메서드를 그대로 물려받아서 시작할 수 있어요. <code>class 자식 extends 부모 { }</code> 형태로 씁니다.</p>`,
+          code: {
+            label: 'Extends.java',
+            src: `class Animal {
+    String name;
+    Animal(String name) { this.name = name; }
+    String sound() { return "..."; }
+}
+
+class Dog extends Animal {
+    Dog(String name) { super(name); }
+    String sound() { return "멍멍!"; }
+}
+
+Dog d = new Dog("초코");
+System.out.println(d.name + " " + d.sound());`,
+            out: `초코 멍멍!`
+          }
+        },
+        {
+          h: '부모의 생성자 호출하기: super()',
+          html: `<p>자식 클래스의 생성자에서 <code>super(...)</code>를 호출하면 부모 클래스의 생성자가 실행돼요. 부모가 이미 해둔 초기화 작업을 그대로 재사용할 수 있어서 편해요. <code>super()</code>는 항상 생성자의 <b>첫 줄</b>에 와야 해요.</p>`
+        },
+        {
+          h: '메서드는 다시 정의할 수 있어요: 오버라이딩',
+          html: `<p><code>Dog</code>이 부모 <code>Animal</code>의 <code>sound()</code>를 자신만의 내용으로 다시 정의하는 걸 <b>오버라이딩(재정의)</b>이라고 해요. 그리고 "특정 메서드는 반드시 만들어야 한다"는 약속만 정해두고 싶을 땐 <code>interface</code>를 써요.</p>`,
+          code: {
+            label: 'Interface.java',
+            src: `interface Soundable {
+    String sound();
+}
+
+class Cat implements Soundable {
+    public String sound() { return "야옹!"; }
+}
+
+Cat c = new Cat();
+System.out.println(c.sound());`,
+            out: `야옹!`
+          },
+          after: `<div class="note"><b>차이</b> — 상속(extends)은 부모의 코드까지 물려받지만, 인터페이스(implements)는 "이 메서드는 꼭 만들어라"는 약속(설계도)만 줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '이미 있는 클래스의 필드와 메서드를 물려받아 새 클래스를 만들 때 쓰는 키워드는?',
+          '<code>extends</code>', ['<code>implements</code>', '<code>super</code>', '<code>new</code>'],
+          '<code>class 자식 extends 부모</code>처럼 <code>extends</code>로 클래스를 상속받아요.',
+          '"확장하다"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `자식 클래스의 생성자에서 부모 클래스의 생성자를 호출하려고 해요. 빈칸을 채우세요.`,
+          prefix: 'Dog(String name) { ', suffix: '(name); }', accept: ['super'], placeholder: '키워드',
+          why: '<code>super(...)</code>는 부모 클래스의 생성자를 호출해요.',
+          hint: '"위, 상위"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '자식 클래스에서 부모 클래스의 메서드를 같은 이름으로 새로 정의하는 것을 무엇이라고 하나요?',
+          '오버라이딩(재정의)', ['오버로딩', '캡슐화', '인스턴스화'],
+          '부모의 메서드를 자식 클래스에서 다시 정의하는 걸 <b>오버라이딩</b>이라고 해요.',
+          '"덮어쓰다, 다시 정의하다"라는 뜻이 담긴 단어예요.'
+        ),
+        () => makeChoice(
+          '"이 메서드는 반드시 만들어야 한다"는 약속만 정해두는, 클래스가 아닌 것은?',
+          '<code>interface</code>', ['<code>class</code>', '<code>static</code>', '<code>void</code>'],
+          '<code>interface</code>는 메서드의 이름과 형태만 정해두고, 실제 내용은 구현하는 클래스가 채워요.',
+          '실제 코드가 없는, 약속(규격)만 담은 것이에요.'
+        ),
+        () => {
+          const cls = pick(['Dog', 'Cat', 'Bird']);
+          return {
+            type: 'blank',
+            q: `<code>Animal</code>을 상속받는 <code>${cls}</code> 클래스를 만들려고 해요. 클래스 선언을 완성하세요.`,
+            prefix: 'class ', suffix: ' {\n    ...\n}', accept: [`${cls} extends Animal`], placeholder: '클래스이름 extends 부모',
+            why: `<code>class ${cls} extends Animal</code>처럼 <code>extends</code> 뒤에 부모 클래스 이름을 쓰면 상속받아요.`,
+            hint: '클래스 이름 뒤에 extends와 물려받을 부모 클래스 이름을 순서대로 쓰면 돼요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Animal</code> 클래스(필드 <code>String name;</code>, 생성자에서 <code>this.name = name;</code>)를 상속받는 <code>Cat</code> 클래스를 만드세요. 생성자는 <code>super(name)</code>을 호출하고, <code>sound()</code> 메서드는 <code>"야옹!"</code>을 반환하도록 오버라이딩하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'class Cat extends Animal {\n    Cat(String name) {\n        super(name);\n    }\n    String sound() {\n        return "야옹!";\n    }\n}',
+          accept: ['class Cat extends Animal {Cat(String name) {super(name);}String sound() {return "야옹!";}}'],
+          why: '<code>extends Animal</code>로 상속받고, 생성자에서 <code>super(name)</code>으로 부모의 초기화를 재사용한 뒤, <code>sound()</code>만 새로 정의(오버라이딩)해요.',
+          hint: 'class Cat extends Animal { } 안에 생성자(super(name) 호출)와 sound() 메서드를 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['초코', '보리', '몽이']);
+        return {
+          type: 'blank',
+          q: `<code>class Animal { String name; Animal(String name) { this.name = name; } String sound() { return "..."; } }</code>이고, <code>class Dog extends Animal { Dog(String name) { super(name); } String sound() { return "멍멍!"; } }</code>일 때, <code>Dog d = new Dog("${name}");</code> 후 <code>System.out.println(d.name + " " + d.sound());</code>를 실행하면 무엇이 출력될까요? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`${name} 멍멍!`], placeholder: '출력될 문장',
+          why: `<code>super(name)</code>이 부모의 필드 <code>name</code>을 "${name}"으로 저장하고, <code>Dog</code>이 오버라이딩한 <code>sound()</code>는 "멍멍!"을 반환해요.`,
+          hint: 'd.name은 부모 생성자가 저장한 값, d.sound()는 Dog이 새로 정의한 값이에요.'
+        };
+      }
+    },
+    {
+      id: 'collections',
+      title: '컬렉션 프레임워크',
+      ready: true,
+      summary: '배열보다 훨씬 유연하게 여러 값을 다루는 ArrayList와 HashMap을 배워요.',
+      goals: ['ArrayList', 'HashMap', 'import java.util.*'],
+      blocks: [
+        {
+          h: '크기가 자유롭게 늘어나는 목록: ArrayList',
+          html: `<p>배열은 크기가 한 번 정해지면 바꿀 수 없었죠. <code>ArrayList</code>는 <code>add()</code>로 값을 넣을 때마다 자동으로 크기가 늘어나는 "유연한 배열"이에요. 쓰려면 맨 위에 <code>import java.util.ArrayList;</code>가 필요해요.</p>`,
+          code: {
+            label: 'ArrayList.java',
+            src: `import java.util.ArrayList;
+
+ArrayList<Integer> scores = new ArrayList<>();
+scores.add(90);
+scores.add(85);
+scores.add(100);
+
+System.out.println(scores.get(1));
+System.out.println(scores.size());`,
+            out: `85\n3`
+          }
+        },
+        {
+          h: '이름표로 값을 찾는 상자: HashMap',
+          html: `<p><code>HashMap&lt;키자료형, 값자료형&gt;</code>은 "이름표(키)"로 값을 빠르게 찾아주는 상자예요. <code>put(키, 값)</code>으로 넣고, <code>get(키)</code>로 꺼내요. 자바스크립트의 객체, 파이썬의 딕셔너리와 같은 역할이에요.</p>`,
+          code: {
+            label: 'HashMap.java',
+            src: `import java.util.HashMap;
+
+HashMap<String, Integer> ages = new HashMap<>();
+ages.put("지수", 17);
+ages.put("민준", 16);
+
+System.out.println(ages.get("지수"));`,
+            out: `17`
+          }
+        },
+        {
+          h: '배열과 ArrayList, 뭐가 다를까?',
+          html: `<p>배열(<code>int[]</code>)은 크기가 고정이고 빠르지만, <code>ArrayList</code>는 <code>add()</code>/<code>remove()</code>로 자유롭게 늘리고 줄일 수 있어요. "미리 몇 개가 들어올지 모를 때"는 <code>ArrayList</code>가 훨씬 편해요.</p>`,
+          after: `<div class="note"><b>주의</b> — <code>ArrayList&lt;int&gt;</code>처럼 기본 자료형은 그대로 못 쓰고, <code>ArrayList&lt;Integer&gt;</code>처럼 "포장된" 자료형(Integer, String 등)을 써야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const items = shuffle([70, 80, 90, 100, 60]).slice(0, 4);
+          const idx = randInt(0, items.length - 1);
+          return {
+            type: 'blank',
+            q: `<code>ArrayList&lt;Integer&gt; scores = new ArrayList&lt;&gt;();</code>에 <code>${items.join(', ')}</code>을 순서대로 <code>add</code>했을 때, <code>scores.get(${idx})</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(items[idx])], placeholder: '숫자',
+            why: `<code>get(${idx})</code>은 순번 ${idx}(0부터 시작)의 값을 가져와요. ${idx + 1}번째로 넣은 값인 ${items[idx]}예요.`,
+            hint: 'ArrayList도 배열처럼 순번이 0부터 시작해요.'
+          };
+        },
+        () => makeChoice(
+          '배열과 달리, 크기가 자동으로 늘어나는 "유연한 목록"을 만들어주는 클래스는?',
+          '<code>ArrayList</code>', ['<code>HashMap</code>', '<code>String</code>', '<code>Scanner</code>'],
+          '<code>ArrayList</code>는 add()할 때마다 크기가 자동으로 늘어나는 목록이에요.',
+          '배열(Array)에 "목록(List)"을 합친 이름이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>ArrayList</code>에 값을 추가하는 메서드를 쓰세요.`,
+          prefix: 'scores.', suffix: '(90);', accept: ['add'], placeholder: '메서드 이름',
+          why: '<code>add(값)</code>은 ArrayList의 맨 뒤에 값을 추가해요.',
+          hint: '"더하다, 추가하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => {
+          const name = pick(['지수', '민준', '서연']);
+          const age = randInt(14, 19);
+          return {
+            type: 'blank',
+            q: `<code>HashMap&lt;String, Integer&gt; ages = new HashMap&lt;&gt;();</code>에 <code>ages.put("${name}", ${age});</code>를 실행한 뒤, <code>ages.get("${name}")</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(age)], placeholder: '숫자',
+            why: `<code>put("${name}", ${age})</code>으로 저장한 값을 <code>get("${name}")</code>으로 그대로 꺼내요.`,
+            hint: 'put으로 넣은 키와 똑같은 키로 get하면 그 값을 그대로 꺼낼 수 있어요.'
+          };
+        },
+        () => makeChoice(
+          'HashMap에서 "이름표(키)"로 값을 넣을 때 쓰는 메서드는?',
+          '<code>put</code>', ['<code>add</code>', '<code>get</code>', '<code>set</code>'],
+          '<code>put(키, 값)</code>으로 HashMap에 값을 저장해요.',
+          '"놓다, 넣다"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>ArrayList&lt;Integer&gt; nums</code>를 만들고, <code>10</code>, <code>20</code>, <code>30</code>을 순서대로 <code>add</code>한 뒤, <code>nums.size()</code>를 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'ArrayList<Integer> nums = new ArrayList<>();\nnums.add(10);\nnums.add(20);\nnums.add(30);\nSystem.out.println(nums.size());',
+          accept: ['ArrayList<Integer> nums = new ArrayList<>();nums.add(10);nums.add(20);nums.add(30);System.out.println(nums.size());'],
+          why: '값 3개를 add했으니 nums.size()는 3이에요.',
+          hint: 'new ArrayList<>()로 만들고, add를 세 번 호출한 뒤 size()를 출력하세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['지수', '민준', '서연']);
+        const age = randInt(14, 19);
+        return {
+          type: 'blank',
+          q: `<code>HashMap&lt;String, Integer&gt; ages = new HashMap&lt;&gt;();</code>이고 <code>ArrayList&lt;String&gt; names = new ArrayList&lt;&gt;();</code>일 때, <code>names.add("${name}"); ages.put("${name}", ${age});</code>를 실행한 뒤, <code>ages.get(names.get(0))</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(age)], placeholder: '숫자',
+          why: `<code>names.get(0)</code>은 ArrayList에 첫 번째로 넣은 이름 "${name}"이고, <code>ages.get("${name}")</code>은 HashMap에 저장해둔 ${age}예요.`,
+          hint: '먼저 names.get(0)이 어떤 이름인지 구하고, 그 이름으로 ages에서 값을 찾아보세요.'
+        };
+      }
+    },
+    {
+      id: 'generics',
+      title: '제네릭(Generics)',
+      ready: true,
+      summary: '자료형을 나중에 정할 수 있게 해주는 제네릭을 배워요. 사실 ArrayList도 제네릭으로 만들어졌어요.',
+      goals: ['제네릭 클래스', '<T> 타입 매개변수', 'ArrayList도 제네릭'],
+      blocks: [
+        {
+          h: '자료형을 나중에 정하는 클래스: 제네릭',
+          html: `<p>같은 모양의 클래스를 자료형만 바꿔서 여러 번 만들고 싶을 때, <code>&lt;T&gt;</code>(타입 매개변수)를 쓰면 "이 클래스 안에서 T는 나중에 정해질 자료형"이라는 뜻이 돼요. <code>Box&lt;Integer&gt;</code>, <code>Box&lt;String&gt;</code>처럼 원하는 자료형을 골라 쓸 수 있어요.</p>`,
+          code: {
+            label: 'Box.java',
+            src: `class Box<T> {
+    T value;
+    void set(T value) {
+        this.value = value;
+    }
+    T get() {
+        return value;
+    }
+}
+
+Box<Integer> intBox = new Box<>();
+intBox.set(10);
+System.out.println(intBox.get());`,
+            out: `10`
+          }
+        },
+        {
+          h: '같은 클래스, 다른 자료형',
+          html: `<p>같은 <code>Box</code> 클래스인데, <code>Box&lt;String&gt;</code>으로 쓰면 문자열을, <code>Box&lt;Integer&gt;</code>로 쓰면 정수를 담을 수 있어요. 클래스 코드는 <b>한 번만</b> 짜면 되고, 담을 자료형만 그때그때 바꿔서 재사용해요.</p>`,
+          code: {
+            label: 'BoxString.java',
+            src: `Box<String> strBox = new Box<>();
+strBox.set("안녕");
+System.out.println(strBox.get());`,
+            out: `안녕`
+          }
+        },
+        {
+          h: '사실 ArrayList도 제네릭이었어요',
+          html: `<p><code>ArrayList&lt;Integer&gt;</code>, <code>ArrayList&lt;String&gt;</code>도 똑같은 <code>ArrayList</code> 클래스를 제네릭으로 만든 거예요. <code>&lt;Integer&gt;</code> 자리에 넣은 자료형이 바로 <code>T</code>에 해당해요.</p>`,
+          after: `<div class="note"><b>정리</b> — 제네릭 덕분에 "정수 상자", "문자열 상자"를 따로따로 만들 필요 없이, "상자" 하나만 만들고 자료형만 바꿔 끼우면 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '클래스 안에서 "나중에 정해질 자료형"을 나타낼 때 쓰는 표기는?',
+          '<code>&lt;T&gt;</code>', ['<code>[T]</code>', '<code>(T)</code>', '<code>{T}</code>'],
+          '<code>&lt;T&gt;</code>(꺾쇠괄호)는 타입 매개변수를 나타내요.',
+          '자료형을 지정할 때 ArrayList 뒤에도 이 괄호를 쓰죠.'
+        ),
+        () => {
+          const val = randInt(1, 100);
+          return {
+            type: 'blank',
+            q: `<code>class Box&lt;T&gt; { T value; void set(T value) { this.value = value; } T get() { return value; } }</code>이고 <code>Box&lt;Integer&gt; box = new Box&lt;&gt;();</code> 후 <code>box.set(${val});</code>를 실행하면, <code>box.get()</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(val)], placeholder: '숫자',
+            why: `<code>set(${val})</code>로 저장한 값을 <code>get()</code>이 그대로 돌려줘요.`,
+            hint: 'set으로 넣은 값을 get이 그대로 꺼내줘요.'
+          };
+        },
+        () => makeChoice(
+          '<code>ArrayList&lt;Integer&gt;</code>와 <code>ArrayList&lt;String&gt;</code>의 관계로 옳은 것은?',
+          '같은 ArrayList 클래스를 서로 다른 자료형으로 사용한 것', ['서로 완전히 다른 클래스다', 'Integer용 ArrayList가 원본이다', '자동으로 서로 변환된다'],
+          '둘 다 같은 제네릭 클래스 <code>ArrayList&lt;T&gt;</code>를 T 자리에 다른 자료형을 넣어 쓴 것뿐이에요.',
+          'ArrayList는 원래 제네릭으로 만들어진 클래스라는 걸 떠올려보세요.'
+        ),
+        () => {
+          const word = pick(['안녕', '반가워', '고마워']);
+          return {
+            type: 'blank',
+            q: `<code>Box&lt;String&gt; box = new Box&lt;&gt;();</code>를 선언하려고 해요. 꺾쇠괄호 안에 들어갈 자료형을 쓰세요. (문자열 "${word}"를 담을 예정이에요)`,
+            prefix: 'Box<', suffix: '> box = new Box<>();', accept: ['String'], placeholder: '자료형',
+            why: `문자열을 담을 것이므로 <code>Box&lt;String&gt;</code>처럼 자료형 자리에 <code>String</code>을 넣어요.`,
+            hint: '담고 싶은 값의 자료형을 꺾쇠괄호 안에 그대로 쓰면 돼요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '자료형 <code>T</code>를 가지는 제네릭 클래스 <code>Box</code>를 만드세요. 필드 <code>T value;</code>, <code>set(T value)</code> 메서드(<code>this.value = value;</code>), <code>get()</code> 메서드(<code>return value;</code>)를 가져야 해요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'class Box<T> {\n    T value;\n    void set(T value) {\n        this.value = value;\n    }\n    T get() {\n        return value;\n    }\n}',
+          accept: ['class Box<T> {T value;void set(T value) {this.value = value;}T get() {return value;}}'],
+          why: '<code>class Box&lt;T&gt;</code>로 타입 매개변수를 선언하고, 그 T를 필드와 메서드에서 그대로 사용해요.',
+          hint: 'class Box<T> { } 안에 T value;, set(T value), get() 메서드를 순서대로 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const val1 = randInt(1, 50);
+        const word = pick(['지수', '민준', '서연']);
+        return {
+          type: 'blank',
+          q: `<code>class Box&lt;T&gt; { T value; void set(T value) { this.value = value; } T get() { return value; } }</code>일 때, <code>Box&lt;Integer&gt; intBox = new Box&lt;&gt;(); intBox.set(${val1});</code>과 <code>Box&lt;String&gt; strBox = new Box&lt;&gt;(); strBox.set("${word}");</code>를 실행한 뒤, <code>System.out.println(intBox.get() + " " + strBox.get());</code>를 실행하면 무엇이 출력될까요? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`${val1} ${word}`], placeholder: '출력될 문장',
+          why: `같은 <code>Box</code> 클래스를 <code>Integer</code>와 <code>String</code> 두 가지 자료형으로 각각 사용해서, intBox.get()은 ${val1}, strBox.get()은 "${word}"를 돌려줘요.`,
+          hint: '같은 클래스라도 <T>에 넣은 자료형에 따라 서로 다른 값을 담을 수 있어요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
       type: 'code',
-      q: 'int형 변수 <code>total</code>을 0으로 만들고, for문으로 1부터 5까지 더한 뒤, 총합이 10보다 크면 <code>System.out.println("많음")</code>을, 아니면 <code>System.out.println("적음")</code>을 실행하는 전체 코드를 작성하세요. (변수, 반복문, 조건문을 모두 사용하세요)',
+      q: '1부터 <code>n</code>까지의 합을 반환하는 메서드 <code>sumRange(int n)</code>을 만드세요(변수와 for문 사용). <code>sumRange(5)</code>의 결과가 10보다 크면 <code>System.out.println("많음")</code>을, 아니면 <code>System.out.println("적음")</code>을 실행하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 7,
-      placeholder: 'int total = 0;\nfor (int i = 1; i <= 5; i++) {\n    total += i;\n}\nif (total > 10) {\n    System.out.println("많음");\n} else {\n    System.out.println("적음");\n}',
-      accept: ['int total = 0;for (int i = 1; i <= 5; i++) {total += i;}if (total > 10) {System.out.println("많음");} else {System.out.println("적음");}'],
-      why: '1부터 5까지 더하면 15고, 15는 10보다 크니까 "많음"이 출력돼요.',
-      hint: 'total = 0으로 시작해서 for문으로 다 더한 뒤, 그 결과를 if/else로 비교하세요.'
+      rows: 10,
+      placeholder: 'static int sumRange(int n) {\n    int total = 0;\n    for (int i = 1; i <= n; i++) {\n        total += i;\n    }\n    return total;\n}\n\nif (sumRange(5) > 10) {\n    System.out.println("많음");\n} else {\n    System.out.println("적음");\n}',
+      accept: ['static int sumRange(int n) {int total = 0;for (int i = 1; i <= n; i++) {total += i;}return total;}if (sumRange(5) > 10) {System.out.println("많음");} else {System.out.println("적음");}'],
+      why: 'sumRange(5)는 1부터 5까지 더한 15를 반환하고, 15는 10보다 크니까 "많음"이 출력돼요.',
+      hint: '메서드 안에서 total = 0으로 시작해 for문으로 더한 값을 return한 뒤, 그 결과를 if/else로 비교하세요.'
     }),
     intermediate: () => ({
       type: 'code',
-      q: '정수 배열 <code>{3, 7, 2, 9, 4}</code>에서 가장 큰 값을 찾아 반환하는 메서드 <code>findMax</code>를 만들고(<code>static int findMax(int[] nums)</code> 형태, 반복문 이용), 그 결과를 출력하는 전체 코드를 작성하세요.',
+      q: '필드 <code>int[] scores = new int[3];</code>와 <code>int count = 0;</code>을 가지는 <code>Scoreboard</code> 클래스를 만드세요. <code>add(int score)</code> 메서드는 <code>scores[count] = score; count++;</code>를 하고, <code>average()</code> 메서드는 <code>int sum</code>을 반복문으로 구한 뒤 <code>sum / count</code>를 반환해요. <code>new Scoreboard()</code>를 만들고(점수는 추가하지 않고), <code>try/catch</code>로 <code>sb.average()</code>를 호출해서 <code>ArithmeticException</code>이 나면 <code>"점수가 없어서 평균을 구할 수 없어요"</code>를 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 9,
-      placeholder: 'static int findMax(int[] nums) {\n    int max = nums[0];\n    for (int i = 1; i < nums.length; i++) {\n        if (nums[i] > max) {\n            max = nums[i];\n        }\n    }\n    return max;\n}\n\nint[] nums = {3, 7, 2, 9, 4};\nSystem.out.println(findMax(nums));',
-      accept: ['static int findMax(int[] nums) {int max = nums[0];for (int i = 1; i < nums.length; i++) {if (nums[i] > max) {max = nums[i];}}return max;}int[] nums = {3, 7, 2, 9, 4};System.out.println(findMax(nums));'],
-      why: '배열의 첫 값을 최댓값 후보로 놓고, 반복문으로 하나씩 비교하며 더 큰 값이 나오면 갱신하면 최댓값 9를 찾을 수 있어요.',
-      hint: '배열의 첫 값을 기준으로 삼고, 반복문으로 하나씩 비교하면서 더 큰 값이 나오면 바꿔치기 하세요.'
+      rows: 20,
+      placeholder: 'class Scoreboard {\n    int[] scores = new int[3];\n    int count = 0;\n    void add(int score) {\n        scores[count] = score;\n        count++;\n    }\n    int average() {\n        int sum = 0;\n        for (int i = 0; i < count; i++) {\n            sum += scores[i];\n        }\n        return sum / count;\n    }\n}\n\nScoreboard sb = new Scoreboard();\ntry {\n    System.out.println(sb.average());\n} catch (ArithmeticException e) {\n    System.out.println("점수가 없어서 평균을 구할 수 없어요");\n}',
+      accept: ['class Scoreboard {int[] scores = new int[3];int count = 0;void add(int score) {scores[count] = score;count++;}int average() {int sum = 0;for (int i = 0; i < count; i++) {sum += scores[i];}return sum / count;}}Scoreboard sb = new Scoreboard();try {System.out.println(sb.average());} catch (ArithmeticException e) {System.out.println("점수가 없어서 평균을 구할 수 없어요");}'],
+      why: 'count가 0인 상태로 average()를 호출하면 sum/count가 0/0이 되어 ArithmeticException이 나고, catch 블록이 그 오류를 잡아 메시지를 출력해요.',
+      hint: 'Scoreboard 클래스에 scores 배열, add, average를 각각 만들고, average() 호출을 try/catch로 감싸세요.'
     }),
     advanced: () => ({
       type: 'code',
-      q: '<code>Calculator</code> 클래스를 만들어서, <code>divide(int a, int b)</code> 메서드가 <code>b</code>가 0이면 <code>throw new RuntimeException("0으로 나눌 수 없어요")</code>를 던지고, 아니면 <code>a / b</code>를 반환하게 하세요. <code>new Calculator()</code>를 만들고, <code>try/catch</code>로 <code>divide(10, 0)</code>을 호출해서 오류 메시지를 출력하는 전체 코드를 작성하세요.',
+      q: '맨 위에 <code>import java.util.ArrayList;</code>를 쓰세요. 필드 <code>T value;</code>와 <code>set(T value)</code>, <code>get()</code> 메서드를 가지는 제네릭 클래스 <code>Box&lt;T&gt;</code>를 만드세요. <code>Animal</code> 클래스(필드 <code>String name;</code>, 생성자에서 <code>this.name = name;</code>)를 상속받는 <code>Robot</code> 클래스(생성자에서 <code>super(name)</code> 호출)를 만드세요. <code>ArrayList&lt;Robot&gt; fleet = new ArrayList&lt;&gt;();</code>을 만들어 <code>fleet.add(new Robot("R2"));</code>을 실행하고, <code>Box&lt;Robot&gt; box = new Box&lt;&gt;();</code>에 <code>box.set(fleet.get(0));</code>을 한 뒤 <code>box.get().name</code>을 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 12,
-      placeholder: 'class Calculator {\n    int divide(int a, int b) {\n        if (b == 0) {\n            throw new RuntimeException("0으로 나눌 수 없어요");\n        }\n        return a / b;\n    }\n}\n\nCalculator calc = new Calculator();\ntry {\n    System.out.println(calc.divide(10, 0));\n} catch (RuntimeException e) {\n    System.out.println(e.getMessage());\n}',
-      accept: ['class Calculator {int divide(int a, int b) {if (b == 0) {throw new RuntimeException("0으로 나눌 수 없어요");}return a / b;}}Calculator calc = new Calculator();try {System.out.println(calc.divide(10, 0));} catch (RuntimeException e) {System.out.println(e.getMessage());}'],
-      why: 'divide(10, 0)은 b가 0이라서 예외를 던지고, catch (RuntimeException e)가 그 오류를 잡아 e.getMessage()인 "0으로 나눌 수 없어요"를 출력해요.',
-      hint: 'divide 메서드 안에서 b == 0일 때 throw로 예외를 던지고, 호출하는 쪽은 try/catch로 감싸세요.'
+      rows: 24,
+      placeholder: 'import java.util.ArrayList;\n\nclass Box<T> {\n    T value;\n    void set(T value) {\n        this.value = value;\n    }\n    T get() {\n        return value;\n    }\n}\n\nclass Animal {\n    String name;\n    Animal(String name) {\n        this.name = name;\n    }\n}\n\nclass Robot extends Animal {\n    Robot(String name) {\n        super(name);\n    }\n}\n\nArrayList<Robot> fleet = new ArrayList<>();\nfleet.add(new Robot("R2"));\n\nBox<Robot> box = new Box<>();\nbox.set(fleet.get(0));\nSystem.out.println(box.get().name);',
+      accept: ['import java.util.ArrayList;\nclass Box<T> {\n    T value;\n    void set(T value) {\n        this.value = value;\n    }\n    T get() {\n        return value;\n    }\n}\nclass Animal {\n    String name;\n    Animal(String name) {\n        this.name = name;\n    }\n}\nclass Robot extends Animal {\n    Robot(String name) {\n        super(name);\n    }\n}\nArrayList<Robot> fleet = new ArrayList<>();\nfleet.add(new Robot("R2"));\nBox<Robot> box = new Box<>();\nbox.set(fleet.get(0));\nSystem.out.println(box.get().name);'],
+      why: 'ArrayList에 담아둔 Robot을 get(0)으로 꺼내 제네릭 Box<Robot>에 넣고, box.get()으로 다시 꺼낸 Robot의 name은 상속받은 Animal의 생성자가 저장한 "R2"예요.',
+      hint: 'Box<T> 제네릭 클래스와 Robot extends Animal을 각각 만든 다음, ArrayList에서 꺼낸 Robot을 Box에 담아 다시 꺼내보세요.'
     }),
   }
 };

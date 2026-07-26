@@ -65,6 +65,11 @@ async function hashPassword(pw) {
   }
 }
 
+/* 어드민(전체 진도 완료) 계정 — 아이디 "admin"이어도 이 특정 비밀번호와 정확히 일치해야만 부여돼요.
+   비밀번호가 다르면 그냥 "admin"이라는 이름의 평범한(진도 없는) 계정이 될 뿐이에요. */
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD_HASH = '2b3b46a9983c2988371eb6206eb2c4906f7dec9a6e38169199afaf2c16cdf5b2';
+
 async function signup(username, password) {
   username = username.trim();
   if (username.length < 2) return { ok: false, msg: '아이디는 2자 이상으로 입력해주세요.' };
@@ -93,6 +98,22 @@ const progressKey = () => `codelab.progress.v2.${getCurrentUser() || 'guest'}`;
 const loadProgress = () => { try { return JSON.parse(localStorage.getItem(progressKey())) || {}; } catch { return {}; } };
 const saveProgress = p => { try { localStorage.setItem(progressKey(), JSON.stringify(p)); } catch {} };
 let progress = loadProgress();
+
+/* "admin" 계정 전용: 모든 언어·단원·티어를 이미 클리어한 상태로 채워서, 잠금 없이
+   일반 학습자와 완전히 똑같은 화면(같은 UI, 실제로 입력 가능한 문제 등)으로 모든 걸 둘러볼 수 있게 해줘요. */
+function buildFullProgress() {
+  const full = {};
+  Object.entries(COURSES).forEach(([key, course]) => {
+    course.units.filter(u => u.ready).forEach(u => {
+      full[`${key}.${u.id}`] = {
+        asked: STREAK_GOAL, correct: STREAK_GOAL, streak: STREAK_GOAL, bestStreak: STREAK_GOAL,
+        done: true, bossCleared: true
+      };
+    });
+    TIER_ORDER.forEach(tier => { full[`${key}.tier.${tier}`] = { cleared: true }; });
+  });
+  return full;
+}
 
 /* =========================================================================
    5) 렌더링
@@ -799,6 +820,21 @@ document.addEventListener('keydown', e => {
     const btn = el('check') || el('challengeCheck');
     if (btn && !btn.disabled) btn.click();
   }
+  if (e.key === 'Tab' && e.target.id === 'codeInput' && !e.target.disabled) {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    if (e.shiftKey) {
+      const lineStart = ta.value.lastIndexOf('\n', start - 1) + 1;
+      if (ta.value.slice(lineStart, lineStart + 4) === '    ') {
+        ta.value = ta.value.slice(0, lineStart) + ta.value.slice(lineStart + 4);
+        ta.setSelectionRange(Math.max(lineStart, start - 4), Math.max(lineStart, end - 4));
+      }
+    } else {
+      ta.value = ta.value.slice(0, start) + '    ' + ta.value.slice(end);
+      ta.setSelectionRange(start + 4, start + 4);
+    }
+  }
   if (e.key === 'Escape' && !el('authOverlay').hidden) { closeAuthModal(); }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'brandHome') {
     e.preventDefault();
@@ -829,7 +865,18 @@ document.addEventListener('submit', async e => {
   }
 
   el('authSubmit').disabled = true;
-  const result = authMode === 'signup' ? await signup(username, password) : await login(username, password);
+  // admin 아이디 + 정해진 비밀번호 조합이면, 로그인/회원가입 탭 어느 쪽에서 시도했든,
+  // 이 계정이 이전에 없었거나 다른 비밀번호로 잘못 만들어졌었든 상관없이 항상 통과시켜요.
+  const isAdminCombo = username.trim().toLowerCase() === ADMIN_USERNAME && (await hashPassword(password)) === ADMIN_PASSWORD_HASH;
+  let result;
+  if (isAdminCombo) {
+    const users = loadUsers();
+    users[ADMIN_USERNAME] = { hash: ADMIN_PASSWORD_HASH, createdAt: users[ADMIN_USERNAME]?.createdAt || Date.now() };
+    saveUsers(users);
+    result = { ok: true, username: ADMIN_USERNAME };
+  } else {
+    result = authMode === 'signup' ? await signup(username, password) : await login(username, password);
+  }
   el('authSubmit').disabled = false;
 
   if (!result.ok) {
@@ -839,7 +886,11 @@ document.addEventListener('submit', async e => {
   }
   const wasGuestProgress = authMode === 'signup' && !getCurrentUser() ? progress : null;
   setCurrentUser(result.username);
-  if (wasGuestProgress) saveProgress(wasGuestProgress);
+  if (isAdminCombo) {
+    saveProgress(buildFullProgress());
+  } else if (wasGuestProgress) {
+    saveProgress(wasGuestProgress);
+  }
   closeAuthModal();
   refreshAfterAuthChange();
 });

@@ -772,37 +772,361 @@ except ZeroDivisionError:
           hint: 'try 블록 안에 나눗셈과 출력을, except ZeroDivisionError: 블록 안에 오류 메시지 출력을 넣으세요.'
         };
       }
+    },
+    {
+      id: 'inherit',
+      title: '상속과 다형성',
+      ready: true,
+      summary: '이미 만든 클래스를 물려받아서 새 클래스를 만드는 상속을 배워요.',
+      goals: ['클래스 상속', 'super()', '메서드 오버라이딩', '다형성'],
+      blocks: [
+        {
+          h: '이미 있는 클래스를 물려받기: 상속',
+          html: `<p>완전히 새로운 클래스를 처음부터 만들지 않고, 이미 있는 클래스의 속성과 메서드를 그대로 물려받아서 시작할 수 있어요. 이걸 <b>상속</b>이라고 하고, <code>class 자식(부모):</code> 형태로 씁니다.</p>`,
+          code: {
+            label: 'inherit.py',
+            src: `class Animal:
+    def __init__(self, name):
+        self.name = name
+    def sound(self):
+        return "..."
+
+class Dog(Animal):
+    def sound(self):
+        return "멍멍!"
+
+d = Dog("초코")
+print(d.name, d.sound())`,
+            out: `초코 멍멍!`
+          }
+        },
+        {
+          h: '부모의 기능도 같이 쓰고 싶다면: super()',
+          html: `<p><code>Dog</code>은 <code>Animal</code>의 <code>__init__</code>을 그대로 물려받지만, 자식 클래스에서 <code>__init__</code>을 새로 정의하면서도 부모의 초기화 코드를 재사용하고 싶을 땐 <code>super().__init__(...)</code>으로 부모의 메서드를 호출할 수 있어요.</p>`,
+          code: {
+            label: 'super.py',
+            src: `class Animal:
+    def __init__(self, name):
+        self.name = name
+
+class Dog(Animal):
+    def __init__(self, name, breed):
+        super().__init__(name)
+        self.breed = breed
+
+d = Dog("초코", "포메라니안")
+print(d.name, d.breed)`,
+            out: `초코 포메라니안`
+          }
+        },
+        {
+          h: '같은 이름, 다른 동작: 다형성',
+          html: `<p><code>Dog</code>과 <code>Cat</code>이 둘 다 <code>sound()</code> 메서드를 갖고 있지만, 실제로 호출하면 각자 다르게 동작해요. 이렇게 "같은 이름의 메서드가 객체마다 다르게 동작하는 것"을 <b>다형성</b>이라고 불러요. 자식 클래스에서 부모의 메서드를 새로 정의하는 걸 <b>오버라이딩(재정의)</b>이라고 해요.</p>`,
+          after: `<div class="note"><b>비유</b> — Animal은 "동물"이라는 큰 틀이고, Dog·Cat은 그 틀 안에서 각자 "짖는 소리"만 다르게 정한 것과 같아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '이미 있는 클래스의 속성과 메서드를 물려받아 새 클래스를 만드는 것을 무엇이라고 하나요?',
+          '상속', ['다형성', '캡슐화', '오버로딩'],
+          '이미 있는 클래스를 물려받아 시작하는 것을 <b>상속</b>이라고 해요.',
+          '"부모의 것을 물려받는다"는 뜻의 한글 단어예요.'
+        ),
+        () => {
+          const name = pick(['초코', '보리', '몽이']);
+          return {
+            type: 'blank',
+            q: `<code>class Animal: def __init__(self, name): self.name = name</code>이고, <code>class Dog(Animal): def sound(self): return "멍멍!"</code>일 때, <code>d = Dog("${name}")</code> 후 <code>print(d.name)</code>을 실행하면? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [name], placeholder: '값',
+            why: `<code>Dog</code>은 <code>__init__</code>을 따로 정의하지 않아서, 부모 <code>Animal</code>의 <code>__init__</code>을 그대로 물려받아 <code>d.name</code>이 "${name}"이 돼요.`,
+            hint: '자식 클래스가 __init__을 따로 정의하지 않으면, 부모의 __init__을 그대로 물려받아요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `자식 클래스의 <code>__init__</code>에서 부모 클래스의 <code>__init__</code>을 호출하려고 해요. 빈칸을 채우세요.`,
+          prefix: 'class Dog(Animal):\n    def __init__(self, name, breed):\n        ', suffix: '().__init__(name)\n        self.breed = breed', accept: ['super'], placeholder: '키워드',
+          why: '<code>super()</code>는 부모 클래스를 가리켜서, 부모의 메서드를 호출할 수 있게 해줘요.',
+          hint: '"위, 상위"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '자식 클래스에서 부모 클래스의 메서드를 같은 이름으로 새로 정의하는 것을 무엇이라고 하나요?',
+          '오버라이딩(재정의)', ['오버로딩', '상속', '캡슐화'],
+          '부모의 메서드를 자식 클래스에서 다시 정의하는 걸 <b>오버라이딩</b>이라고 해요.',
+          '"덮어쓰다, 다시 정의하다"라는 뜻이 담긴 단어예요.'
+        ),
+        () => {
+          const child = pick(['Dog', 'Cat', 'Bird']);
+          return {
+            type: 'blank',
+            q: `<code>Animal</code>을 물려받는 <code>${child}</code> 클래스를 만들려고 해요. 클래스 선언을 완성하세요.`,
+            prefix: 'class ', suffix: ':\n    ...', accept: [`${child}(Animal)`], placeholder: '클래스이름(부모)',
+            why: `<code>class ${child}(Animal):</code>처럼 괄호 안에 부모 클래스 이름을 넣으면 상속받아요.`,
+            hint: '클래스 이름 뒤 괄호 안에 물려받을 부모 클래스 이름을 넣으면 돼요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Animal</code> 클래스(생성자에서 <code>self.name = name</code>)를 물려받는 <code>Cat</code> 클래스를 만들고, <code>sound()</code> 메서드가 <code>"야옹!"</code>을 반환하도록 오버라이딩하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'class Cat(Animal):\n    def sound(self):\n        return "야옹!"',
+          accept: ['class Cat(Animal):\n    def sound(self):\n        return "야옹!"'],
+          why: '<code>class Cat(Animal):</code>로 상속받고, <code>sound()</code> 메서드만 새로 정의(오버라이딩)하면 나머지는 그대로 물려받아요.',
+          hint: 'class Cat(Animal): 다음 줄에 def sound(self): return "야옹!"을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['초코', '보리', '몽이']);
+        const breed = pick(['포메라니안', '진돗개', '푸들']);
+        return {
+          type: 'blank',
+          q: `<code>class Animal: def __init__(self, name): self.name = name</code>이고, <code>class Dog(Animal): def __init__(self, name, breed): super().__init__(name); self.breed = breed</code>일 때, <code>d = Dog("${name}", "${breed}")</code> 후 <code>print(d.name, d.breed)</code>를 실행하면? (공백 하나로 구분해서 그대로 입력)`,
+          prefix: '', suffix: '', accept: [`${name} ${breed}`], placeholder: '이름 견종',
+          why: `<code>super().__init__(name)</code>이 부모의 초기화를 실행해 <code>d.name</code>을 "${name}"으로, 자식의 코드가 <code>d.breed</code>를 "${breed}"로 만들어요.`,
+          hint: 'super().__init__(name)은 부모 클래스가 name을 저장하게 해주고, 그 아래 줄이 breed를 저장해요.'
+        };
+      }
+    },
+    {
+      id: 'module',
+      title: '모듈과 파일 다루기',
+      ready: true,
+      summary: '다른 사람이 미리 만들어둔 기능을 가져다 쓰고, 파일에 내용을 저장하고 다시 읽는 방법을 배워요.',
+      goals: ['import로 모듈 가져오기', 'math / random 모듈', '파일 쓰고 읽기(open)'],
+      blocks: [
+        {
+          h: '이미 만들어진 기능 가져다 쓰기: import',
+          html: `<p>파이썬은 자주 쓰는 기능들을 <b>모듈</b>이라는 파일 묶음으로 미리 만들어뒀어요. <code>import 모듈이름</code>으로 가져오면, <code>모듈이름.기능()</code> 형태로 바로 쓸 수 있어요. 직접 코드를 짤 필요 없이 빌려 쓰는 거예요.</p>`,
+          code: {
+            label: 'import_math.py',
+            src: `import math
+
+print(math.sqrt(16))
+print(math.pi)`,
+            out: `4.0\n3.141592653589793`
+          }
+        },
+        {
+          h: '무작위 값이 필요할 때: random 모듈',
+          html: `<p><code>random</code> 모듈의 <code>random.randint(시작, 끝)</code>은 그 범위 안에서(양 끝 포함) 무작위 정수 하나를 뽑아줘요. 실행할 때마다 다른 값이 나와요.</p>`,
+          code: {
+            label: 'import_random.py',
+            src: `import random
+
+dice = random.randint(1, 6)
+print(dice)  # 실행할 때마다 1~6 사이 다른 값`
+          }
+        },
+        {
+          h: '내용을 저장하고 다시 읽기: open()',
+          html: `<p><code>open(파일이름, 모드)</code>로 파일을 열 수 있어요. <code>"w"</code>는 쓰기(write, 기존 내용은 지워짐), <code>"r"</code>은 읽기(read)예요. <code>with</code>와 함께 쓰면 작업이 끝난 뒤 파일을 자동으로 닫아줘서 안전해요.</p>`,
+          code: {
+            label: 'file_io.py',
+            src: `with open("note.txt", "w") as f:
+    f.write("안녕하세요")
+
+with open("note.txt", "r") as f:
+    content = f.read()
+    print(content)`,
+            out: `안녕하세요`
+          },
+          after: `<div class="note"><b>기억하기</b> — <code>with open(...) as f:</code> 블록을 벗어나면 파일이 자동으로 닫혀요. 직접 <code>f.close()</code>를 안 챙겨도 돼서 실수를 줄여줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = pick([4, 9, 16, 25, 36]);
+          return {
+            type: 'blank',
+            q: `<code>import math</code>를 한 뒤, ${n}의 제곱근을 구하는 코드를 완성하세요.`,
+            prefix: 'print(math.', suffix: `(${n}))`, accept: ['sqrt'], placeholder: '함수 이름',
+            why: `<code>math.sqrt(${n})</code>는 ${n}의 제곱근인 ${Math.sqrt(n)}을 돌려줘요.`,
+            hint: '"제곱근(square root)"의 줄임말이에요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `다른 모듈의 기능을 가져다 쓰려고 해요. 맨 앞에 쓰는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' math', accept: ['import'], placeholder: '키워드',
+          why: '<code>import 모듈이름</code>으로 그 모듈 안의 기능들을 가져다 쓸 수 있어요.',
+          hint: '"가져오다, 수입하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => {
+          const lo = randInt(1, 5), hi = randInt(6, 20);
+          return {
+            type: 'blank',
+            q: `${lo}부터 ${hi}까지 범위에서 무작위 정수 하나를 뽑는 코드를 완성하세요. (random을 이미 import 했다고 가정해요)`,
+            prefix: 'dice = random.', suffix: `(${lo}, ${hi})`, accept: ['randint'], placeholder: '함수 이름',
+            why: `<code>random.randint(${lo}, ${hi})</code>는 ${lo}부터 ${hi}까지(양 끝 포함) 중 무작위 정수를 하나 뽑아줘요.`,
+            hint: '"무작위 정수"를 뜻하는 영어 단어 조합이에요.'
+          };
+        },
+        () => makeChoice(
+          '파일을 새로 쓰기(기존 내용을 지우고 처음부터 쓰기) 모드로 열 때 쓰는 문자는?',
+          `<code>"w"</code>`, [`<code>"r"</code>`, `<code>"a"</code>`, `<code>"x"</code>`],
+          `<code>"w"</code>(write)는 파일을 쓰기 모드로 열어요. 기존 내용이 있다면 지워지고 새로 써져요.`,
+          '"쓰다(write)"의 첫 글자예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `파일 작업이 끝나면 자동으로 파일을 닫아주는, <code>open(...)</code> 앞에 붙이는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' open("note.txt", "r") as f:\n    ...', accept: ['with'], placeholder: '키워드',
+          why: '<code>with open(...) as f:</code> 블록을 쓰면, 블록이 끝날 때 파일이 자동으로 닫혀요.',
+          hint: '"~와 함께"라는 뜻의 영어 단어로, 자원을 안전하게 관리할 때 자주 써요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>with open("note.txt", "w") as f:</code> 블록 안에서 <code>"안녕"</code>이라는 내용을 파일에 쓰는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'with open("note.txt", "w") as f:\n    f.write("안녕")',
+          accept: ['with open("note.txt", "w") as f:\n    f.write("안녕")'],
+          why: '<code>f.write(내용)</code>은 열어둔 파일 f에 그 내용을 써요.',
+          hint: 'with open(...) as f: 블록 안에 f.write("안녕")을 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const n = pick([9, 16, 25, 49]);
+        const root = Math.sqrt(n);
+        return {
+          type: 'blank',
+          q: `<code>import math</code>를 한 뒤, <code>print(math.sqrt(${n}))</code>를 실행하면 무엇이 출력될까요? (소수점 포함, 예: 4.0)`,
+          prefix: '', suffix: '', accept: [`${root}.0`], placeholder: '숫자',
+          why: `<code>math.sqrt(${n})</code>는 ${n}의 제곱근인 ${root}을 실수(float)로 돌려주기 때문에 <code>${root}.0</code>처럼 출력돼요.`,
+          hint: '제곱근을 구한 뒤, 파이썬은 그 결과를 항상 실수(소수점 포함)로 보여줘요.'
+        };
+      }
+    },
+    {
+      id: 'decorators',
+      title: '데코레이터와 제너레이터',
+      ready: true,
+      summary: '값을 한 번에 다 만들지 않고 하나씩 내놓는 제너레이터와, 함수를 감싸서 기능을 더하는 데코레이터를 배워요.',
+      goals: ['yield로 값 하나씩 만들기', '제너레이터 함수', '@로 함수 감싸기(데코레이터)'],
+      blocks: [
+        {
+          h: '한 번에 다 만들지 않고, 하나씩: yield',
+          html: `<p><code>return</code>은 값을 하나 돌려주고 함수를 완전히 끝내지만, <code>yield</code>는 값을 하나 "내놓고" 그 자리에서 잠깐 멈춰요. 다음에 또 값이 필요해지면, 멈췄던 자리부터 다시 이어서 실행돼요. 이런 함수를 <b>제너레이터</b>라고 불러요.</p>`,
+          code: {
+            label: 'generator.py',
+            src: `def count_up(n):
+    for i in range(1, n + 1):
+        yield i
+
+for num in count_up(3):
+    print(num)`,
+            out: `1\n2\n3`
+          }
+        },
+        {
+          h: '왜 굳이 yield를 쓸까? 메모리를 아껴요',
+          html: `<p><code>range(1000000)</code>처럼 값이 아주 많아도, 제너레이터는 한 번에 다 만들어서 리스트에 쌓아두지 않고 <b>필요할 때마다 하나씩만</b> 만들어요. 그래서 값이 아주 많거나 끝이 없는 경우에도 메모리를 아낄 수 있어요.</p>`
+        },
+        {
+          h: '함수를 감싸서 기능을 더하기: 데코레이터',
+          html: `<p><b>데코레이터</b>는 기존 함수를 고치지 않고, 그 위에 <code>@데코레이터이름</code>을 붙여서 실행 앞뒤에 새로운 동작을 끼워 넣는 문법이에요. "함수를 함수로 감싼다"고 생각하면 쉬워요.</p>`,
+          code: {
+            label: 'decorator.py',
+            src: `def shout(func):
+    def wrapper():
+        result = func()
+        return result.upper()
+    return wrapper
+
+@shout
+def greet():
+    return "hello"
+
+print(greet())`,
+            out: `HELLO`
+          },
+          after: `<div class="note"><b>정리</b> — <code>@shout</code>를 붙이면, <code>greet()</code>를 호출할 때 사실은 <code>shout(greet)()</code>가 실행돼요. greet의 코드는 그대로 두고, 결과만 대문자로 바꿔서 돌려준 거예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(2, 5);
+          return {
+            type: 'blank',
+            q: `<code>def count_up(n): for i in range(1, n + 1): yield i</code> 함수에 <code>for num in count_up(${n}): print(num)</code>을 실행하면, 마지막 줄에 무엇이 출력될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `<code>count_up(${n})</code>은 1부터 ${n}까지 하나씩 내놓아요. 마지막으로 나오는 값은 ${n}이에요.`,
+            hint: 'range(1, n+1)은 1부터 n까지 하나씩 만들어줘요.'
+          };
+        },
+        () => makeChoice(
+          '함수 안에서 값을 하나 "내놓고" 그 자리에서 멈추는(다음에 이어서 실행되는) 키워드는?',
+          '<code>yield</code>', ['<code>return</code>', '<code>pass</code>', '<code>break</code>'],
+          '<code>yield</code>는 값을 하나 내놓고 멈췄다가, 다음에 또 필요해지면 이어서 실행돼요.',
+          '"내주다, 양보하다"라는 뜻의 영어 단어예요.'
+        ),
+        () => makeChoice(
+          '<code>yield</code>를 하나 이상 사용한 함수를 부르는 이름은?',
+          '제너레이터 함수', ['데코레이터 함수', '람다 함수', '재귀 함수'],
+          '<code>yield</code>가 들어있는 함수는 호출해도 바로 실행되지 않고, 값을 하나씩 만들어내는 "제너레이터"가 돼요.',
+          '"만들어내다(generate)"라는 뜻의 영어 단어에서 온 이름이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `함수 <code>greet</code>를 <code>shout</code> 데코레이터로 감싸려고 해요. <code>def greet(): ...</code> 바로 위에 쓰는 문법을 완성하세요.`,
+          prefix: '', suffix: 'shout\ndef greet():\n    return "hello"', accept: ['@'], placeholder: '기호',
+          why: '<code>@데코레이터이름</code>을 함수 정의 바로 위에 쓰면, 그 함수가 데코레이터로 감싸져요.',
+          hint: '"골뱅이"라고도 부르는, 이메일 주소에도 쓰이는 그 기호예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '1부터 <code>n</code>까지의 제곱을 하나씩 <code>yield</code>하는 제너레이터 함수 <code>squares(n)</code>을 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'def squares(n):\n    for i in range(1, n + 1):\n        yield i * i',
+          accept: ['def squares(n):\n    for i in range(1, n + 1):\n        yield i * i'],
+          why: '반복문 안에서 <code>i * i</code>를 <code>yield</code>하면, 호출할 때마다 제곱값을 하나씩 내놓아요.',
+          hint: 'for i in range(1, n + 1): 안에 yield i * i를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(2, 5);
+        const squares = Array.from({ length: n }, (_, i) => (i + 1) * (i + 1));
+        return {
+          type: 'blank',
+          q: `<code>def squares(n): for i in range(1, n + 1): yield i * i</code> 함수에 <code>for s in squares(${n}): print(s)</code>를 실행하면, 순서대로 무엇이 출력될까요? 쉼표로 구분해서 쓰세요. (예: 1, 4, 9)`,
+          prefix: '', suffix: '', accept: [squares.join(', '), squares.join(',')], placeholder: '숫자, 숫자, ...',
+          why: `1부터 ${n}까지 각각 제곱하면 ${squares.join(', ')}이 순서대로 출력돼요.`,
+          hint: '1의 제곱, 2의 제곱, ... 순서대로 하나씩 계산해보세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
       type: 'code',
-      q: '변수 <code>total</code>을 0으로 만들고, for문으로 1부터 5까지 더한 뒤, 총합이 10보다 크면 "많음"을, 아니면 "적음"을 출력하는 전체 코드를 작성하세요. (변수, 반복문, 조건문을 모두 사용하세요)',
+      q: '1부터 <code>n</code>까지의 합을 반환하는 함수 <code>sum_range(n)</code>을 만드세요(변수와 for문 사용). <code>sum_range(5)</code>의 결과가 10보다 크면 "많음"을, 아니면 "적음"을 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 6,
-      placeholder: 'total = 0\nfor i in range(1, 6):\n    total += i\nif total > 10:\n    print("많음")\nelse:\n    print("적음")',
-      accept: ['total = 0\nfor i in range(1, 6):\n    total += i\nif total > 10:\n    print("많음")\nelse:\n    print("적음")'],
-      why: '1부터 5까지 더하면 15고, 15는 10보다 크니까 "많음"이 출력돼요.',
-      hint: 'total = 0으로 시작해서 for문으로 다 더한 뒤, 그 결과를 if/else로 비교하세요.'
+      rows: 9,
+      placeholder: 'def sum_range(n):\n    total = 0\n    for i in range(1, n + 1):\n        total += i\n    return total\n\nif sum_range(5) > 10:\n    print("많음")\nelse:\n    print("적음")',
+      accept: ['def sum_range(n):\n    total = 0\n    for i in range(1, n + 1):\n        total += i\n    return total\nif sum_range(5) > 10:\n    print("많음")\nelse:\n    print("적음")'],
+      why: 'sum_range(5)는 1부터 5까지 더한 15를 반환하고, 15는 10보다 크니까 "많음"이 출력돼요.',
+      hint: '함수 안에서 total = 0으로 시작해 for문으로 더한 값을 return한 뒤, 그 결과를 if/else로 비교하세요.'
     }),
     intermediate: () => ({
       type: 'code',
-      q: '리스트를 받아 그 중 가장 큰 값을 반환하는 함수 <code>find_max</code>를 만들고, <code>numbers = [3, 1, 4, 1, 5]</code>에 대해 호출한 결과를 출력하는 전체 코드를 작성하세요. (<code>max()</code> 함수를 사용하세요)',
+      q: '생성자에서 <code>self.scores = []</code>로 시작하고, <code>add(self, score)</code> 메서드가 <code>self.scores.append(score)</code>를, <code>average(self)</code> 메서드가 <code>sum(self.scores) / len(self.scores)</code>를 반환하는 <code>Scoreboard</code> 클래스를 만드세요. <code>sb = Scoreboard()</code>를 만들고(점수는 하나도 추가하지 않고), <code>try/except</code>로 <code>sb.average()</code>를 호출해서 <code>ZeroDivisionError</code>가 나면 <code>"점수가 없어서 평균을 구할 수 없어요"</code>를 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 5,
-      placeholder: 'def find_max(nums):\n    return max(nums)\n\nnumbers = [3, 1, 4, 1, 5]\nprint(find_max(numbers))',
-      accept: ['def find_max(nums):\n    return max(nums)\nnumbers = [3, 1, 4, 1, 5]\nprint(find_max(numbers))'],
-      why: '함수 안에서 <code>max(nums)</code>로 가장 큰 값을 찾고, 리스트를 넘겨 호출한 결과(5)를 출력해요.',
-      hint: 'def find_max(nums): return max(nums)로 함수를 만들고, 리스트를 넘겨 호출한 값을 출력하세요.'
+      rows: 12,
+      placeholder: 'class Scoreboard:\n    def __init__(self):\n        self.scores = []\n    def add(self, score):\n        self.scores.append(score)\n    def average(self):\n        return sum(self.scores) / len(self.scores)\n\nsb = Scoreboard()\ntry:\n    print(sb.average())\nexcept ZeroDivisionError:\n    print("점수가 없어서 평균을 구할 수 없어요")',
+      accept: ['class Scoreboard:\n    def __init__(self):\n        self.scores = []\n    def add(self, score):\n        self.scores.append(score)\n    def average(self):\n        return sum(self.scores) / len(self.scores)\nsb = Scoreboard()\ntry:\n    print(sb.average())\nexcept ZeroDivisionError:\n    print("점수가 없어서 평균을 구할 수 없어요")'],
+      why: 'scores 리스트가 비어있는 상태에서 average()를 호출하면 len(self.scores)가 0이라서 ZeroDivisionError가 나고, except 블록이 그 오류를 잡아 메시지를 출력해요.',
+      hint: 'Scoreboard 클래스에 scores 리스트, add, average를 각각 만들고, average() 호출을 try/except로 감싸세요.'
     }),
     advanced: () => ({
       type: 'code',
-      q: '<code>Calculator</code>라는 클래스를 만들고, <code>divide(self, a, b)</code> 메서드에서 0으로 나누면 <code>"0으로 나눌 수 없어요"</code>를 출력하도록 예외 처리를 하는 코드를 작성하세요.',
+      q: '맨 위에 <code>import math</code>를 쓰세요. 함수를 감싸서 결과를 <code>math.floor</code>로 내림하는 데코레이터 <code>rounded(func)</code>를 만드세요(<code>def wrapper(*args): return math.floor(func(*args))</code> 형태). <code>Animal</code> 클래스(생성자에서 <code>self.name = name</code>)를 물려받는 <code>Robot</code> 클래스를 만드세요. <code>Robot</code>의 생성자는 <code>super().__init__(name)</code>을 호출한 뒤 <code>self.battery</code>, <code>self.max_battery</code>를 저장하고, <code>@rounded</code>로 감싼 <code>battery_percent(self)</code> 메서드는 <code>self.battery / self.max_battery * 100</code>을 반환해요. <code>r = Robot("R2", 50, 100)</code>을 만들어 <code>print(r.battery_percent())</code>를 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 6,
-      placeholder: 'class Calculator:\n    def divide(self, a, b):\n        try:\n            print(a / b)\n        except ZeroDivisionError:\n            print("0으로 나눌 수 없어요")',
-      accept: ['class Calculator:\n    def divide(self, a, b):\n        try:\n            print(a / b)\n        except ZeroDivisionError:\n            print("0으로 나눌 수 없어요")'],
-      why: '클래스와 메서드 안에서도 <code>try/except</code>를 똑같이 쓸 수 있어요. b가 0이면 ZeroDivisionError를 처리해요.',
-      hint: 'class Calculator: 안에 def divide(self, a, b): 를 만들고, 그 안에 try/except를 넣으세요.'
+      rows: 20,
+      placeholder: 'import math\n\ndef rounded(func):\n    def wrapper(*args):\n        return math.floor(func(*args))\n    return wrapper\n\nclass Animal:\n    def __init__(self, name):\n        self.name = name\n\nclass Robot(Animal):\n    def __init__(self, name, battery, max_battery):\n        super().__init__(name)\n        self.battery = battery\n        self.max_battery = max_battery\n    @rounded\n    def battery_percent(self):\n        return self.battery / self.max_battery * 100\n\nr = Robot("R2", 50, 100)\nprint(r.battery_percent())',
+      accept: ['import math\ndef rounded(func):\n    def wrapper(*args):\n        return math.floor(func(*args))\n    return wrapper\nclass Animal:\n    def __init__(self, name):\n        self.name = name\nclass Robot(Animal):\n    def __init__(self, name, battery, max_battery):\n        super().__init__(name)\n        self.battery = battery\n        self.max_battery = max_battery\n    @rounded\n    def battery_percent(self):\n        return self.battery / self.max_battery * 100\nr = Robot("R2", 50, 100)\nprint(r.battery_percent())'],
+      why: '@rounded 데코레이터가 battery_percent의 결과를 math.floor로 내림해서 정수로 만들고, Robot은 Animal을 상속받아 super().__init__(name)으로 이름을 저장해요. 50/100*100=50.0이 내림되어 50이 출력돼요.',
+      hint: 'import math와 rounded 데코레이터를 먼저 만들고, class Robot(Animal)에서 super().__init__(name) 후 필드를 저장한 뒤, @rounded를 battery_percent 메서드 위에 붙이세요.'
     }),
   }
 };

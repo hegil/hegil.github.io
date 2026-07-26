@@ -273,7 +273,7 @@
   .modal-overlay[hidden] { display: none; }
   .modal {
     width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px 24px 24px; position: relative;
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 48px 24px 24px; position: relative;
   }
   .modal-close {
     position: absolute; top: 14px; right: 14px; border: 0; background: none; color: var(--text-dim);

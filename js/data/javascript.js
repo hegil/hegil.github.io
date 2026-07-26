@@ -811,40 +811,368 @@ try {
           hint: 'b가 0인지 아닌지에 따라 정상 결과가 나올지, catch로 잡힌 오류 메시지가 나올지 갈려요.'
         };
       }
+    },
+    {
+      id: 'arrayMethods',
+      title: '배열 고급 메서드',
+      ready: true,
+      summary: '반복문을 직접 쓰지 않고도 배열을 다루는, 훨씬 짧고 읽기 쉬운 방법을 배워요.',
+      goals: ['map으로 변환하기', 'filter로 골라내기', 'reduce로 합치기'],
+      blocks: [
+        {
+          h: '배열의 모든 값을 바꾸기: map',
+          html: `<p><code>배열.map(값 => 새값)</code>은 배열의 <b>모든 값 하나하나에</b> 함수를 적용해서, 그 결과들로 이루어진 <b>새 배열</b>을 만들어줘요. for문으로 새 배열을 하나씩 채우는 것과 같은 결과지만 훨씬 짧아요.</p>`,
+          code: {
+            label: 'map.js',
+            src: `const nums = [1, 2, 3];
+const doubled = nums.map(n => n * 2);
+console.log(doubled);`,
+            out: `[ 2, 4, 6 ]`
+          }
+        },
+        {
+          h: '조건에 맞는 것만 골라내기: filter',
+          html: `<p><code>배열.filter(값 => 조건)</code>은 조건이 <code>true</code>인 값들만 골라서 새 배열로 만들어줘요. 조건에 맞지 않는 값은 결과에서 빠져요.</p>`,
+          code: {
+            label: 'filter.js',
+            src: `const nums = [1, 2, 3, 4, 5, 6];
+const evens = nums.filter(n => n % 2 === 0);
+console.log(evens);`,
+            out: `[ 2, 4, 6 ]`
+          }
+        },
+        {
+          h: '전부 합쳐서 값 하나로: reduce',
+          html: `<p><code>배열.reduce((누적값, 현재값) => 새누적값, 시작값)</code>은 배열의 모든 값을 순서대로 하나씩 누적시켜서, 최종적으로 <b>값 하나</b>로 만들어줘요. 합계, 최댓값 등을 구할 때 자주 써요.</p>`,
+          code: {
+            label: 'reduce.js',
+            src: `const nums = [1, 2, 3, 4];
+const total = nums.reduce((acc, cur) => acc + cur, 0);
+console.log(total);`,
+            out: `10`
+          },
+          after: `<div class="note"><b>비교</b> — map은 "배열 → 배열"(개수 그대로, 값만 변환), filter는 "배열 → 더 짧은 배열"(값 그대로, 개수만 줄임), reduce는 "배열 → 값 하나"예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const nums = Array.from({ length: 4 }, () => randInt(1, 10));
+          const doubled = nums.map(n => n * 2);
+          return {
+            type: 'blank',
+            q: `<code>[${nums.join(', ')}].map(n => n * 2)</code>의 결과를 배열 형태로 쓰세요. (예: [2, 4, 6])`,
+            prefix: '', suffix: '', accept: [`[${doubled.join(', ')}]`, `[${doubled.join(',')}]`], placeholder: '[값, 값, ...]',
+            why: `map은 각 값에 함수를 적용한 새 배열을 만들어요. 각 값을 2배 하면 [${doubled.join(', ')}]이에요.`,
+            hint: '배열 안의 값 하나하나를 2배로 바꿔서 순서대로 나열해보세요.'
+          };
+        },
+        () => {
+          const nums = Array.from({ length: 5 }, () => randInt(1, 20));
+          const evens = nums.filter(n => n % 2 === 0);
+          return {
+            type: 'blank',
+            q: `<code>[${nums.join(', ')}].filter(n => n % 2 === 0)</code>의 결과를 배열 형태로 쓰세요. (짝수가 없으면 [] 로 쓰세요)`,
+            prefix: '', suffix: '', accept: [`[${evens.join(', ')}]`, `[${evens.join(',')}]`], placeholder: '[값, 값, ...]',
+            why: `filter는 조건(짝수인지)이 true인 값만 남겨요. 짝수만 고르면 [${evens.join(', ')}]이에요.`,
+            hint: '배열에서 2로 나눠 나머지가 0인 값들만 순서대로 골라보세요.'
+          };
+        },
+        () => {
+          const nums = Array.from({ length: 4 }, () => randInt(1, 10));
+          const total = nums.reduce((a, b) => a + b, 0);
+          return {
+            type: 'blank',
+            q: `<code>[${nums.join(', ')}].reduce((acc, cur) => acc + cur, 0)</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(total)], placeholder: '숫자',
+            why: `reduce는 0부터 시작해서 배열의 모든 값을 순서대로 더해요. ${nums.join(' + ')} = ${total}이에요.`,
+            hint: '시작값 0에서부터 배열의 모든 값을 하나씩 더해보세요.'
+          };
+        },
+        () => makeChoice(
+          '배열의 각 값에 함수를 적용해서, 같은 개수의 새 배열을 만드는 메서드는?',
+          '<code>map</code>', ['<code>filter</code>', '<code>reduce</code>', '<code>forEach</code>'],
+          '<code>map</code>은 배열의 개수는 그대로 두고, 값만 변환한 새 배열을 만들어요.',
+          '"변환하다, 대응시키다"라는 뜻의 영어 단어예요.'
+        ),
+        () => makeChoice(
+          '배열에서 조건에 맞는 값들만 골라 더 짧은(또는 같은) 새 배열을 만드는 메서드는?',
+          '<code>filter</code>', ['<code>map</code>', '<code>reduce</code>', '<code>find</code>'],
+          '<code>filter</code>는 조건이 true인 값만 남겨서 새 배열을 만들어요.',
+          '"걸러내다"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '배열 <code>[1, 2, 3, 4, 5]</code>에서 짝수만 골라(<code>filter</code>) 각 값을 2배로 만든(<code>map</code>) 배열을 <code>console.log</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'const nums = [1, 2, 3, 4, 5];\nconsole.log(nums.filter(n => n % 2 === 0).map(n => n * 2));',
+          expectedOutput: '[ 4, 8 ]',
+          why: 'filter로 짝수(2, 4)만 남긴 뒤, map으로 각 값을 2배(4, 8) 해서 출력해요.',
+          hint: 'nums.filter(n => n % 2 === 0)로 짝수만 남기고, 그 결과에 .map(n => n * 2)를 이어 붙이세요.'
+        }),
+      ],
+      boss: () => {
+        const nums = Array.from({ length: 5 }, () => randInt(1, 10));
+        const total = nums.filter(n => n % 2 === 0).reduce((a, b) => a + b, 0);
+        return {
+          type: 'blank',
+          q: `<code>[${nums.join(', ')}].filter(n => n % 2 === 0).reduce((acc, cur) => acc + cur, 0)</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(total)], placeholder: '숫자',
+          why: `먼저 filter로 짝수만 남기고([${nums.filter(n => n % 2 === 0).join(', ')}]), 그 값들을 reduce로 다 더하면 ${total}이에요.`,
+          hint: 'filter로 짝수만 먼저 골라낸 다음, 그 결과를 reduce로 더해보세요.'
+        };
+      }
+    },
+    {
+      id: 'async',
+      title: '비동기 프로그래밍',
+      ready: true,
+      summary: '"지금 당장"이 아니라 "나중에" 실행되는 코드를 다루는 법을 배워요. 웹에서 서버와 통신할 때 꼭 필요해요.',
+      goals: ['setTimeout', '실행 순서(동기 코드가 항상 먼저)', 'Promise와 then', 'async/await'],
+      blocks: [
+        {
+          h: '나중에 실행하기: setTimeout',
+          html: `<p><code>setTimeout(함수, 밀리초)</code>는 "지정한 시간(밀리초, 1000ms=1초)이 지난 뒤에 함수를 실행해줘"라는 뜻이에요. 그런데 그 시간 동안 프로그램이 멈춰서 기다리는 게 아니라, <b>그 사이에 다른 코드가 먼저 다 실행</b>돼요.</p>`,
+          code: {
+            label: 'timeout.js',
+            src: `console.log("시작");
+setTimeout(() => {
+  console.log("2초 후 실행");
+}, 2000);
+console.log("끝");`,
+            out: `시작\n끝\n2초 후 실행`
+          }
+        },
+        {
+          h: '동기 코드가 항상 먼저 끝나요',
+          html: `<p>지금 바로 실행되는 코드를 <b>동기(synchronous)</b> 코드라고 해요. <code>setTimeout</code>처럼 "나중에" 실행되는 코드는 <b>비동기(asynchronous)</b> 코드라고 부르는데, 시간을 <code>0</code>으로 줘도 동기 코드가 전부 끝난 다음에야 실행돼요.</p>`
+        },
+        {
+          h: '미래에 끝날 작업을 담은 상자: Promise',
+          html: `<p><code>Promise</code>는 "지금은 아니지만 언젠가 끝날 작업"을 나타내는 객체예요. 작업이 끝나면 <code>.then(결과 => {...})</code> 안의 함수가 실행돼요. <code>async</code> 함수 안에서는 <code>await</code>를 붙여서, Promise가 끝날 때까지 "기다리는 것처럼" 코드를 순서대로 쓸 수 있어요.</p>`,
+          code: {
+            label: 'async_await.js',
+            src: `function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function run() {
+  console.log("시작");
+  await delay(1000);
+  console.log("1초 후");
+}
+run();`,
+            out: `시작\n(1초 뒤) 1초 후`
+          },
+          after: `<div class="note"><b>비유</b> — 음식을 주문(Promise)하면 바로 나오지 않아요. 음식이 나올 때(then/await) 그다음 할 일을 하죠. 그동안 다른 손님(동기 코드)은 먼저 서빙받을 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const ms = pick([0, 100, 3000]);
+          return {
+            type: 'blank',
+            q: `<code>console.log("A"); setTimeout(() => console.log("B"), ${ms}); console.log("C");</code>를 실행하면 어떤 순서로 출력될까요? (예: A, C, B)`,
+            prefix: '', suffix: '', accept: ['A, C, B', 'A,C,B'], placeholder: 'A, B, C 순서',
+            why: `setTimeout의 시간이 ${ms}ms여도, 동기 코드(A, C)가 항상 먼저 다 실행된 뒤에 B가 실행돼요.`,
+            hint: 'setTimeout 안의 코드는 시간이 얼마든 상관없이, 동기 코드가 전부 끝난 뒤에 실행돼요.'
+          };
+        },
+        () => makeChoice(
+          '"지금 당장"이 아니라 "나중에" 실행되는 코드를 부르는 말은?',
+          '비동기(asynchronous)', ['동기(synchronous)', '재귀(recursive)', '병렬(parallel)'],
+          '나중에 실행되는 코드를 <b>비동기</b> 코드라고 불러요. setTimeout, Promise가 대표적이에요.',
+          '"동시에 일어나지 않는다"는 뜻이 담긴 단어예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `Promise가 성공적으로 끝났을 때 실행할 함수를 등록하는 메서드를 쓰세요.`,
+          prefix: 'delay(1000).', suffix: '(() => { console.log("완료"); });', accept: ['then'], placeholder: '메서드 이름',
+          why: '<code>.then(함수)</code>는 Promise가 끝나면 그 함수를 실행해줘요.',
+          hint: '"그다음에"라는 뜻의 영어 단어 그대로예요.'
+        }),
+        () => makeChoice(
+          '<code>async</code> 함수 안에서, Promise가 끝날 때까지 기다리는 것처럼 쓰게 해주는 키워드는?',
+          '<code>await</code>', ['<code>then</code>', '<code>delay</code>', '<code>pause</code>'],
+          '<code>await</code>는 Promise가 끝날 때까지 그 줄에서 "기다리는 것처럼" 코드를 순서대로 쓰게 해줘요.',
+          '"기다리다"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>delay(ms)</code> 함수(이미 만들어져 있다고 가정)를 <code>await</code>로 기다린 뒤 <code>"완료"</code>를 출력하는 <code>async function run()</code> 함수를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'async function run() {\n  await delay(1000);\n  console.log("완료");\n}',
+          accept: ['async function run() {\n  await delay(1000);\n  console.log("완료");\n}'],
+          why: '<code>async function</code> 안에서 <code>await delay(1000)</code>은 delay가 끝날 때까지 기다린 뒤 다음 줄로 넘어가요.',
+          hint: 'async function run() { } 안에 await delay(1000); 다음 console.log("완료");를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const ms = pick([0, 500, 5000]);
+        return {
+          type: 'blank',
+          q: `<code>console.log("1"); setTimeout(() => console.log("2"), ${ms}); Promise.resolve().then(() => console.log("3")); console.log("4");</code>를 실행하면, 동기 코드인 <code>"1"</code>과 <code>"4"</code>가 먼저 출력되고 그다음 <code>setTimeout</code>의 <code>"2"</code>가 출력돼요. 그렇다면 이 코드를 실행했을 때 <b>가장 마지막</b>에 출력되는 숫자는 무엇일까요?`,
+          prefix: '', suffix: '', accept: ['2'], placeholder: '숫자',
+          why: `동기 코드(1, 4)가 가장 먼저 끝나고, Promise.then은 매우 짧게 대기하는 작업이라 setTimeout보다 먼저 실행돼요. setTimeout은 지정한 시간만큼 기다려야 해서 가장 나중에 실행돼요.`,
+          hint: '동기 코드가 가장 먼저, 그다음 Promise.then, 가장 마지막이 setTimeout이에요.'
+        };
+      }
+    },
+    {
+      id: 'closures',
+      title: '클로저와 구조분해 할당',
+      ready: true,
+      summary: '함수가 자신이 태어난 환경을 기억하는 클로저와, 배열·객체를 한 번에 풀어서 변수에 담는 방법을 배워요.',
+      goals: ['클로저(closure)', '배열 구조분해 할당', '객체 구조분해 할당'],
+      blocks: [
+        {
+          h: '함수가 자신이 만들어진 환경을 기억해요: 클로저',
+          html: `<p>함수 안에서 또 다른 함수를 만들어 반환하면, 그 안쪽 함수는 바깥 함수의 변수를 계속 "기억"해요. 바깥 함수가 이미 끝났는데도요! 이런 현상을 <b>클로저</b>라고 불러요.</p>`,
+          code: {
+            label: 'closure.js',
+            src: `function makeCounter() {
+  let count = 0;
+  return function () {
+    count += 1;
+    return count;
+  };
+}
+
+const counter = makeCounter();
+console.log(counter());
+console.log(counter());
+console.log(counter());`,
+            out: `1\n2\n3`
+          }
+        },
+        {
+          h: '배열을 한 번에 풀어서 담기: 구조분해 할당',
+          html: `<p><code>const [a, b] = [1, 2];</code>처럼 대괄호로 감싸면, 배열의 각 값을 순서대로 변수에 바로 담을 수 있어요. <code>a = arr[0]; b = arr[1];</code>을 한 줄로 줄인 것과 같아요.</p>`,
+          code: {
+            label: 'array_destructure.js',
+            src: `const [first, second] = ["지수", "민준"];
+console.log(first, second);`,
+            out: `지수 민준`
+          }
+        },
+        {
+          h: '객체를 한 번에 풀어서 담기',
+          html: `<p>객체는 <code>const { 속성이름 } = 객체;</code> 형태로 풀어요. 이때 변수 이름은 객체의 속성 이름과 <b>똑같아야</b> 해요.</p>`,
+          code: {
+            label: 'object_destructure.js',
+            src: `const student = { name: "지수", age: 17 };
+const { name, age } = student;
+console.log(name, age);`,
+            out: `지수 17`
+          },
+          after: `<div class="note"><b>팁</b> — 함수의 매개변수 자리에서도 <code>function greet({ name }) { ... }</code>처럼 바로 구조분해 할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const calls = randInt(2, 5);
+          return {
+            type: 'blank',
+            q: `<code>makeCounter</code>로 만든 <code>counter</code>를 <code>${calls}</code>번 연속으로 호출하면(<code>counter()</code>), 마지막 호출의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(calls)], placeholder: '숫자',
+            why: `클로저가 <code>count</code>를 계속 기억하면서 호출할 때마다 1씩 늘려요. ${calls}번 호출하면 결과는 ${calls}이에요.`,
+            hint: 'count는 0에서 시작해서 호출할 때마다 1씩 늘어나요.'
+          };
+        },
+        () => makeChoice(
+          '바깥 함수가 이미 실행을 끝냈는데도, 안쪽 함수가 바깥 함수의 변수를 계속 기억하는 현상을 무엇이라고 하나요?',
+          '클로저(closure)', ['콜백(callback)', '프로미스(Promise)', '이벤트 버블링'],
+          '이렇게 바깥 변수를 계속 "붙잡고" 있는 함수를 <b>클로저</b>라고 불러요.',
+          '"닫혀있다, 감싸여 있다"는 뜻의 영어 단어예요.'
+        ),
+        () => {
+          const items = shuffle(['사과', '바나나', '포도', '딸기']).slice(0, 2);
+          return {
+            type: 'blank',
+            q: `<code>const [a, b] = ["${items[0]}", "${items[1]}"];</code>일 때, <code>console.log(b);</code>의 출력은? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [items[1]], placeholder: '값',
+            why: `구조분해 할당은 배열의 순서대로 변수에 담아요. 두 번째 값인 "${items[1]}"이 <code>b</code>에 담겨요.`,
+            hint: '대괄호 순서와 값의 순서가 그대로 짝지어져요.'
+          };
+        },
+        () => makeChoice(
+          '객체를 구조분해 할당할 때, 변수 이름은 무엇과 똑같아야 하나요?',
+          '객체의 속성(키) 이름', ['변수의 자료형', '객체가 선언된 순서', '아무 이름이나 상관없다'],
+          '<code>const { name } = obj;</code>처럼 변수 이름이 객체의 속성 이름과 같아야 그 값을 가져올 수 있어요.',
+          '중괄호 안에 쓰는 이름은 객체 안의 "이름표"와 똑같아야 해요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '객체 <code>{ name: "민준", age: 16 }</code>을 <code>const { name, age }</code> 형태로 구조분해 할당한 뒤, <code>name</code>과 <code>age</code>를 <code>console.log</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'const { name, age } = { name: "민준", age: 16 };\nconsole.log(name, age);',
+          expectedOutput: '민준 16',
+          why: '구조분해 할당으로 name과 age 변수에 각각 값이 담기고, 그대로 출력하면 "민준 16"이 나와요.',
+          hint: 'const { name, age } = { ... }; 형태로 분해한 다음, console.log(name, age);를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const start = randInt(1, 3);
+        const calls = randInt(2, 4);
+        return {
+          type: 'code',
+          mode: 'run-js',
+          q: `<code>makeCounter(start)</code>가 <code>start</code>에서 시작해서 호출할 때마다 1씩 늘어난 값을 반환하도록 만드세요(클로저 이용). <code>const counter = makeCounter(${start});</code>를 만들고, <code>counter()</code>를 ${calls}번 호출해서 배열 <code>[결과1, 결과2, ...]</code>로 모은 뒤, 구조분해 할당으로 <code>[first, ...rest]</code>를 나누고 <code>first</code>를 <code>console.log</code>로 출력하는 코드를 작성하세요.`,
+          starter: '',
+          rows: 10,
+          placeholder: `function makeCounter(start) {\n  let count = start;\n  return function () {\n    const result = count;\n    count += 1;\n    return result;\n  };\n}\n\nconst counter = makeCounter(${start});\nconst results = [${Array.from({ length: calls }, () => 'counter()').join(', ')}];\nconst [first, ...rest] = results;\nconsole.log(first);`,
+          expectedOutput: String(start),
+          why: `makeCounter(${start})은 ${start}부터 세는 클로저를 만들고, 첫 번째 호출 결과는 항상 시작값인 ${start}이에요. 구조분해 할당의 first는 배열의 첫 번째 값을 가져와요.`,
+          hint: '클로저 함수가 처음 호출됐을 때 돌려주는 값은 항상 시작값(start)이라는 걸 기억하세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
       type: 'code',
       mode: 'run-js',
-      q: 'let으로 변수 <code>total</code>을 0으로 만들고, for문으로 1부터 5까지 더한 뒤, 총합이 10보다 크면 "많음"을, 아니면 "적음"을 <code>console.log</code>로 출력하는 전체 코드를 작성하세요. (변수, 반복문, 조건문을 모두 사용하세요)',
+      q: '1부터 <code>n</code>까지의 합을 반환하는 함수 <code>sumRange(n)</code>을 만드세요(변수와 for문 사용). <code>sumRange(5)</code>의 결과가 10보다 크면 "많음"을, 아니면 "적음"을 <code>console.log</code>로 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 6,
-      placeholder: 'let total = 0;\nfor (let i = 1; i <= 5; i++) {\n  total += i;\n}\nif (total > 10) {\n  console.log("많음");\n} else {\n  console.log("적음");\n}',
+      rows: 9,
+      placeholder: 'function sumRange(n) {\n  let total = 0;\n  for (let i = 1; i <= n; i++) {\n    total += i;\n  }\n  return total;\n}\n\nif (sumRange(5) > 10) {\n  console.log("많음");\n} else {\n  console.log("적음");\n}',
       expectedOutput: '많음',
-      why: '1부터 5까지 더하면 15고, 15는 10보다 크니까 "많음"이 출력돼요.',
-      hint: 'total = 0으로 시작해서 for문으로 다 더한 뒤, 그 결과를 if/else로 비교하세요.'
+      why: 'sumRange(5)는 1부터 5까지 더한 15를 반환하고, 15는 10보다 크니까 "많음"이 출력돼요.',
+      hint: '함수 안에서 total = 0으로 시작해 for문으로 더한 값을 return한 뒤, 그 결과를 if/else로 비교하세요.'
     }),
     intermediate: () => ({
       type: 'code',
       mode: 'run-js',
-      q: '숫자 배열 <code>[3, 7, 2, 9, 4]</code>에서 가장 큰 값을 찾아 반환하는 함수 <code>findMax</code>를 만들고(반복문을 이용해서), 그 결과를 <code>console.log</code>로 출력하는 전체 코드를 작성하세요.',
+      q: '생성자에서 <code>this.scores = []</code>로 시작하고, <code>add(score)</code> 메서드가 <code>this.scores.push(score)</code>를, <code>average()</code> 메서드가 점수가 하나도 없으면 <code>throw new Error("점수가 없어서 평균을 구할 수 없어요")</code>를 던지고 아니면 평균을 반환하는 <code>Scoreboard</code> 클래스를 만드세요. <code>new Scoreboard()</code>를 만들고(점수는 추가하지 않고), <code>try/catch</code>로 <code>average()</code>를 호출해서 오류 메시지를 <code>console.log</code>로 출력하는 전체 코드를 작성하세요.',
       starter: '',
-      rows: 8,
-      placeholder: 'function findMax(nums) {\n  let max = nums[0];\n  for (let i = 1; i < nums.length; i++) {\n    if (nums[i] > max) {\n      max = nums[i];\n    }\n  }\n  return max;\n}\nconsole.log(findMax([3, 7, 2, 9, 4]));',
-      expectedOutput: '9',
-      why: '배열의 첫 값을 최댓값 후보로 놓고, 반복문으로 하나씩 비교하며 더 큰 값이 나오면 갱신하면 최댓값 9를 찾을 수 있어요.',
-      hint: '배열의 첫 값을 기준으로 삼고, 반복문으로 하나씩 비교하면서 더 큰 값이 나오면 바꿔치기 하세요.'
+      rows: 16,
+      placeholder: 'class Scoreboard {\n  constructor() {\n    this.scores = [];\n  }\n  add(score) {\n    this.scores.push(score);\n  }\n  average() {\n    if (this.scores.length === 0) {\n      throw new Error("점수가 없어서 평균을 구할 수 없어요");\n    }\n    return this.scores.reduce((a, b) => a + b, 0) / this.scores.length;\n  }\n}\n\nconst sb = new Scoreboard();\ntry {\n  console.log(sb.average());\n} catch (e) {\n  console.log(e.message);\n}',
+      expectedOutput: '점수가 없어서 평균을 구할 수 없어요',
+      why: 'scores 배열이 비어있는 상태에서 average()를 호출하면 length가 0이라 Error를 던지고, catch (e)가 그 오류를 잡아 메시지를 출력해요.',
+      hint: 'Scoreboard 클래스에 scores 배열, add, average를 각각 만들고, average() 호출을 try/catch로 감싸세요.'
     }),
     advanced: () => ({
-      type: 'code',
-      mode: 'run-js',
-      q: '<code>Calculator</code> 클래스를 만들어서, <code>divide(a, b)</code> 메서드가 <code>b</code>가 0이면 <code>throw new Error("0으로 나눌 수 없어요")</code>를 던지고, 아니면 <code>a / b</code>를 반환하게 하세요. <code>new Calculator()</code>를 만들고, <code>try/catch</code>로 <code>divide(10, 0)</code>을 호출해서 오류 메시지를 <code>console.log</code>로 출력하는 전체 코드를 작성하세요.',
-      starter: '',
-      rows: 10,
-      placeholder: 'class Calculator {\n  divide(a, b) {\n    if (b === 0) {\n      throw new Error("0으로 나눌 수 없어요");\n    }\n    return a / b;\n  }\n}\nconst calc = new Calculator();\ntry {\n  console.log(calc.divide(10, 0));\n} catch (e) {\n  console.log(e.message);\n}',
-      expectedOutput: '0으로 나눌 수 없어요',
-      why: 'divide(10, 0)은 b가 0이라서 Error를 던지고, catch (e)가 그 오류를 잡아 e.message인 "0으로 나눌 수 없어요"를 출력해요.',
-      hint: 'divide 메서드 안에서 b === 0일 때 throw로 오류를 던지고, 호출하는 쪽은 try/catch로 감싸세요.'
+      type: 'blank',
+      q: `다음 코드를 실행하면 콘솔에 어떤 순서로 무엇이 출력될까요? (쉼표로 구분해서, 예: [1,2,3], 동기 종료, 타이머)
+<pre><code>function makeCounter() {
+  let count = 0;
+  return function () {
+    count += 1;
+    return count;
+  };
+}
+
+const counter = makeCounter();
+const nums = [1, 2, 3].map(() => counter());
+console.log(nums);
+setTimeout(() => console.log("타이머"), 0);
+console.log("동기 종료");</code></pre>`,
+      prefix: '', suffix: '', accept: ['[1,2,3], 동기 종료, 타이머', '[1, 2, 3], 동기 종료, 타이머'], placeholder: '출력 순서',
+      why: 'map이 counter()를 세 번 순서대로 호출하며 클로저의 count를 1, 2, 3으로 늘려서 [1,2,3]이 만들어져요. 그다음 "동기 종료"가 출력되고, setTimeout은 시간이 0이어도 동기 코드가 다 끝난 뒤에야 실행되니 "타이머"가 가장 마지막이에요.',
+      hint: 'map이 counter()를 배열 길이만큼 순서대로 호출한다는 것과, setTimeout은 항상 동기 코드보다 늦게 실행된다는 것을 함께 떠올려보세요.'
     }),
   }
 };

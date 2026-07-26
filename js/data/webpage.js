@@ -773,38 +773,360 @@ document.querySelector("#myBtn").addEventListener("click", () => {
           hint: 'label의 for 값과 input의 id 값은 글자 하나까지 똑같아야 연결돼요.'
         };
       }
+    },
+    {
+      id: 'cssGrid',
+      title: 'CSS Grid 레이아웃',
+      ready: true,
+      summary: 'Flexbox가 한 줄 배치라면, Grid는 가로·세로를 한 번에 나누는 격자 배치예요.',
+      goals: ['display: grid', 'grid-template-columns', 'fr 단위', 'gap'],
+      blocks: [
+        {
+          h: '격자로 배치하기: display: grid',
+          html: `<p>부모 요소에 <code>display: grid;</code>를 주면, 안의 자식 요소들을 <b>격자(gap이 있는 표)</b> 모양으로 배치할 수 있어요. <code>grid-template-columns</code>로 "세로줄(열)을 몇 개, 얼마씩 나눌지"를 정해줘요.</p>`,
+          code: {
+            label: 'grid.html',
+            lang: 'html',
+            src: `<div class="wrap">
+  <div class="card">사과</div>
+  <div class="card">바나나</div>
+  <div class="card">포도</div>
+</div>
+
+<style>
+.wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+</style>`,
+            preview: `<style>body{font-family:sans-serif;margin:14px}.wrap{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.card{background:khaki;padding:10px;border-radius:6px;text-align:center}</style><div class="wrap"><div class="card">사과</div><div class="card">바나나</div><div class="card">포도</div></div>`
+          }
+        },
+        {
+          h: '칸 크기를 자유롭게: fr 단위와 repeat()',
+          html: `<p><code>fr</code>은 "남은 공간을 이 비율만큼 나눠 가져라"는 뜻이에요. <code>1fr 1fr 1fr</code>은 똑같이 3등분하라는 뜻이죠. 같은 크기의 열이 여러 개 필요하면 <code>repeat(개수, 크기)</code>로 더 짧게 쓸 수 있어요.</p>`,
+          code: {
+            label: 'repeat.css',
+            lang: 'css',
+            src: `.wrap {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}`
+          }
+        },
+        {
+          h: 'Flexbox는 한 줄, Grid는 격자',
+          html: `<p>Flexbox(<code>display: flex</code>)는 기본적으로 <b>한 방향(줄)</b>으로 나열하는 데 좋고, Grid(<code>display: grid</code>)는 <b>가로와 세로를 동시에</b> 격자로 나누는 데 좋아요. 사진첩, 대시보드처럼 "표처럼 칸을 나누는" 레이아웃엔 Grid가 훨씬 편해요.</p>`,
+          after: `<div class="note"><b>팁</b> — 뭘 써야 할지 헷갈리면, "한 줄로 쭉 늘어놓을 것"이면 flex, "표처럼 칸을 나눌 것"이면 grid를 떠올리세요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `요소를 격자(그리드) 모양으로 배치하려고 해요. 빈칸을 채우세요.`,
+          prefix: '.wrap { display: ', suffix: '; }', accept: ['grid'], placeholder: '값',
+          why: '<code>display: grid;</code>를 주면 자식 요소들을 격자 모양으로 배치할 수 있어요.',
+          hint: '"격자, 그물"을 뜻하는 영어 단어 그대로예요.'
+        }),
+        () => {
+          const n = pick([2, 3, 4]);
+          return {
+            type: 'blank',
+            q: `${n}개의 똑같은 크기의 열로 나누려고 해요. <code>grid-template-columns</code> 값을 완성하세요. (repeat() 사용)`,
+            prefix: 'grid-template-columns: ', suffix: ';', accept: [`repeat(${n}, 1fr)`], placeholder: 'repeat(개수, 크기)',
+            why: `<code>repeat(${n}, 1fr)</code>은 <code>${Array(n).fill('1fr').join(' ')}</code>과 똑같이 ${n}개의 똑같은 열을 만들어요.`,
+            hint: 'repeat(개수, 크기) 형태로, 개수 자리에 원하는 열 개수를 넣으세요.'
+          };
+        },
+        () => makeChoice(
+          '"남은 공간을 이 비율만큼 나눠 가져라"는 뜻으로, Grid의 열/행 크기에 쓰는 단위는?',
+          '<code>fr</code>', ['<code>px</code>', '<code>%</code>', '<code>vw</code>'],
+          '<code>fr</code>(fraction, 부분)은 grid 안에서 남은 공간을 비율로 나눌 때 써요.',
+          '"부분, 조각(fraction)"의 줄임말이에요.'
+        ),
+        () => makeChoice(
+          '사진첩이나 대시보드처럼 "표처럼 가로·세로 칸을 한 번에" 나누는 레이아웃에 더 적합한 것은?',
+          'Grid', ['Flexbox', 'position: absolute', 'float'],
+          'Grid는 가로와 세로를 동시에 격자로 나누는 데 특화되어 있어요. Flexbox는 한 방향(줄) 배치에 강해요.',
+          '"격자"라는 이름 자체가 힌트예요.'
+        ),
+        () => ({
+          type: 'code',
+          preview: true,
+          q: '<code>.wrap</code>에 <code>display: grid;</code>, <code>grid-template-columns: repeat(2, 1fr);</code>, <code>gap: 10px;</code>를 지정하는 CSS를 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: '.wrap {\n  display: grid;\n  grid-template-columns: repeat(2, 1fr);\n  gap: 10px;\n}',
+          accept: ['.wrap {display: grid;grid-template-columns: repeat(2, 1fr);gap: 10px;}'],
+          why: 'display: grid로 격자를 만들고, grid-template-columns로 열 개수와 크기를, gap으로 간격을 정해요.',
+          hint: '.wrap { } 중괄호 안에 세 속성을 순서대로 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const n = pick([2, 3, 4]);
+        const px = pick([8, 12, 16]);
+        const correct = `display: grid; grid-template-columns: repeat(${n}, 1fr); gap: ${px}px;`;
+        const distractors = [
+          `display: flex; grid-template-columns: repeat(${n}, 1fr); gap: ${px}px;`,
+          `display: grid; grid-template-columns: ${n}fr; gap: ${px}px;`,
+          `display: grid; grid-template-columns: repeat(${n}, 1fr); margin: ${px}px;`,
+        ];
+        return makeChoice(
+          `요소들을 ${n}개의 똑같은 열로 이루어진 격자로 배치하고, 칸 사이에 ${px}px 간격을 주려고 해요. <code>.wrap { ... }</code> 안에 들어갈 올바른 선언들은?`,
+          `<code>${correct}</code>`, distractors.map(d => `<code>${d}</code>`),
+          `격자 배치는 <code>display: grid</code>, 열 개수·크기는 <code>grid-template-columns: repeat(${n}, 1fr)</code>, 간격은 <code>gap</code>으로 정해요.`,
+          '격자로 만드는 속성, 열을 나누는 속성, 간격을 주는 속성을 각각 따로 떠올려보세요.'
+        );
+      }
+    },
+    {
+      id: 'forms',
+      title: '폼(form)과 유효성 검사',
+      ready: true,
+      summary: '사용자에게 값을 입력받는 폼을 만들고, 잘못된 값은 미리 걸러내는 방법을 배워요.',
+      goals: ['form과 input 종류', 'required / minlength', 'submit 이벤트'],
+      blocks: [
+        {
+          h: '사용자 입력을 모으는 틀: form',
+          html: `<p><code>&lt;form&gt;</code>은 여러 입력칸을 하나로 묶어서, "제출(submit)"이라는 하나의 동작으로 함께 보낼 수 있게 해줘요. 안에는 <code>&lt;input type="..."&gt;</code>으로 다양한 입력칸을 넣어요. <code>type</code>에 따라 키보드나 형태가 자동으로 달라져요.</p>`,
+          code: {
+            label: 'form.html',
+            lang: 'html',
+            src: `<form>
+  <input type="text" placeholder="이름">
+  <input type="email" placeholder="이메일">
+  <input type="password" placeholder="비밀번호">
+  <button type="submit">가입하기</button>
+</form>`,
+            preview: `<style>body{font-family:sans-serif;margin:14px}form{display:grid;gap:8px;max-width:220px}</style><form><input type="text" placeholder="이름"><input type="email" placeholder="이메일"><input type="password" placeholder="비밀번호"><button type="submit">가입하기</button></form>`
+          }
+        },
+        {
+          h: '제출 전에 미리 걸러내기: required, minlength',
+          html: `<p>자바스크립트 없이도, 몇 가지 속성만으로 기본적인 유효성 검사를 할 수 있어요. <code>required</code>는 "꼭 채워야 함", <code>minlength="3"</code>은 "최소 3글자 이상"이라는 뜻이에요. 조건에 안 맞으면 브라우저가 알아서 제출을 막고 알려줘요.</p>`,
+          code: {
+            label: 'validate.html',
+            lang: 'html',
+            src: `<input type="text" required minlength="3" placeholder="닉네임(3글자 이상)">
+<input type="email" required placeholder="이메일">`
+          }
+        },
+        {
+          h: '제출을 가로채기: submit 이벤트',
+          html: `<p>폼을 자바스크립트로 직접 다루고 싶을 땐 <code>form.addEventListener("submit", e =&gt; { ... })</code>을 써요. <code>e.preventDefault()</code>를 호출하면, 폼의 원래 동작(페이지를 새로고침하며 서버로 보내는 것)을 막고 내가 원하는 코드를 대신 실행할 수 있어요.</p>`,
+          after: `<div class="note"><b>팁</b> — <code>e.preventDefault()</code>가 없으면, 폼을 제출할 때마다 페이지가 새로고침되면서 자바스크립트로 처리한 내용이 다 사라져요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const kind = pick([
+            { type: 'email', desc: '이메일 형식인지 자동으로 확인해주는' },
+            { type: 'password', desc: '입력한 글자가 점(•)으로 가려지는' },
+            { type: 'number', desc: '숫자만 입력받는' },
+          ]);
+          return {
+            type: 'blank',
+            q: `${kind.desc} 입력칸을 만들려고 해요. type 값을 쓰세요.`,
+            prefix: '<input type="', suffix: '">', accept: [kind.type], placeholder: 'type 값',
+            why: `<code>type="${kind.type}"</code>은 ${kind.desc} 입력칸을 만들어요.`,
+            hint: '입력칸의 성격을 그대로 나타내는 영어 단어예요.'
+          };
+        },
+        () => makeChoice(
+          '입력칸을 꼭 채워야만 제출되도록 만드는 속성은?',
+          '<code>required</code>', ['<code>necessary</code>', '<code>must</code>', '<code>need</code>'],
+          '<code>required</code>는 그 입력칸을 비워두면 제출을 막아줘요.',
+          '"필수의"라는 뜻의 영어 단어 그대로예요.'
+        ),
+        () => {
+          const n = pick([2, 3, 4]);
+          return {
+            type: 'blank',
+            q: `닉네임을 최소 ${n}글자 이상 입력해야 하도록 만들려고 해요. 빈칸을 채우세요.`,
+            prefix: '<input type="text" minlength="', suffix: '">', accept: [String(n)], placeholder: '숫자',
+            why: `<code>minlength="${n}"</code>은 최소 ${n}글자 이상이어야 통과돼요.`,
+            hint: '"최소 길이"를 뜻하는 속성 이름의 값 자리에 숫자를 넣으면 돼요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `폼이 제출될 때를 감지하려고 해요. 이벤트 이름을 쓰세요.`,
+          prefix: 'form.addEventListener("', suffix: '", (e) => { ... });', accept: ['submit'], placeholder: '이벤트 이름',
+          why: '<code>"submit"</code> 이벤트는 폼이 제출될 때 발생해요.',
+          hint: '"제출하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '폼 제출 시 페이지가 새로고침되는 기본 동작을 막을 때 호출하는 메서드는?',
+          '<code>e.preventDefault()</code>', ['<code>e.stop()</code>', '<code>e.cancel()</code>', '<code>e.block()</code>'],
+          '<code>e.preventDefault()</code>는 이벤트의 기본 동작(폼 제출 시 새로고침)을 막아줘요.',
+          '"기본 동작을 막는다(prevent default)"는 뜻 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          preview: true,
+          q: '<code>type="email"</code>이고 <code>required</code> 속성이 있는 입력칸 하나를 작성하세요.',
+          starter: '',
+          placeholder: '<input type="email" required>',
+          accept: ['<input type="email" required>'],
+          why: 'type="email"은 이메일 형식을 확인하고, required는 꼭 채우도록 해요.',
+          hint: '<input type="email" required> 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const min = pick([2, 3, 4]);
+        return {
+          type: 'blank',
+          q: `<code>id="signupForm"</code>인 폼이 제출될 때, 페이지 새로고침을 막고 콘솔에 <code>"제출됨"</code>을 출력하는 <code>&lt;script&gt;</code> 코드를 작성하세요. (<code>submit</code> 이벤트와 <code>preventDefault()</code>를 사용하세요, minlength="${min}"인 입력칸이 있다고 가정해요)`,
+          prefix: '', suffix: '', accept: ['document.querySelector("#signupForm").addEventListener("submit", (e) => { e.preventDefault(); console.log("제출됨"); });', 'document.querySelector("#signupForm").addEventListener("submit", (e) => {e.preventDefault();console.log("제출됨");});'], placeholder: '전체 코드',
+          why: 'querySelector로 폼을 찾아 submit 이벤트를 걸고, e.preventDefault()로 새로고침을 막은 뒤 원하는 코드(console.log)를 실행해요.',
+          hint: 'document.querySelector("#signupForm").addEventListener("submit", (e) => { e.preventDefault(); console.log("제출됨"); }); 형태를 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'transitions',
+      title: 'CSS 트랜지션과 애니메이션',
+      ready: true,
+      summary: '값이 갑자기 뚝 바뀌는 대신, 부드럽게 변하거나 스스로 계속 움직이는 효과를 만들어요.',
+      goals: ['transition', ':hover와 함께 쓰기', '@keyframes로 애니메이션 만들기'],
+      blocks: [
+        {
+          h: '값이 바뀔 때 부드럽게: transition',
+          html: `<p>CSS 값이 바뀌면 원래는 "뚝" 하고 즉시 바뀌어요. <code>transition: 속성 시간;</code>을 주면, 그 속성이 바뀔 때 지정한 시간(초) 동안 <b>부드럽게</b> 변하게 만들 수 있어요.</p>`,
+          code: {
+            label: 'transition.html',
+            lang: 'html',
+            src: `<div class="box"></div>
+
+<style>
+.box {
+  width: 60px;
+  height: 60px;
+  background-color: skyblue;
+  transition: background-color 0.3s;
+}
+.box:hover {
+  background-color: tomato;
+}
+</style>`,
+            preview: `<style>body{font-family:sans-serif;margin:14px}.box{width:60px;height:60px;background-color:skyblue;transition:background-color 0.3s;border-radius:8px}.box:hover{background-color:tomato}</style><div class="box"></div><p style="color:#888;font-size:13px">(마우스를 상자 위에 올려보세요)</p>`
+          }
+        },
+        {
+          h: ':hover와 함께 쓰면 자연스러운 반응이 돼요',
+          html: `<p><code>:hover</code>는 마우스를 올렸을 때의 상태를 정의해요. 여기에 <code>transition</code>을 함께 쓰면, 마우스를 올리고 뗄 때마다 색이나 크기가 "뚝" 바뀌지 않고 부드럽게 변해요.</p>`
+        },
+        {
+          h: '스스로 계속 움직이기: @keyframes',
+          html: `<p><code>@keyframes 이름 { 0% {...} 100% {...} }</code>으로 "시작 모습"과 "끝 모습"(그 사이도 가능해요)을 정의하고, <code>animation: 이름 시간 infinite;</code>로 그 요소에 애니메이션을 걸 수 있어요. <code>infinite</code>는 "무한 반복"이라는 뜻이에요.</p>`,
+          code: {
+            label: 'keyframes.css',
+            lang: 'css',
+            src: `@keyframes bounce {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
+
+.ball {
+  animation: bounce 1s infinite;
+}`
+          },
+          after: `<div class="note"><b>차이</b> — transition은 "값이 바뀔 때"만 부드럽게 움직이고, animation(@keyframes)은 아무 일이 없어도 스스로 계속 움직여요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const sec = pick([0.2, 0.3, 0.5, 1]);
+          return {
+            type: 'blank',
+            q: `배경색이 바뀔 때 ${sec}초 동안 부드럽게 변하도록 만들려고 해요. 빈칸을 채우세요.`,
+            prefix: '.box { transition: background-color ', suffix: '; }', accept: [`${sec}s`], placeholder: '시간',
+            why: `<code>transition: background-color ${sec}s;</code>는 배경색이 바뀔 때 ${sec}초에 걸쳐 부드럽게 변하게 해요.`,
+            hint: '초 단위 뒤에 s를 붙여서 시간을 나타내요.'
+          };
+        },
+        () => makeChoice(
+          '마우스를 요소 위에 올렸을 때의 스타일을 정의하는 선택자는?',
+          '<code>:hover</code>', ['<code>:active</code>', '<code>:focus</code>', '<code>:visited</code>'],
+          '<code>:hover</code>는 마우스를 올렸을 때 적용되는 스타일을 정해요.',
+          '"위에 맴돌다"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `애니메이션의 "시작 모습"과 "끝 모습"을 정의하는 CSS 문법을 쓰세요.`,
+          prefix: '', suffix: ' bounce { 0% {...} 100% {...} }', accept: ['@keyframes'], placeholder: '문법',
+          why: '<code>@keyframes 이름 { ... }</code>으로 애니메이션의 각 단계를 정의해요.',
+          hint: '"주요 장면(핵심 프레임)"이라는 뜻의 영어 단어 조합에 골뱅이(@)를 붙여요.'
+        }),
+        () => makeChoice(
+          '애니메이션을 무한히 반복하게 만드는 값은?',
+          '<code>infinite</code>', ['<code>forever</code>', '<code>loop</code>', '<code>repeat</code>'],
+          '<code>animation: 이름 시간 infinite;</code>에서 <code>infinite</code>는 "무한히"라는 뜻이에요.',
+          '"끝이 없는"이라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'code',
+          preview: true,
+          q: '<code>.box</code>에 <code>transition: transform 0.3s;</code>을 주고, <code>.box:hover</code>일 때 <code>transform: scale(1.2);</code>(1.2배 커지기)이 되도록 CSS를 작성하세요.',
+          starter: '',
+          rows: 6,
+          placeholder: '.box {\n  transition: transform 0.3s;\n}\n.box:hover {\n  transform: scale(1.2);\n}',
+          accept: ['.box {transition: transform 0.3s;}\n.box:hover {transform: scale(1.2);}'],
+          why: 'transition으로 transform이 바뀔 때 부드럽게 변하도록 하고, :hover에서 scale(1.2)로 커지게 해요.',
+          hint: '.box { transition: transform 0.3s; }와 .box:hover { transform: scale(1.2); }를 순서대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const sec = pick([0.2, 0.5, 1]);
+        const scale = pick([1.1, 1.2, 1.5]);
+        const correct = `.box { transition: transform ${sec}s; } .box:hover { transform: scale(${scale}); }`;
+        const distractors = [
+          `.box { transition: transform ${sec}s; } .box:active { transform: scale(${scale}); }`,
+          `.box:hover { transition: transform ${sec}s; transform: scale(${scale}); }`,
+          `.box { animation: transform ${sec}s; } .box:hover { transform: scale(${scale}); }`,
+        ];
+        return makeChoice(
+          `마우스를 올렸을 때 ${scale}배로 커지되, ${sec}초 동안 부드럽게 커지도록 만들려고 해요. 올바른 CSS는?`,
+          `<code>${correct}</code>`, distractors.map(d => `<code>${d}</code>`),
+          `부드러운 변화는 <code>transition</code>을 평소 상태(.box)에 주고, 실제로 커지는 값은 <code>:hover</code> 상태에 <code>transform: scale(...)</code>로 정의해요.`,
+          'transition은 평소 상태에, 실제로 바뀔 값은 :hover 상태에 쓰는 걸 떠올려보세요.'
+        );
+      }
     }],
   tierBoss: {
     beginner: () => ({
       type: 'code',
       preview: true,
-      q: '제목 <code>&lt;h1&gt;환영합니다&lt;/h1&gt;</code>과, 항목이 사과·바나나인 목록 <code>&lt;ul&gt;</code>을 만들고, 그 아래 클래스가 "row"인 div 안에 클래스가 "card"인 div 두 개를 나란히 배치하세요. <code>&lt;style&gt;</code> 태그 안에 <code>.row</code>에는 <code>display: flex;</code>와 <code>gap: 10px;</code>를 지정하는 코드까지 작성하세요.',
+      q: '제목 <code>&lt;h1&gt;환영합니다&lt;/h1&gt;</code>과, 항목이 사과·바나나인 목록 <code>&lt;ul&gt;</code>을 만들고, 그 아래 클래스가 "row"인 div 안에 클래스가 "card"인 div 두 개를 나란히 배치하세요. <code>&lt;style&gt;</code> 태그 안에 <code>.row</code>에는 <code>display: flex;</code>와 <code>gap: 10px;</code>를, <code>.card</code>에는 <code>padding: 12px;</code>와 <code>border-radius: 8px;</code>를 지정하는 코드까지 작성하세요.',
       starter: '',
-      rows: 12,
-      placeholder: '<h1>환영합니다</h1>\n<ul>\n  <li>사과</li>\n  <li>바나나</li>\n</ul>\n<div class="row">\n  <div class="card">딸기</div>\n  <div class="card">포도</div>\n</div>\n\n<style>\n.row {\n  display: flex;\n  gap: 10px;\n}\n</style>',
-      accept: ['<h1>환영합니다</h1>\n<ul><li>사과</li><li>바나나</li></ul>\n<div class="row"><div class="card">딸기</div><div class="card">포도</div></div>\n\n<style>.row {display: flex;gap: 10px;}</style>'],
-      why: '제목·목록은 <code>&lt;h1&gt;</code>, <code>&lt;ul&gt;</code>+<code>&lt;li&gt;</code>로, 가로 배치는 <code>display: flex;</code>와 <code>gap</code>으로 만들어요.',
-      hint: '<h1>, <ul><li>...</li></ul>, class="row" div 안에 class="card" div 두 개, 그리고 <style> 안에 .row { display: flex; gap: 10px; }를 순서대로 써보세요.'
+      rows: 16,
+      placeholder: '<h1>환영합니다</h1>\n<ul>\n  <li>사과</li>\n  <li>바나나</li>\n</ul>\n<div class="row">\n  <div class="card">딸기</div>\n  <div class="card">포도</div>\n</div>\n\n<style>\n.row {\n  display: flex;\n  gap: 10px;\n}\n.card {\n  padding: 12px;\n  border-radius: 8px;\n}\n</style>',
+      accept: ['<h1>환영합니다</h1>\n<ul><li>사과</li><li>바나나</li></ul>\n<div class="row"><div class="card">딸기</div><div class="card">포도</div></div>\n\n<style>.row {display: flex;gap: 10px;}.card {padding: 12px;border-radius: 8px;}</style>'],
+      why: '제목·목록은 <code>&lt;h1&gt;</code>, <code>&lt;ul&gt;</code>+<code>&lt;li&gt;</code>로, 가로 배치는 <code>display: flex;</code>와 <code>gap</code>으로, 카드 안쪽 여백과 둥근 모서리는 <code>padding</code>과 <code>border-radius</code>로 만들어요.',
+      hint: '<h1>, <ul><li>...</li></ul>, class="row" div 안에 class="card" div 두 개, 그리고 <style> 안에 .row와 .card 스타일을 순서대로 써보세요.'
     }),
     intermediate: () => ({
       type: 'code',
-      q: '<code>.card</code>에는 <code>padding: 16px;</code>와 <code>border-radius: 8px;</code>를 지정하고, 화면 너비가 600px 이하일 때는 <code>.card</code>의 width를 100%로 만드는 미디어 쿼리도 함께 작성하세요.',
+      q: '클릭 가능한 요소는 키보드로도 접근할 수 있게 <code>&lt;div&gt;</code> 대신 <code>&lt;button id="msg"&gt;알림&lt;/button&gt;</code>으로 만드세요. <code>&lt;style&gt;</code> 태그 안에 <code>.msg-box</code>가 <code>padding: 10px;</code>를 갖고, 화면 너비가 600px 이하일 때는 width를 100%로 만드는 미디어 쿼리를 작성하세요. 그리고 <code>#msg</code>를 클릭하면 <code>classList.toggle("active")</code>가 실행되도록 <code>&lt;script&gt;</code> 코드도 작성하세요.',
       starter: '',
-      rows: 8,
-      placeholder: '.card {\n  padding: 16px;\n  border-radius: 8px;\n}\n\n@media (max-width: 600px) {\n  .card {\n    width: 100%;\n  }\n}',
-      accept: ['.card {padding: 16px;border-radius: 8px;}\n\n@media (max-width: 600px) {.card {width: 100%;}}'],
-      why: '<code>.card</code>는 안쪽 여백(padding)과 둥근 모서리(border-radius)를 지정하고, <code>@media (max-width: 600px)</code> 안에서 화면이 좁을 때 width를 100%로 덮어써요.',
-      hint: '.card { padding: 16px; border-radius: 8px; }를 먼저 쓰고, 그 아래 @media (max-width: 600px) { .card { width: 100%; } }를 이어서 쓰세요.'
+      rows: 16,
+      placeholder: '<button id="msg" class="msg-box">알림</button>\n\n<style>\n.msg-box {\n  padding: 10px;\n}\n\n@media (max-width: 600px) {\n  .msg-box {\n    width: 100%;\n  }\n}\n</style>\n\n<script>\ndocument.querySelector("#msg").addEventListener("click", () => {\n  document.querySelector("#msg").classList.toggle("active");\n});\n</script>',
+      accept: ['<button id="msg" class="msg-box">알림</button>\n\n<style>.msg-box {padding: 10px;}\n\n@media (max-width: 600px) {.msg-box {width: 100%;}}</style>\n\n<script>document.querySelector("#msg").addEventListener("click", () => {document.querySelector("#msg").classList.toggle("active");});</script>'],
+      why: '<button>은 키보드 접근이 자동으로 되는 시맨틱 태그이고, @media는 화면이 좁을 때 width를 100%로 덮어쓰며, 스크립트는 클릭 이벤트에서 classList.toggle로 클래스를 켰다 껐다 해요.',
+      hint: 'div 대신 button을 쓰고, .msg-box 스타일과 @media 블록을 쓴 다음, querySelector로 찾은 버튼에 클릭 이벤트를 걸어 classList.toggle을 실행하세요.'
     }),
     advanced: () => ({
       type: 'code',
-      q: '<code>&lt;button id="msg"&gt;알림&lt;/button&gt;</code>을 만들고(클릭 가능한 요소는 div 대신 button을 써야 키보드로도 접근할 수 있어요), 이 버튼을 클릭하면 <code>classList.toggle("active")</code>가 실행되도록 <code>&lt;script&gt;</code> 코드를 작성하세요.',
+      q: '<code>class="signupGrid"</code>인 폼을 만드세요. 그 안에 "이름" 라벨(<code>for="name"</code>)과 연결된 입력칸(<code>id="name"</code>, <code>required</code>, <code>minlength="2"</code>), "이메일" 라벨(<code>for="email"</code>)과 연결된 입력칸(<code>id="email"</code>, <code>type="email"</code>, <code>required</code>), 그리고 <code>class="submitBtn"</code>인 제출 버튼을 순서대로 넣으세요. <code>&lt;style&gt;</code> 태그 안에 <code>.signupGrid</code>를 <code>display: grid;</code>, <code>grid-template-columns: repeat(2, 1fr);</code>, <code>gap: 10px;</code>로 2열 격자 배치하고, <code>.submitBtn</code>에는 <code>transition: transform 0.3s;</code>을, <code>.submitBtn:hover</code>에는 <code>transform: scale(1.1);</code>을 지정하세요.',
       starter: '',
-      rows: 6,
-      placeholder: '<button id="msg">알림</button>\n\n<script>\ndocument.querySelector("#msg").addEventListener("click", () => {\n  document.querySelector("#msg").classList.toggle("active");\n});\n</script>',
-      accept: ['<button id="msg">알림</button>\n\n<script>document.querySelector("#msg").addEventListener("click", () => {document.querySelector("#msg").classList.toggle("active");});</script>'],
-      why: '<button>은 태그만으로 키보드 접근이 가능해서 접근성에 좋고, addEventListener로 클릭 이벤트를 걸어 classList.toggle로 클래스를 켰다 껐다 해요.',
-      hint: '클릭 가능한 요소는 <button>으로 만들고, querySelector로 그 버튼을 찾아 addEventListener("click", ...) 안에서 classList.toggle("active")를 실행하세요.'
+      rows: 20,
+      placeholder: '<form class="signupGrid">\n  <label for="name">이름</label>\n  <input id="name" type="text" required minlength="2">\n\n  <label for="email">이메일</label>\n  <input id="email" type="email" required>\n\n  <button type="submit" class="submitBtn">가입하기</button>\n</form>\n\n<style>\n.signupGrid {\n  display: grid;\n  grid-template-columns: repeat(2, 1fr);\n  gap: 10px;\n}\n.submitBtn {\n  transition: transform 0.3s;\n}\n.submitBtn:hover {\n  transform: scale(1.1);\n}\n</style>',
+      accept: ['<form class="signupGrid">\n  <label for="name">이름</label>\n  <input id="name" type="text" required minlength="2">\n\n  <label for="email">이메일</label>\n  <input id="email" type="email" required>\n\n  <button type="submit" class="submitBtn">가입하기</button>\n</form>\n\n<style>.signupGrid {display: grid;grid-template-columns: repeat(2, 1fr);gap: 10px;}.submitBtn {transition: transform 0.3s;}.submitBtn:hover {transform: scale(1.1);}</style>'],
+      why: 'label의 for와 input의 id를 맞추고 required/minlength/type="email"로 유효성 검사를, .signupGrid에 display: grid로 2열 격자를, .submitBtn에 transition과 :hover로 부드러운 확대 효과를 만들어요.',
+      hint: '각 label의 for와 input의 id를 짝지어 쓰고, .signupGrid 격자 스타일과 .submitBtn의 transition/:hover 스타일을 <style> 안에 순서대로 쓰세요.'
     }),
   }
 };
