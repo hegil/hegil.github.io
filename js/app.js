@@ -242,6 +242,7 @@ let reviewLangs = new Set(Object.keys(COURSES));
 let reviewActive = false;
 let challenge = null;   // 보스전/티어 최종 도전 상태: { kind:'boss'|'gauntlet', lang, tier, queue:[unitId,...], idx, question, answered, ok }
 let navDropdownOpen = null;   // null | 'lang' | 'tools' — 상단 네비게이션 드롭다운 열림 상태
+let searchQuery = '';   // 검색 화면에 입력된 검색어(화면을 다시 그려도 유지)
 
 const el = id => document.getElementById(id);
 
@@ -252,12 +253,13 @@ function renderNav() {
   const playgroundChip = `<button class="chip playground-chip" type="button" aria-pressed="${view === 'playground'}">실습장</button>`;
   const statsChip = `<button class="chip stats-chip" type="button" aria-pressed="${view === 'dashboard'}">통계</button>`;
   const minigameChip = `<button class="chip minigame-chip" type="button" aria-pressed="${view === 'minigames' || view === 'minigame'}">미니게임</button>`;
+  const searchChip = `<button class="chip search-chip" type="button" aria-pressed="${view === 'search'}">검색</button>`;
   const langChips = Object.entries(COURSES).map(([k, c]) =>
     `<button class="chip" type="button" data-lang="${k}" aria-pressed="${view === 'lesson' && k === langKey}">${c.name}</button>`
   ).join('');
 
   const langLabel = view === 'lesson' ? COURSES[langKey].name : '언어';
-  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', dashboard: '통계', minigames: '미니게임', minigame: '미니게임' }[view] || '도구';
+  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', dashboard: '통계', minigames: '미니게임', minigame: '미니게임', search: '검색' }[view] || '도구';
   const langOpen = navDropdownOpen === 'lang';
   const toolsOpen = navDropdownOpen === 'tools';
 
@@ -269,7 +271,7 @@ function renderNav() {
     </div>
     <div class="nav-dropdown">
       <button class="chip nav-dropdown-btn" type="button" data-nav-dd="tools" aria-expanded="${toolsOpen}" aria-pressed="${toolLabel !== '도구'}">${esc(toolLabel)} ▾</button>
-      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${reviewChip}${wrongNoteChip}${playgroundChip}${statsChip}${minigameChip}</div>
+      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${searchChip}${reviewChip}${wrongNoteChip}${playgroundChip}${statsChip}${minigameChip}</div>
     </div>
   `;
 }
@@ -905,6 +907,77 @@ function renderStatsDashboard() {
     </section>`;
 }
 
+/* =========================================================================
+   5.8) 검색 — 모든 언어의 단원 제목·요약·목표를 한 번에 검색해서 바로 이동
+   ========================================================================= */
+function goSearch() {
+  view = 'search';
+  el('sidebar').hidden = true;
+  el('wrap').classList.add('home-view');
+  renderNav();
+  renderSearchView();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function searchUnits(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const results = [];
+  Object.entries(COURSES).forEach(([key, c]) => {
+    c.units.forEach((u, index) => {
+      if (!u.ready) return;
+      const haystack = `${u.title} ${u.summary} ${(u.goals || []).join(' ')}`.toLowerCase();
+      if (haystack.includes(q)) results.push({ key, course: c, unit: u, index });
+    });
+  });
+  return results;
+}
+
+function renderSearchResults(query) {
+  const box = el('searchResults');
+  if (!box) return;
+  const q = query.trim();
+  if (!q) {
+    box.innerHTML = '<p class="muted" style="margin:0">배우고 싶은 주제나 키워드를 입력해보세요. (예: 재귀, 반복문, 배열)</p>';
+    return;
+  }
+  const results = searchUnits(q);
+  if (!results.length) {
+    box.innerHTML = `<p class="muted" style="margin:0">"${esc(q)}"에 맞는 단원을 찾지 못했어요. 다른 키워드로 검색해보세요.</p>`;
+    return;
+  }
+  box.innerHTML = `<div class="continue-list">
+    ${results.map(({ key, course, unit, index }) => `
+      <div class="continue-item">
+        <div class="continue-info">
+          <div class="continue-lang">${esc(course.name)} <span class="muted">· ${esc(unit.title)}</span></div>
+          <div class="continue-unit">${esc(unit.summary)}</div>
+        </div>
+        <button class="btn small" type="button" data-goto="${key}" data-goto-idx="${index}">이동하기</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderSearchView() {
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">검색</div>
+      <h1>배우고 싶은 내용을 찾아보세요</h1>
+      <p>모든 언어의 단원 제목과 설명을 한 번에 검색할 수 있어요.</p>
+    </div>
+    <section class="block card">
+      <div class="body">
+        <input type="text" id="searchInput" class="typing-input" placeholder="예: 재귀, 반복문, 배열..." value="${escAttr(searchQuery)}" autocomplete="off" spellcheck="false" autocapitalize="off">
+        <div id="searchResults" style="margin-top:16px"></div>
+      </div>
+    </section>`;
+  renderSearchResults(searchQuery);
+  el('searchInput').focus();
+  const val = el('searchInput').value;
+  el('searchInput').value = '';
+  el('searchInput').value = val; // 커서를 맨 끝으로 이동시켜요
+}
+
 function renderUnits() {
   const allUnits = COURSES[langKey].units;
   const readyUnits = allUnits.filter(u => u.ready);
@@ -1387,6 +1460,7 @@ document.addEventListener('click', async e => {
     else if (chip.classList.contains('playground-chip')) goPlayground();
     else if (chip.classList.contains('stats-chip')) goStatsDashboard();
     else if (chip.classList.contains('minigame-chip')) goMinigameHub();
+    else if (chip.classList.contains('search-chip')) goSearch();
     else goLesson(chip.dataset.lang, 0);
     return;
   }
@@ -1472,6 +1546,15 @@ document.addEventListener('click', e => {
   if (navDropdownOpen && !e.target.closest('.nav-dropdown')) {
     navDropdownOpen = null;
     renderNav();
+  }
+});
+
+/* 검색창은 입력할 때마다(클릭이 아니라 input 이벤트) 결과만 다시 그려요.
+   #main 전체를 새로 그리면 입력칸이 포커스/커서 위치를 잃어버리기 때문이에요. */
+document.addEventListener('input', e => {
+  if (e.target.id === 'searchInput') {
+    searchQuery = e.target.value;
+    renderSearchResults(searchQuery);
   }
 });
 
