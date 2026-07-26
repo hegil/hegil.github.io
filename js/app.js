@@ -334,6 +334,21 @@ function refreshAfterAuthChange() {
   else if (view === 'dashboard') renderStatsDashboard();
 }
 
+/* 나머지 언어들이 백그라운드 로딩을 마치면, 여러 언어를 한 번에 나열하는 화면만
+   새로고침해요. 이미 특정 언어 하나를 보고 있는 화면(단원 학습 중, 특정 치트시트,
+   미니게임 진행 중 등)은 그대로 둬서 흐름을 방해하지 않아요. */
+function refreshAfterCoursesLoaded() {
+  Object.keys(COURSES).forEach(k => reviewLangs.add(k));
+  renderNav();
+  if (view === 'home') renderHome();
+  else if (view === 'search') renderSearchResults(searchQuery);
+  else if (view === 'dashboard') renderStatsDashboard();
+  else if (view === 'wrongnote') renderWrongNoteList();
+  else if (view === 'review' && !reviewActive) renderReviewSetup();
+  else if (view === 'cheatsheet' && !el('cheatSheetChangeLang')) renderCheatSheetPicker();
+  else if (view === 'minigames') renderMinigameHub();
+}
+
 function goHome() {
   view = 'home';
   quizMode = 'practice';
@@ -567,6 +582,21 @@ function loadScriptOnce(src) {
     document.head.appendChild(tag);
   });
 }
+
+/* =========================================================================
+   3.5) 언어 데이터 지연 로딩 — 첫 화면은 파이썬 데이터 하나만으로도 뜰 수 있어서,
+   나머지 9개 언어 파일은 페이지가 열리자마자 백그라운드에서 따로 받아와요.
+   여러 언어 목록을 보여주는 화면(홈, 검색, 치트시트 목록 등)은 전부 그 시점의
+   COURSES를 기준으로 매번 다시 그려지기 때문에, 아직 안 받아진 언어는 목록에
+   안 보일 뿐이라 사용자가 로딩 중인 언어를 잘못 눌러서 생기는 오류는 없어요. */
+const LAZY_LANG_FILES = ['javascript', 'typescript', 'webpage', 'java', 'kotlin', 'c', 'unity', 'sql', 'go', 'php'];
+/* "오늘의 문제"처럼 모두에게 같은 결과가 나와야 하는 곳 전용 — 언어 파일이 네트워크에서
+   받아지는 순서(사람마다 다를 수 있음)와 무관하게 항상 같은 순서를 보장해요. */
+const ALL_LANG_KEYS = ['python', ...LAZY_LANG_FILES];
+const coursesReadyPromise = Promise.all(
+  LAZY_LANG_FILES.map(key => loadScriptOnce(`js/data/${key}.js`))
+).then(() => { refreshAfterCoursesLoaded(); })
+ .catch(err => console.error('일부 언어 데이터를 불러오지 못했어요.', err));
 
 /* --- SQL: sql.js(웹어셈블리로 컴파일된 진짜 SQLite)로 실제 쿼리를 실행해요 --- */
 const SQL_JS_BASE = 'https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/';
@@ -1064,8 +1094,7 @@ let dailyChallenge = null; // { dateStr, langKey, unit, question, answered, ok }
 function todaysChallenge() {
   const dateStr = todayDateString();
   const rng = mulberry32(hashStringToSeed('daily-' + dateStr));
-  const langKeys = Object.keys(COURSES);
-  const langKey = langKeys[Math.floor(rng() * langKeys.length)];
+  const langKey = ALL_LANG_KEYS[Math.floor(rng() * ALL_LANG_KEYS.length)];
   const readyUnits = COURSES[langKey].units.filter(u => u.ready);
   const unit = readyUnits[Math.floor(rng() * readyUnits.length)];
   const genIndex = Math.floor(rng() * unit.quizGenerators.length);
@@ -1079,11 +1108,15 @@ function todaysChallenge() {
   return { dateStr, langKey, unit, question };
 }
 
-function goDaily() {
+async function goDaily() {
   view = 'daily';
   el('sidebar').hidden = true;
   el('wrap').classList.add('home-view');
   renderNav();
+  el('main').innerHTML = `<div class="hero"><div class="eyebrow">오늘의 문제</div><h1>불러오는 중...</h1></div>`;
+
+  await coursesReadyPromise;
+  if (view !== 'daily') return; // 기다리는 동안 다른 화면으로 이동했으면 그리지 않아요
 
   const { dateStr, langKey, unit, question } = todaysChallenge();
   const saved = progress[`daily.${dateStr}`];
@@ -1859,6 +1892,7 @@ document.addEventListener('submit', async e => {
   const wasGuestProgress = authMode === 'signup' && !getCurrentUser() ? progress : null;
   setCurrentUser(result.username);
   if (isAdminCombo) {
+    await coursesReadyPromise;
     saveProgress(buildFullProgress());
   } else if (wasGuestProgress) {
     saveProgress(wasGuestProgress);
