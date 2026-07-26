@@ -186,6 +186,13 @@
   }
   .wrongnote-lang { font-weight: 600; color: var(--accent); flex: none; }
   .wrongnote-unit { flex: 1 1 auto; }
+  .continue-list { display: grid; gap: 8px; }
+  .continue-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 10px 14px;
+  }
+  .continue-lang { font-weight: 600; font-size: 14.5px; }
+  .continue-unit { font-size: 13.5px; color: var(--text-dim); margin-top: 2px; }
   .boss-cta .body { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
   .boss-cta h3 { margin: 0 0 4px; font-size: 16px; }
   .boss-cta p { margin: 0; }

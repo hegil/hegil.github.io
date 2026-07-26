@@ -361,6 +361,17 @@ function goReview() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+/* 언어 하나에서 "다음으로 이어서 풀면 좋을" 준비된(ready) 단원을 찾아줘요.
+   완료(done) 안 된 단원 중 가장 앞에 있는 걸 골라요 — 없으면(모두 완료) null. */
+function nextUnitFor(key) {
+  const units = COURSES[key].units;
+  const index = units.findIndex(u => u.ready && !progress[`${key}.${u.id}`]?.done);
+  if (index === -1) return null;
+  const readyUnits = units.filter(u => u.ready);
+  const doneCount = readyUnits.filter(u => progress[`${key}.${u.id}`]?.done).length;
+  return { unit: units[index], index, readyCount: readyUnits.length, doneCount };
+}
+
 function renderHome() {
   const user = getCurrentUser();
   const entries = Object.entries(COURSES);
@@ -369,6 +380,9 @@ function renderHome() {
     sum + c.units.filter(u => u.ready && progress[`${key}.${u.id}`]?.done).length, 0);
   const streak = currentStreakForDisplay();
   const badgeCount = unlockedAchievements().filter(b => b.unlocked).length;
+  const continuing = entries
+    .map(([key, c]) => ({ key, c, next: nextUnitFor(key) }))
+    .filter(({ next }) => next && next.doneCount > 0);
 
   el('main').innerHTML = `
     <section class="home-hero">
@@ -387,6 +401,22 @@ function renderHome() {
         : ''}
       <div class="tip-line" style="margin-top:16px"><b>팁</b> ${pick(TIPS)}</div>
     </section>
+    ${continuing.length ? `
+    <section class="block card continue-card">
+      <h2>이어서 학습하기</h2>
+      <div class="body">
+        <div class="continue-list">
+          ${continuing.map(({ key, c, next }) => `
+            <div class="continue-item">
+              <div class="continue-info">
+                <div class="continue-lang">${esc(c.name)} <span class="muted">(${next.doneCount}/${next.readyCount}개 완료)</span></div>
+                <div class="continue-unit">다음 단원: ${esc(next.unit.title)}</div>
+              </div>
+              <button class="btn small" type="button" data-goto="${key}" data-goto-idx="${next.index}">이어서 하기</button>
+            </div>`).join('')}
+        </div>
+      </div>
+    </section>` : ''}
     <section class="lang-grid">
       ${entries.map(([key, c]) => {
         const readyUnits = c.units.filter(u => u.ready);
@@ -1373,7 +1403,7 @@ document.addEventListener('click', async e => {
   if (e.target.id === 'pgShare') { copyPlaygroundShareLink(); return; }
 
   const gotoEl = e.target.closest('[data-goto]');
-  if (gotoEl) { goLesson(gotoEl.dataset.goto, 0); return; }
+  if (gotoEl) { goLesson(gotoEl.dataset.goto, Number(gotoEl.dataset.gotoIdx || 0)); return; }
 
   const unitBtn = e.target.closest('.unit-btn');
   if (unitBtn && !unitBtn.disabled) {
