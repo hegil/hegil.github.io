@@ -4,7 +4,10 @@
 const SYNTAX = {
   python:     { comment:'#[^\\n]*', keywords:['def','return','if','elif','else','for','while','in','not','and','or','import','from','as','class','True','False','None','print','input','int','float','str','bool','type','len','range'] },
   javascript: { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['let','const','var','function','return','if','else','for','while','of','in','class','new','typeof','true','false','null','undefined','console'] },
+  typescript: { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['let','const','var','function','return','if','else','for','while','of','in','class','new','typeof','true','false','null','undefined','console','interface','type','extends','implements','public','private','readonly','enum','as','keyof','number','string','boolean','void','any'] },
   java:       { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['public','private','protected','static','void','class','new','return','if','else','for','while','int','long','double','float','char','boolean','String','true','false','null','System'] },
+  kotlin:     { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['val','var','fun','if','else','when','for','while','in','return','class','object','interface','data','companion','override','private','public','is','as','null','true','false','Int','String','Boolean','Double'] },
+  csharp:     { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['public','private','protected','static','void','class','new','return','if','else','for','foreach','while','int','float','double','bool','string','true','false','null','using','namespace','override','var'] },
   c:          { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['include','int','float','double','char','void','return','if','else','for','while','sizeof','const','unsigned','struct','printf','scanf','main'] },
   sql:        { comment:'--[^\\n]*', keywords:['SELECT','FROM','WHERE','ORDER','BY','GROUP','JOIN','ON','ASC','DESC','LIMIT','AS','COUNT','SUM','AVG','MAX','MIN','AND','OR','NOT','IN','LIKE','NULL','INSERT','INTO','VALUES','UPDATE','DELETE','CREATE','TABLE'] }
 };
@@ -116,6 +119,74 @@ function buildFullProgress() {
 }
 
 /* =========================================================================
+   4.5) 연속 학습일(스트리크)
+   ========================================================================= */
+const localDateStr = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/* 문제를 하나 채점할 때마다 호출: 오늘 처음 하는 활동이면 스트리크를 갱신해요.
+   어제도 활동했으면 +1, 하루라도 건너뛰었으면 1로 리셋, 오늘 이미 셌으면 그대로 둬요. */
+function touchDailyStreak() {
+  const today = localDateStr(new Date());
+  const meta = progress._meta || { streakCount: 0, lastActiveDate: null };
+  if (meta.lastActiveDate === today) return meta.streakCount;
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  meta.streakCount = meta.lastActiveDate === localDateStr(y) ? meta.streakCount + 1 : 1;
+  meta.lastActiveDate = today;
+  progress._meta = meta;
+  saveProgress(progress);
+  return meta.streakCount;
+}
+
+/* 아무것도 기록하지 않고, 지금 기준 유효한 스트리크 값만 조회(홈 화면 표시용) */
+function currentStreakForDisplay() {
+  const meta = progress._meta;
+  if (!meta || !meta.lastActiveDate) return 0;
+  const today = localDateStr(new Date());
+  if (meta.lastActiveDate === today) return meta.streakCount;
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  if (meta.lastActiveDate === localDateStr(y)) return meta.streakCount;
+  return 0;
+}
+
+/* =========================================================================
+   4.6) 진도 백업 / 복원 (localStorage에만 있는 진도를 파일로 내보내고 불러오기)
+   ========================================================================= */
+function exportProgress() {
+  const payload = { exportedAt: new Date().toISOString(), user: getCurrentUser() || 'guest', progress };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `codelab-progress-${getCurrentUser() || 'guest'}-${localDateStr(new Date())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importProgressFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try { parsed = JSON.parse(reader.result); } catch { alert('올바른 백업 파일이 아니에요.'); return; }
+    if (!parsed || typeof parsed.progress !== 'object' || parsed.progress === null) {
+      alert('올바른 백업 파일이 아니에요.');
+      return;
+    }
+    if (!confirm('지금 이 계정의 진도를 백업 파일 내용으로 덮어쓸까요? 되돌릴 수 없어요.')) return;
+    progress = parsed.progress;
+    saveProgress(progress);
+    if (view === 'home') renderHome();
+    else if (view === 'lesson') { renderUnits(); renderStats(); }
+    alert('진도를 불러왔어요!');
+  };
+  reader.onerror = () => alert('파일을 읽는 중 문제가 생겼어요.');
+  reader.readAsText(file);
+}
+
+/* =========================================================================
    5) 렌더링
    ========================================================================= */
 let view = 'home';   // 'home' | 'lesson' | 'review' | 'challenge'
@@ -127,17 +198,36 @@ let quizMode = 'practice';   // 'practice' | 'review' — #qlist/#check/#next �
 let reviewLangs = new Set(Object.keys(COURSES));
 let reviewActive = false;
 let challenge = null;   // 보스전/티어 최종 도전 상태: { kind:'boss'|'gauntlet', lang, tier, queue:[unitId,...], idx, question, answered, ok }
+let navDropdownOpen = null;   // null | 'lang' | 'tools' — 상단 네비게이션 드롭다운 열림 상태
 
 const el = id => document.getElementById(id);
 
 function renderNav() {
   const homeChip = `<button class="chip home-chip" type="button" aria-pressed="${view === 'home'}">홈</button>`;
   const reviewChip = `<button class="chip review-chip" type="button" aria-pressed="${view === 'review'}">복습</button>`;
+  const wrongNoteChip = `<button class="chip wrongnote-chip" type="button" aria-pressed="${view === 'wrongnote'}">오답노트</button>`;
+  const playgroundChip = `<button class="chip playground-chip" type="button" aria-pressed="${view === 'playground'}">실습장</button>`;
   const minigameChip = `<button class="chip minigame-chip" type="button" aria-pressed="${view === 'minigames' || view === 'minigame'}">미니게임</button>`;
   const langChips = Object.entries(COURSES).map(([k, c]) =>
     `<button class="chip" type="button" data-lang="${k}" aria-pressed="${view === 'lesson' && k === langKey}">${c.name}</button>`
   ).join('');
-  el('langbar').innerHTML = homeChip + reviewChip + minigameChip + langChips;
+
+  const langLabel = view === 'lesson' ? COURSES[langKey].name : '언어';
+  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', minigames: '미니게임', minigame: '미니게임' }[view] || '도구';
+  const langOpen = navDropdownOpen === 'lang';
+  const toolsOpen = navDropdownOpen === 'tools';
+
+  el('langbar').innerHTML = `
+    ${homeChip}
+    <div class="nav-dropdown">
+      <button class="chip nav-dropdown-btn" type="button" data-nav-dd="lang" aria-expanded="${langOpen}" aria-pressed="${view === 'lesson'}">${esc(langLabel)} ▾</button>
+      <div class="nav-dropdown-menu" ${langOpen ? '' : 'hidden'}>${langChips}</div>
+    </div>
+    <div class="nav-dropdown">
+      <button class="chip nav-dropdown-btn" type="button" data-nav-dd="tools" aria-expanded="${toolsOpen}" aria-pressed="${toolLabel !== '도구'}">${esc(toolLabel)} ▾</button>
+      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${reviewChip}${wrongNoteChip}${playgroundChip}${minigameChip}</div>
+    </div>
+  `;
 }
 
 function renderAuthArea() {
@@ -214,15 +304,22 @@ function renderHome() {
   const totalReady = entries.reduce((sum, [, c]) => sum + c.units.filter(u => u.ready).length, 0);
   const totalDone = entries.reduce((sum, [key, c]) =>
     sum + c.units.filter(u => u.ready && progress[`${key}.${u.id}`]?.done).length, 0);
+  const streak = currentStreakForDisplay();
 
   el('main').innerHTML = `
     <section class="home-hero">
       <div class="eyebrow">코드공방</div>
       <h1>${user ? `${esc(user)}님, 오늘은 뭘 배워볼까요?` : '누구나 완전 처음부터 시작하는 코딩 연습 공간'}</h1>
       <p>쉬운 설명과 실제로 실행해 보는 예제, 그리고 원하는 만큼 계속 풀 수 있는 무한 연습 문제로 프로그래밍의 기초를 차근차근 익혀요.</p>
-      ${totalDone > 0
-        ? `<div class="home-stat">지금까지 ${totalDone} / ${totalReady}개 단원 완료</div>`
-        : `<p class="muted" style="margin:0">아래에서 배우고 싶은 언어를 골라 바로 시작해보세요.${user ? '' : ' 회원가입하면 이 기기에서 나만의 진도를 따로 기록할 수 있어요.'}</p>`}
+      <div class="home-stats-row">
+        ${totalDone > 0
+          ? `<div class="home-stat">지금까지 ${totalDone} / ${totalReady}개 단원 완료</div>`
+          : ''}
+        ${streak > 0 ? `<div class="home-stat streak">연속 ${streak}일 학습 중</div>` : ''}
+      </div>
+      ${totalDone === 0
+        ? `<p class="muted" style="margin:0">아래에서 배우고 싶은 언어를 골라 바로 시작해보세요.${user ? '' : ' 회원가입하면 이 기기에서 나만의 진도를 따로 기록할 수 있어요.'}</p>`
+        : ''}
       <div class="tip-line" style="margin-top:16px"><b>팁</b> ${pick(TIPS)}</div>
     </section>
     <section class="lang-grid">
@@ -236,6 +333,19 @@ function renderHome() {
           <button class="btn" type="button" data-goto="${key}">시작하기</button>
         </article>`;
       }).join('')}
+    </section>
+    <section class="block card">
+      <div class="body backup-row">
+        <div>
+          <div class="backup-title">내 진도 백업</div>
+          <p class="muted" style="margin:4px 0 0">진도는 이 브라우저에만 저장돼요. 파일로 내보내두면 다른 기기나 브라우저에서도 이어서 쓸 수 있어요.</p>
+        </div>
+        <div class="backup-actions">
+          <button class="btn ghost small" type="button" id="exportProgressBtn">내보내기</button>
+          <button class="btn ghost small" type="button" id="importProgressBtn">가져오기</button>
+          <input type="file" id="importProgressFile" accept="application/json" hidden>
+        </div>
+      </div>
     </section>`;
 }
 
@@ -290,6 +400,298 @@ function renderReviewQuiz() {
       </div>
     </section>`;
   newQuestion();
+}
+
+/* =========================================================================
+   5.5) 실습장 — 퀴즈와 상관없이 자유롭게 코드를 써보고 바로 실행/미리보기/확인
+   javascript는 원래부터 실제로 실행되고, webpage는 실시간 미리보기가 돼요.
+   python은 Pyodide(웹어셈블리로 포팅된 진짜 CPython), sql은 sql.js(웹어셈블리
+   SQLite)를 CDN에서 그때그때 불러와 실제로 실행해요 — 무거워서 실습장에서
+   그 언어로 처음 실행 버튼을 누를 때만 다운로드돼요. java/c는 브라우저에서
+   실제로 돌릴 만한 방법이 마땅치 않아 문법 강조 미리보기만 제공해요.
+   ========================================================================= */
+const PLAYGROUND_TABS = [
+  { key: 'javascript', label: 'JavaScript', kind: 'run-js' },
+  { key: 'webpage', label: 'HTML/CSS', kind: 'preview' },
+  { key: 'python', label: 'Python', kind: 'run-py' },
+  { key: 'sql', label: 'SQL', kind: 'run-sql' },
+  { key: 'java', label: 'Java', kind: 'highlight' },
+  { key: 'c', label: 'C', kind: 'highlight' }
+];
+let playgroundLang = 'javascript';
+const playgroundCode = {
+  javascript: '// 여기에 자바스크립트 코드를 자유롭게 써보세요\nconsole.log("Hello, World!");',
+  webpage: '<h1>안녕하세요!</h1>\n<p>여기 내용을 자유롭게 바꿔보세요.</p>\n\n<style>\n  h1 { color: royalblue; }\n</style>',
+  python: '# 여기에 파이썬 코드를 자유롭게 써보세요\nprint("Hello, World!")',
+  sql: '-- 여기에 SQL 코드를 자유롭게 써보세요\n-- students, scores 표가 미리 만들어져 있어요\nSELECT * FROM students;',
+  java: '// 여기에 자바 코드를 자유롭게 써보세요\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
+  c: '// 여기에 C 코드를 자유롭게 써보세요\n#include <stdio.h>\n\nint main(void) {\n    printf("Hello, World!\\n");\n    return 0;\n}'
+};
+
+/* 외부 스크립트(Pyodide, sql.js)를 한 번만 불러오는 헬퍼. 실습장에서 그 언어를
+   실제로 쓸 때만 CDN에서 받아오도록 미뤄서, 평소엔 다운로드되지 않게 해요. */
+const loadedScripts = new Set();
+function loadScriptOnce(src) {
+  if (loadedScripts.has(src)) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const tag = document.createElement('script');
+    tag.src = src;
+    tag.onload = () => { loadedScripts.add(src); resolve(); };
+    tag.onerror = () => reject(new Error('실행 환경을 불러오지 못했어요. 인터넷 연결을 확인해주세요.'));
+    document.head.appendChild(tag);
+  });
+}
+
+/* --- SQL: sql.js(웹어셈블리로 컴파일된 진짜 SQLite)로 실제 쿼리를 실행해요 --- */
+const SQL_JS_BASE = 'https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/';
+const SQL_SEED = `
+CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, city TEXT);
+CREATE TABLE scores (student_id INTEGER, score INTEGER);
+INSERT INTO students (id, name, age, city) VALUES
+  (1, '지수', 17, '서울'),
+  (2, '민준', 16, '부산'),
+  (3, '서연', 18, '서울');
+INSERT INTO scores (student_id, score) VALUES (1, 90), (2, 85);
+`;
+let sqlJsNS = null;
+let sqlDb = null;
+
+async function ensureSqlJs() {
+  if (sqlJsNS) return sqlJsNS;
+  await loadScriptOnce(SQL_JS_BASE + 'sql-wasm.js');
+  sqlJsNS = await window.initSqlJs({ locateFile: f => SQL_JS_BASE + f });
+  return sqlJsNS;
+}
+
+function resetSqlDb() {
+  if (sqlDb) sqlDb.close();
+  sqlDb = new sqlJsNS.Database();
+  sqlDb.run(SQL_SEED);
+}
+
+function sqlResultHTML(results) {
+  if (results.length === 0) {
+    return `<div class="code-output"><b>실행 결과</b>실행됐어요. (결과표가 없는 명령이에요 — INSERT/UPDATE/DELETE 등은 실행되지만 표로 보여줄 결과가 없어요)</div>`;
+  }
+  return results.map(r => `
+    <div class="sql-result">
+      <table>
+        <thead><tr>${r.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+        <tbody>${r.values.map(row => `<tr>${row.map(v => `<td>${v === null ? 'NULL' : esc(String(v))}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    </div>`).join('');
+}
+
+async function runSqlPlayground(code) {
+  const out = el('pgOutput');
+  out.innerHTML = `<p class="muted" style="margin:0">SQL 실행 환경을 준비하는 중...</p>`;
+  try {
+    await ensureSqlJs();
+    if (!sqlDb) resetSqlDb();
+    out.innerHTML = sqlResultHTML(sqlDb.exec(code));
+  } catch (err) {
+    out.innerHTML = `<div class="code-output code-error"><b>오류가 났어요</b>${esc(err.message)}</div>`;
+  }
+}
+
+async function resetSqlPlayground() {
+  const out = el('pgOutput');
+  out.innerHTML = `<p class="muted" style="margin:0">표를 초기화하는 중...</p>`;
+  try {
+    await ensureSqlJs();
+    resetSqlDb();
+    out.innerHTML = `<div class="code-output"><b>초기화 완료</b>students, scores 표를 처음 상태로 되돌렸어요.</div>`;
+  } catch (err) {
+    out.innerHTML = `<div class="code-output code-error"><b>오류가 났어요</b>${esc(err.message)}</div>`;
+  }
+}
+
+/* --- Python: Pyodide(웹어셈블리로 포팅된 진짜 CPython)로 실제 실행해요 --- */
+const PYODIDE_BASE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+let pyodideInstance = null;
+let pyodideLoadingPromise = null;
+
+function ensurePyodide() {
+  if (pyodideInstance) return Promise.resolve(pyodideInstance);
+  if (pyodideLoadingPromise) return pyodideLoadingPromise;
+  pyodideLoadingPromise = (async () => {
+    await loadScriptOnce(PYODIDE_BASE + 'pyodide.js');
+    pyodideInstance = await window.loadPyodide({ indexURL: PYODIDE_BASE });
+    return pyodideInstance;
+  })();
+  return pyodideLoadingPromise;
+}
+
+async function runPythonPlayground(code) {
+  const out = el('pgOutput');
+  out.innerHTML = `<p class="muted" style="margin:0">파이썬 실행 환경을 처음 불러오는 중이에요. 몇 초 정도 걸릴 수 있어요 (다음번엔 훨씬 빨라져요)...</p>`;
+  try {
+    const py = await ensurePyodide();
+    const logs = [];
+    py.setStdout({ batched: msg => logs.push(msg) });
+    py.setStderr({ batched: msg => logs.push(msg) });
+    await py.runPythonAsync(code);
+    out.innerHTML = `<div class="code-output"><b>실행 결과</b>${esc(logs.join('\n') || '(아무것도 출력되지 않았어요)')}</div>`;
+  } catch (err) {
+    out.innerHTML = `<div class="code-output code-error"><b>오류가 났어요</b>${esc(err.message)}</div>`;
+  }
+}
+
+function goPlayground() {
+  view = 'playground';
+  el('sidebar').hidden = true;
+  el('wrap').classList.add('home-view');
+  renderNav();
+  renderPlayground();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderPlayground() {
+  const tab = PLAYGROUND_TABS.find(t => t.key === playgroundLang);
+  const runLabel = tab.kind === 'preview' ? '미리보기 새로고침' : tab.kind === 'highlight' ? '구문 확인하기' : '실행하기';
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">실습장</div>
+      <h1>자유롭게 코드를 써보세요</h1>
+      <p>퀴즈와 상관없이, 배운 걸 자유롭게 실험해볼 수 있는 공간이에요. 이 코드는 저장되지 않아요.</p>
+    </div>
+    <section class="block card">
+      <div class="body">
+        <div class="auth-tabs playground-tabs">
+          ${PLAYGROUND_TABS.map(t => `<button class="auth-tab" type="button" data-pg-lang="${t.key}" aria-pressed="${t.key === playgroundLang}">${t.label}</button>`).join('')}
+        </div>
+        ${tab.kind === 'highlight' ? `<p class="muted" style="margin:12px 0 0">이 언어는 브라우저에서 직접 실행할 수는 없어요. 대신 문법이 강조된 모습으로 코드를 확인할 수 있어요.</p>` : ''}
+        ${tab.kind === 'run-py' ? `<p class="muted" style="margin:12px 0 0">Pyodide(웹어셈블리로 포팅된 진짜 파이썬)로 실제 실행돼요. 처음 실행할 때만 조금 오래 걸려요.</p>` : ''}
+        ${tab.kind === 'run-sql' ? `<p class="muted" style="margin:12px 0 0">sql.js(웹어셈블리 SQLite)로 실제 실행돼요. students, scores 표가 미리 만들어져 있어요.</p>` : ''}
+        <div class="playground-editor">
+          <textarea id="pgInput" rows="14" spellcheck="false" autocomplete="off" autocapitalize="off">${esc(playgroundCode[playgroundLang])}</textarea>
+        </div>
+        <div class="quiz-foot">
+          <button class="btn" type="button" id="pgRun">${runLabel}</button>
+          ${tab.kind === 'run-sql' ? `<button class="btn ghost" type="button" id="pgSqlReset">표 초기화</button>` : ''}
+          <span class="muted" style="align-self:center; font-size:13px">Ctrl+Enter로도 실행할 수 있어요</span>
+        </div>
+        <div id="pgOutput"></div>
+      </div>
+    </section>`;
+  el('pgOutput').innerHTML = '';
+}
+
+function runPlayground() {
+  const tab = PLAYGROUND_TABS.find(t => t.key === playgroundLang);
+  const code = el('pgInput').value;
+  playgroundCode[playgroundLang] = code;
+  const out = el('pgOutput');
+  if (tab.kind === 'run-js') {
+    const result = runUserJS(code);
+    out.innerHTML = result.ok
+      ? `<div class="code-output"><b>실행 결과</b>${esc(result.output || '(아무것도 출력되지 않았어요)')}</div>`
+      : `<div class="code-output code-error"><b>오류가 났어요</b>${esc(result.error)}</div>`;
+  } else if (tab.kind === 'preview') {
+    out.innerHTML = `<div class="code-preview"><span class="code-preview-label">미리보기</span><iframe sandbox="" id="pgFrame" title="미리보기"></iframe></div>`;
+    el('pgFrame').srcdoc = code || '<p></p>';
+  } else if (tab.kind === 'run-py') {
+    runPythonPlayground(code);
+  } else if (tab.kind === 'run-sql') {
+    runSqlPlayground(code);
+  } else {
+    out.innerHTML = `<figure class="code" style="margin:14px 0 0">
+      <figcaption>${esc(tab.label)} 문법 미리보기</figcaption>
+      <pre><code>${highlight(code, tab.key)}</code></pre>
+    </figure>`;
+  }
+}
+
+/* =========================================================================
+   5.6) 오답노트 — 실제로 틀린 적 있는 단원 위주로만 문제가 나오는 약점 복습 모드
+   ========================================================================= */
+function wrongNotePool() {
+  const pool = [];
+  Object.entries(COURSES).forEach(([lang, course]) => {
+    course.units.filter(u => u.ready).forEach(u => {
+      const rec = progress[`${lang}.${u.id}`];
+      if (rec && rec.asked > rec.correct) pool.push({ lang, u, weakness: rec.asked - rec.correct });
+    });
+  });
+  return pool;
+}
+
+function pickWeighted(pool) {
+  const expanded = [];
+  pool.forEach(item => { for (let i = 0; i < item.weakness; i++) expanded.push(item); });
+  return pick(expanded);
+}
+
+function goWrongNote() {
+  view = 'wrongnote';
+  quizMode = 'wrongnote';
+  el('sidebar').hidden = true;
+  el('wrap').classList.add('home-view');
+  renderNav();
+  renderWrongNote();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderWrongNoteList() {
+  const listEl = el('wrongNoteList');
+  if (!listEl) return;
+  const sorted = [...wrongNotePool()].sort((a, b) => b.weakness - a.weakness);
+  listEl.innerHTML = sorted.length ? sorted.map(({ lang, u, weakness }) => `
+    <div class="wrongnote-item">
+      <span class="wrongnote-lang">${esc(COURSES[lang].name)}</span>
+      <span class="wrongnote-unit">${esc(u.title)}</span>
+      <span class="stat">틀린 ${weakness}개</span>
+    </div>`).join('') : '<p class="muted" style="margin:0">지금까지 모은 오답을 모두 해결했어요! 훌륭해요.</p>';
+}
+
+function renderWrongNote() {
+  const pool = wrongNotePool();
+  if (pool.length === 0) {
+    el('main').innerHTML = `
+      <div class="hero">
+        <div class="eyebrow">오답노트</div>
+        <h1>아직 모아둔 오답이 없어요</h1>
+        <p>단원 연습 문제나 복습에서 틀리는 문제가 생기면, 그 단원이 여기 자동으로 모여서 더 자주 나오게 돼요. 문제를 좀 더 풀어보세요!</p>
+      </div>`;
+    return;
+  }
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">오답노트</div>
+      <h1>자주 틀리는 단원 위주로 복습해요</h1>
+      <p>아래 목록에 있는 단원들의 문제가 더 자주 나와요. 맞히다 보면 목록에서 자연스럽게 빠져요.</p>
+    </div>
+    <section class="block card">
+      <div class="body"><div class="wrongnote-list" id="wrongNoteList"></div></div>
+    </section>
+    <section class="block card" id="quiz">
+      <div class="body" style="padding-bottom:6px">
+        <div class="quiz-stats" id="quiz-stats"></div>
+      </div>
+      <div id="qlist"></div>
+      <div class="hint-box" id="hintBox" hidden></div>
+      <div class="quiz-foot">
+        <button class="btn" type="button" id="check">확인하기</button>
+        <button class="btn ghost" type="button" id="hintBtn">힌트 보기</button>
+        <button class="btn ghost" type="button" id="next">다음 문제</button>
+      </div>
+    </section>`;
+  renderWrongNoteList();
+  newQuestion();
+}
+
+function updateWrongNoteStats(ok) {
+  const { lang, unitId } = currentQuestion._origin;
+  const key = `${lang}.${unitId}`;
+  const rec = progress[key] || { asked: 0, correct: 0, streak: 0, bestStreak: 0, done: false };
+  rec.asked++;
+  if (ok) { rec.correct++; rec.streak++; } else { rec.streak = 0; }
+  rec.bestStreak = Math.max(rec.bestStreak, rec.streak);
+  if (!rec.done && rec.bestStreak >= STREAK_GOAL) rec.done = true;
+  progress[key] = rec;
+  saveProgress(progress);
+  renderStats();
+  renderWrongNoteList();
 }
 
 function renderUnits() {
@@ -453,6 +855,13 @@ function newQuestion() {
     const { lang, u } = pick(reviewPool());
     currentQuestion = pick(u.quizGenerators)();
     currentQuestion._source = { langName: COURSES[lang].name, unitTitle: u.title };
+  } else if (quizMode === 'wrongnote') {
+    const pool = wrongNotePool();
+    if (pool.length === 0) { goWrongNote(); return; }
+    const { lang, u } = pickWeighted(pool);
+    currentQuestion = pick(u.quizGenerators)();
+    currentQuestion._source = { langName: COURSES[lang].name, unitTitle: u.title };
+    currentQuestion._origin = { lang, unitId: u.id };
   } else {
     const u = COURSES[langKey].units[unitIdx];
     currentQuestion = pick(u.quizGenerators)();
@@ -556,7 +965,9 @@ function checkAnswer() {
   if (ok === null) return;
 
   el('check').disabled = true;
+  touchDailyStreak();
   if (quizMode === 'review') updateReviewStats(ok);
+  else if (quizMode === 'wrongnote') updateWrongNoteStats(ok);
   else updateStreak(ok);
 }
 
@@ -597,6 +1008,17 @@ function renderStats() {
       <span class="stat"><b>${rec.streak}</b>연속 정답</span>
       <span class="stat"><b>${rec.correct}</b>/${rec.asked} 맞음</span>
       <span class="stat"><b>${rec.bestStreak}</b>최고 기록</span>
+    `;
+    return;
+  }
+  if (quizMode === 'wrongnote') {
+    const { lang, unitId } = currentQuestion._origin;
+    const rec = progress[`${lang}.${unitId}`] || { asked: 0, correct: 0, streak: 0, bestStreak: 0 };
+    const unitTitle = COURSES[lang].units.find(u => u.id === unitId).title;
+    el('quiz-stats').innerHTML = `
+      <span class="stat"><b>${rec.streak}</b>연속 정답</span>
+      <span class="stat"><b>${rec.correct}</b>/${rec.asked} 맞음</span>
+      <span class="stat">${esc(COURSES[lang].name)} · ${esc(unitTitle)}</span>
     `;
     return;
   }
@@ -697,6 +1119,7 @@ function checkChallengeAnswer() {
   const ok = gradeQuestion(challenge.question, box);
   if (ok === null) return;
 
+  touchDailyStreak();
   challenge.answered = true;
   challenge.ok = ok;
 
@@ -737,14 +1160,34 @@ function exitChallenge() { backFromChallenge(); }
 document.addEventListener('click', async e => {
   if (e.target.closest('#brandHome')) { goHome(); return; }
 
+  const ddBtn = e.target.closest('[data-nav-dd]');
+  if (ddBtn) {
+    navDropdownOpen = navDropdownOpen === ddBtn.dataset.navDd ? null : ddBtn.dataset.navDd;
+    renderNav();
+    return;
+  }
+
   const chip = e.target.closest('.chip');
   if (chip) {
+    navDropdownOpen = null;
     if (chip.classList.contains('home-chip')) goHome();
     else if (chip.classList.contains('review-chip')) goReview();
+    else if (chip.classList.contains('wrongnote-chip')) goWrongNote();
+    else if (chip.classList.contains('playground-chip')) goPlayground();
     else if (chip.classList.contains('minigame-chip')) goMinigameHub();
     else goLesson(chip.dataset.lang, 0);
     return;
   }
+
+  const pgTab = e.target.closest('[data-pg-lang]');
+  if (pgTab) {
+    playgroundCode[playgroundLang] = el('pgInput').value;
+    playgroundLang = pgTab.dataset.pgLang;
+    renderPlayground();
+    return;
+  }
+  if (e.target.id === 'pgRun') { runPlayground(); return; }
+  if (e.target.id === 'pgSqlReset') { resetSqlPlayground(); return; }
 
   const gotoEl = e.target.closest('[data-goto]');
   if (gotoEl) { goLesson(gotoEl.dataset.goto, 0); return; }
@@ -788,6 +1231,8 @@ document.addEventListener('click', async e => {
     }
     return;
   }
+  if (e.target.id === 'exportProgressBtn') { exportProgress(); return; }
+  if (e.target.id === 'importProgressBtn') { el('importProgressFile').click(); return; }
   if (e.target.id === 'theme') {
     const cur = document.documentElement.dataset.theme
       || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -809,6 +1254,14 @@ document.addEventListener('click', async e => {
   }
 });
 
+/* 드롭다운(언어/도구) 바깥을 클릭하면 열려있던 드롭다운을 닫아요 */
+document.addEventListener('click', e => {
+  if (navDropdownOpen && !e.target.closest('.nav-dropdown')) {
+    navDropdownOpen = null;
+    renderNav();
+  }
+});
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#qlist input[type="text"]')) {
     e.preventDefault();
@@ -820,7 +1273,11 @@ document.addEventListener('keydown', e => {
     const btn = el('check') || el('challengeCheck');
     if (btn && !btn.disabled) btn.click();
   }
-  if (e.key === 'Tab' && e.target.id === 'codeInput' && !e.target.disabled) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.id === 'pgInput') {
+    e.preventDefault();
+    runPlayground();
+  }
+  if (e.key === 'Tab' && e.target.matches('#codeInput, #pgInput') && !e.target.disabled) {
     e.preventDefault();
     const ta = e.target;
     const start = ta.selectionStart, end = ta.selectionEnd;
@@ -836,6 +1293,7 @@ document.addEventListener('keydown', e => {
     }
   }
   if (e.key === 'Escape' && !el('authOverlay').hidden) { closeAuthModal(); }
+  if (e.key === 'Escape' && navDropdownOpen) { navDropdownOpen = null; renderNav(); }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'brandHome') {
     e.preventDefault();
     goHome();
@@ -847,6 +1305,11 @@ document.addEventListener('change', e => {
     const k = e.target.dataset.reviewLang;
     if (e.target.checked) reviewLangs.add(k);
     else reviewLangs.delete(k);
+  }
+  if (e.target.id === 'importProgressFile') {
+    const file = e.target.files[0];
+    if (file) importProgressFromFile(file);
+    e.target.value = '';
   }
 });
 

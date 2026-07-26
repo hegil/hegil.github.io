@@ -14,6 +14,9 @@ const GAME_MATRIX = {
   java:       { beginner: 'bug',      intermediate: 'reorder', advanced: 'speed' },
   c:          { beginner: 'match',    intermediate: 'bug',     advanced: 'reorder' },
   sql:        { beginner: 'keywords', intermediate: 'speed',   advanced: 'match' },
+  typescript: { beginner: 'reorder',  intermediate: 'keywords', advanced: 'speed' },
+  kotlin:     { beginner: 'typing',   intermediate: 'match',   advanced: 'keywords' },
+  unity:      { beginner: 'speed',    intermediate: 'bug',     advanced: 'typing' },
 };
 
 const GAME_TYPE_LABEL = {
@@ -138,6 +141,14 @@ const BUG_SNIPPETS = {
     { lines: ['SELECT city, COUNT(*)', 'FROM students', 'GROUP city;'], buggy: 2,
       why: '<code>GROUP BY city;</code>처럼 BY가 빠지면 안 돼요.' },
   ],
+  unity: [
+    { lines: ['void update()', '{', '    transform.position += Vector3.up;', '}'], buggy: 0,
+      why: 'Unity의 생명주기 메서드는 대문자로 시작해요. <code>Update()</code>가 맞아요.' },
+    { lines: ['void Start()', '{', '    Debug.log("시작!");', '}'], buggy: 2,
+      why: '콘솔 출력 메서드는 <code>Debug.Log</code>예요(L이 대문자). <code>log</code>는 오타예요.' },
+    { lines: ['void Update()', '{', '    if (Input.GetKeyDown(KeyCode.Space))', '        Debug.Log("점프!")', '}'], buggy: 3,
+      why: 'C# 문장 끝에는 세미콜론(;)이 있어야 해요. <code>Debug.Log("점프!");</code>가 맞아요.' },
+  ],
 };
 const BUG_ROUNDS = 6;
 
@@ -239,6 +250,8 @@ const TYPING_SNIPPETS = {
   java: ['System.out.println("Hi");', 'int age = 17;', 'if (age >= 18) {', 'return a + b;', 'String name = "지수";'],
   c: ['printf("Hello\\n");', 'int age = 17;', 'if (age >= 18) {', 'return a + b;', 'float pi = 3.14;'],
   sql: ['SELECT * FROM students;', 'WHERE age >= 18;', 'ORDER BY age DESC;', 'GROUP BY city;', 'SELECT name FROM students;'],
+  kotlin: ['println("Hello, World!")', 'val age = 17', 'if (age >= 18) {', 'for (i in 1..5) {', 'fun add(a: Int, b: Int) = a + b'],
+  unity: ['Debug.Log("Hello!");', 'void Update()', 'transform.position += Vector3.up;', 'public float speed = 5.0f;', 'if (Input.GetKeyDown(KeyCode.Space))'],
 };
 
 function renderTypingGame(lang) {
@@ -312,6 +325,10 @@ const REORDER_SNIPPETS = {
   sql: [
     ['SELECT city, COUNT(*)', 'FROM students', 'GROUP BY city;'],
     ['SELECT name, age', 'FROM students', 'WHERE age >= 18', 'ORDER BY age DESC;'],
+  ],
+  typescript: [
+    ['function add(a: number, b: number): number {', '  return a + b;', '}'],
+    ['interface Student {', '  name: string;', '  age: number;', '}'],
   ],
 };
 
@@ -418,6 +435,14 @@ const MATCH_PAIRS = {
     { term: 'GROUP BY', def: '같은 값끼리 묶는 키워드' },
     { term: 'COUNT(*)', def: '행의 개수를 세는 함수' },
     { term: 'JOIN', def: '두 표를 연결하는 키워드' },
+  ],
+  kotlin: [
+    { term: 'val', def: '다시 바꿀 수 없는 값을 만드는 키워드' },
+    { term: 'var', def: '나중에 바뀔 수 있는 값을 만드는 키워드' },
+    { term: 'fun', def: '함수를 만드는 키워드' },
+    { term: 'when', def: '여러 경우를 깔끔하게 나누는 조건문' },
+    { term: 'data class', def: '값 비교 기능을 자동으로 만들어주는 클래스' },
+    { term: '1..5', def: '1부터 5까지(양 끝 포함)를 나타내는 범위' },
   ],
 };
 
@@ -598,6 +623,8 @@ const KEYWORD_BANK = {
   java: ['public', 'static', 'void', 'int', 'String', 'class', 'if', 'for', 'true', 'false', 'return', 'new'],
   c: ['printf', 'scanf', 'int', 'float', 'char', 'if', 'for', 'sizeof', 'return', 'void', 'struct', 'include'],
   sql: ['SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'JOIN', 'COUNT', 'AVG', 'SUM', 'INSERT', 'UPDATE', 'DELETE'],
+  typescript: ['interface', 'type', 'string', 'number', 'boolean', 'let', 'const', 'function', 'readonly', 'enum', 'as', 'keyof'],
+  kotlin: ['val', 'var', 'fun', 'when', 'data', 'class', 'Int', 'String', 'Boolean', 'override', 'companion', 'null'],
 };
 function pickKeywordDistractors(lang, count) {
   const validSet = new Set((KEYWORD_BANK[lang] || []).map(w => w.toLowerCase()));
