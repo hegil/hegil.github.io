@@ -292,11 +292,29 @@ function openAuthModal(mode) {
 function closeAuthModal() {
   el('authOverlay').hidden = true;
 }
+/* 로그인 폼에 "비밀번호 확인" 입력칸이 항상 DOM에 (숨겨진 채로) 남아있으면, 브라우저
+   비밀번호 관리자가 로그인 폼도 계속 회원가입 폼(비밀번호 2개)으로 잘못 인식해서
+   저장된 아이디가 자동완성 후보로 안 뜨는 문제가 생길 수 있어요. 그래서 로그인 모드일 땐
+   그 입력칸을 아예 DOM에서 없애서, 폼이 진짜 "아이디+비밀번호" 2칸짜리 로그인 폼으로만
+   보이게 해요. */
 function updateAuthModeUI() {
   document.querySelectorAll('.auth-tab').forEach(t => t.setAttribute('aria-pressed', String(t.dataset.tab === authMode)));
   el('authTitle').textContent = authMode === 'login' ? '로그인' : '회원가입';
   el('authSubmit').textContent = authMode === 'login' ? '로그인' : '회원가입';
-  el('authConfirmWrap').hidden = authMode !== 'signup';
+  const confirmWrap = el('authConfirmWrap');
+  confirmWrap.hidden = authMode !== 'signup';
+  if (authMode === 'signup') {
+    if (!el('authConfirm')) {
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.id = 'authConfirm';
+      input.name = 'new-password-confirm';
+      input.autocomplete = 'new-password';
+      confirmWrap.appendChild(input);
+    }
+  } else if (el('authConfirm')) {
+    el('authConfirm').remove();
+  }
   el('authPassword').setAttribute('autocomplete', authMode === 'login' ? 'current-password' : 'new-password');
 }
 
