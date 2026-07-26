@@ -180,10 +180,53 @@ function importProgressFromFile(file) {
     saveProgress(progress);
     if (view === 'home') renderHome();
     else if (view === 'lesson') { renderUnits(); renderStats(); }
+    else if (view === 'dashboard') renderStatsDashboard();
     alert('진도를 불러왔어요!');
   };
   reader.onerror = () => alert('파일을 읽는 중 문제가 생겼어요.');
   reader.readAsText(file);
+}
+
+/* =========================================================================
+   4.7) 업적/뱃지 — progress에서 파생되는 값이라 별도 저장 없이 그때그때 계산해요
+   ========================================================================= */
+const ACHIEVEMENTS = [
+  { id: 'first-done', icon: '🌱', name: '첫 걸음', desc: '단원 1개 완료하기', check: s => s.totalDone >= 1 },
+  { id: 'ten-done', icon: '🚀', name: '열 걸음', desc: '단원 10개 완료하기', check: s => s.totalDone >= 10 },
+  { id: 'thirty-done', icon: '🏔️', name: '꾸준함의 힘', desc: '단원 30개 완료하기', check: s => s.totalDone >= 30 },
+  { id: 'lang-master', icon: '🏆', name: '한 언어 마스터', desc: '한 언어의 준비된 단원을 모두 완료하기', check: s => s.perLang.some(l => l.readyCount > 0 && l.doneCount === l.readyCount) },
+  { id: 'all-master', icon: '👑', name: '전 언어 마스터', desc: '모든 언어의 모든 단원 완료하기', check: s => s.perLang.every(l => l.readyCount > 0 && l.doneCount === l.readyCount) },
+  { id: 'streak-3', icon: '🔥', name: '3일 연속 학습', desc: '3일 연속으로 문제 풀기', check: s => s.streak >= 3 },
+  { id: 'streak-7', icon: '🔥', name: '7일 연속 학습', desc: '7일 연속으로 문제 풀기', check: s => s.streak >= 7 },
+  { id: 'boss-1', icon: '⚔️', name: '첫 보스전 승리', desc: '보스전 1개 클리어하기', check: s => s.bossCleared >= 1 },
+  { id: 'boss-5', icon: '🗡️', name: '보스 헌터', desc: '보스전 5개 클리어하기', check: s => s.bossCleared >= 5 },
+  { id: 'tier-clear', icon: '💎', name: '티어 클리어', desc: '아무 언어에서나 티어 최종 도전 클리어하기', check: s => s.tierCleared >= 1 },
+  { id: 'correct-100', icon: '💯', name: '정답 100개', desc: '누적으로 정답 100개 맞히기', check: s => s.totalCorrect >= 100 }
+];
+
+function achievementStats() {
+  const entries = Object.entries(COURSES);
+  let totalDone = 0, totalCorrect = 0, bossCleared = 0, tierCleared = 0;
+  const perLang = entries.map(([key, c]) => {
+    const ready = c.units.filter(u => u.ready);
+    let doneCount = 0;
+    ready.forEach(u => {
+      const rec = progress[`${key}.${u.id}`];
+      if (!rec) return;
+      if (rec.done) doneCount++;
+      totalCorrect += rec.correct || 0;
+      if (rec.bossCleared) bossCleared++;
+    });
+    TIER_ORDER.forEach(tier => { if (progress[`${key}.tier.${tier}`]?.cleared) tierCleared++; });
+    totalDone += doneCount;
+    return { key, readyCount: ready.length, doneCount };
+  });
+  return { totalDone, totalCorrect, bossCleared, tierCleared, perLang, streak: currentStreakForDisplay() };
+}
+
+function unlockedAchievements() {
+  const stats = achievementStats();
+  return ACHIEVEMENTS.map(a => ({ ...a, unlocked: a.check(stats) }));
 }
 
 /* =========================================================================
@@ -207,13 +250,14 @@ function renderNav() {
   const reviewChip = `<button class="chip review-chip" type="button" aria-pressed="${view === 'review'}">복습</button>`;
   const wrongNoteChip = `<button class="chip wrongnote-chip" type="button" aria-pressed="${view === 'wrongnote'}">오답노트</button>`;
   const playgroundChip = `<button class="chip playground-chip" type="button" aria-pressed="${view === 'playground'}">실습장</button>`;
+  const statsChip = `<button class="chip stats-chip" type="button" aria-pressed="${view === 'dashboard'}">통계</button>`;
   const minigameChip = `<button class="chip minigame-chip" type="button" aria-pressed="${view === 'minigames' || view === 'minigame'}">미니게임</button>`;
   const langChips = Object.entries(COURSES).map(([k, c]) =>
     `<button class="chip" type="button" data-lang="${k}" aria-pressed="${view === 'lesson' && k === langKey}">${c.name}</button>`
   ).join('');
 
   const langLabel = view === 'lesson' ? COURSES[langKey].name : '언어';
-  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', minigames: '미니게임', minigame: '미니게임' }[view] || '도구';
+  const toolLabel = { review: '복습', wrongnote: '오답노트', playground: '실습장', dashboard: '통계', minigames: '미니게임', minigame: '미니게임' }[view] || '도구';
   const langOpen = navDropdownOpen === 'lang';
   const toolsOpen = navDropdownOpen === 'tools';
 
@@ -225,7 +269,7 @@ function renderNav() {
     </div>
     <div class="nav-dropdown">
       <button class="chip nav-dropdown-btn" type="button" data-nav-dd="tools" aria-expanded="${toolsOpen}" aria-pressed="${toolLabel !== '도구'}">${esc(toolLabel)} ▾</button>
-      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${reviewChip}${wrongNoteChip}${playgroundChip}${minigameChip}</div>
+      <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${reviewChip}${wrongNoteChip}${playgroundChip}${statsChip}${minigameChip}</div>
     </div>
   `;
 }
@@ -262,6 +306,7 @@ function refreshAfterAuthChange() {
   if (view === 'home') renderHome();
   else if (view === 'lesson') { renderUnits(); renderStats(); }
   else if (view === 'review' && reviewActive) renderStats();
+  else if (view === 'dashboard') renderStatsDashboard();
 }
 
 function goHome() {
@@ -305,6 +350,7 @@ function renderHome() {
   const totalDone = entries.reduce((sum, [key, c]) =>
     sum + c.units.filter(u => u.ready && progress[`${key}.${u.id}`]?.done).length, 0);
   const streak = currentStreakForDisplay();
+  const badgeCount = unlockedAchievements().filter(b => b.unlocked).length;
 
   el('main').innerHTML = `
     <section class="home-hero">
@@ -316,6 +362,7 @@ function renderHome() {
           ? `<div class="home-stat">지금까지 ${totalDone} / ${totalReady}개 단원 완료</div>`
           : ''}
         ${streak > 0 ? `<div class="home-stat streak">연속 ${streak}일 학습 중</div>` : ''}
+        ${badgeCount > 0 ? `<div class="home-stat badge">뱃지 ${badgeCount}/${ACHIEVEMENTS.length}개 보유</div>` : ''}
       </div>
       ${totalDone === 0
         ? `<p class="muted" style="margin:0">아래에서 배우고 싶은 언어를 골라 바로 시작해보세요.${user ? '' : ' 회원가입하면 이 기기에서 나만의 진도를 따로 기록할 수 있어요.'}</p>`
@@ -415,8 +462,11 @@ const PLAYGROUND_TABS = [
   { key: 'webpage', label: 'HTML/CSS', kind: 'preview' },
   { key: 'python', label: 'Python', kind: 'run-py' },
   { key: 'sql', label: 'SQL', kind: 'run-sql' },
+  { key: 'typescript', label: 'TypeScript', kind: 'highlight' },
   { key: 'java', label: 'Java', kind: 'highlight' },
-  { key: 'c', label: 'C', kind: 'highlight' }
+  { key: 'kotlin', label: 'Kotlin', kind: 'highlight' },
+  { key: 'c', label: 'C', kind: 'highlight' },
+  { key: 'unity', label: 'Unity(C#)', kind: 'highlight', highlightLang: 'csharp' }
 ];
 let playgroundLang = 'javascript';
 const playgroundCode = {
@@ -424,8 +474,11 @@ const playgroundCode = {
   webpage: '<h1>안녕하세요!</h1>\n<p>여기 내용을 자유롭게 바꿔보세요.</p>\n\n<style>\n  h1 { color: royalblue; }\n</style>',
   python: '# 여기에 파이썬 코드를 자유롭게 써보세요\nprint("Hello, World!")',
   sql: '-- 여기에 SQL 코드를 자유롭게 써보세요\n-- students, scores 표가 미리 만들어져 있어요\nSELECT * FROM students;',
+  typescript: '// 여기에 TypeScript 코드를 자유롭게 써보세요\nlet name: string = "지수";\nconsole.log(name);',
   java: '// 여기에 자바 코드를 자유롭게 써보세요\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
-  c: '// 여기에 C 코드를 자유롭게 써보세요\n#include <stdio.h>\n\nint main(void) {\n    printf("Hello, World!\\n");\n    return 0;\n}'
+  kotlin: '// 여기에 Kotlin 코드를 자유롭게 써보세요\nfun main() {\n    println("Hello, World!")\n}',
+  c: '// 여기에 C 코드를 자유롭게 써보세요\n#include <stdio.h>\n\nint main(void) {\n    printf("Hello, World!\\n");\n    return 0;\n}',
+  unity: '// 여기에 Unity C# 스크립트를 자유롭게 써보세요\npublic class PlayerScript : MonoBehaviour\n{\n    void Start()\n    {\n        Debug.Log("게임 시작!");\n    }\n}'
 };
 
 /* 외부 스크립트(Pyodide, sql.js)를 한 번만 불러오는 헬퍼. 실습장에서 그 언어를
@@ -537,6 +590,41 @@ async function runPythonPlayground(code) {
   }
 }
 
+/* 실습장 코드를 URL에 담아 공유하는 링크. 서버 없이 base64로 인코딩해 #pg= 뒤에 실어요. */
+function b64EncodeUtf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+}
+function b64DecodeUtf8(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function copyPlaygroundShareLink() {
+  const code = el('pgInput').value;
+  const encoded = encodeURIComponent(b64EncodeUtf8(JSON.stringify({ lang: playgroundLang, code })));
+  const url = `${location.origin}${location.pathname}#pg=${encoded}`;
+  navigator.clipboard.writeText(url).then(() => {
+    alert('공유 링크를 복사했어요! 이 링크를 열면 실습장에 같은 코드가 그대로 채워져요.');
+  }).catch(() => {
+    prompt('아래 링크를 복사하세요:', url);
+  });
+}
+
+function decodePlaygroundShareHash() {
+  const m = location.hash.match(/^#pg=(.+)$/);
+  if (!m) return null;
+  try {
+    const payload = JSON.parse(b64DecodeUtf8(decodeURIComponent(m[1])));
+    if (!payload || typeof payload.code !== 'string' || !PLAYGROUND_TABS.some(t => t.key === payload.lang)) return null;
+    return payload;
+  } catch { return null; }
+}
+
 function goPlayground() {
   view = 'playground';
   el('sidebar').hidden = true;
@@ -569,6 +657,7 @@ function renderPlayground() {
         <div class="quiz-foot">
           <button class="btn" type="button" id="pgRun">${runLabel}</button>
           ${tab.kind === 'run-sql' ? `<button class="btn ghost" type="button" id="pgSqlReset">표 초기화</button>` : ''}
+          <button class="btn ghost" type="button" id="pgShare">공유 링크 복사</button>
           <span class="muted" style="align-self:center; font-size:13px">Ctrl+Enter로도 실행할 수 있어요</span>
         </div>
         <div id="pgOutput"></div>
@@ -597,7 +686,7 @@ function runPlayground() {
   } else {
     out.innerHTML = `<figure class="code" style="margin:14px 0 0">
       <figcaption>${esc(tab.label)} 문법 미리보기</figcaption>
-      <pre><code>${highlight(code, tab.key)}</code></pre>
+      <pre><code>${highlight(code, tab.highlightLang || tab.key)}</code></pre>
     </figure>`;
   }
 }
@@ -692,6 +781,80 @@ function updateWrongNoteStats(ok) {
   saveProgress(progress);
   renderStats();
   renderWrongNoteList();
+}
+
+/* =========================================================================
+   5.7) 통계 대시보드 — 언어별 정답률, 취약 단원, 뱃지를 한 화면에 모아 보여줘요
+   ========================================================================= */
+function goStatsDashboard() {
+  view = 'dashboard';
+  el('sidebar').hidden = true;
+  el('wrap').classList.add('home-view');
+  renderNav();
+  renderStatsDashboard();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderStatsDashboard() {
+  const rows = Object.entries(COURSES).map(([key, c]) => {
+    const ready = c.units.filter(u => u.ready);
+    let asked = 0, correct = 0, doneCount = 0;
+    ready.forEach(u => {
+      const rec = progress[`${key}.${u.id}`];
+      if (!rec) return;
+      asked += rec.asked || 0;
+      correct += rec.correct || 0;
+      if (rec.done) doneCount++;
+    });
+    const acc = asked > 0 ? Math.round((correct / asked) * 100) : null;
+    return { name: c.name, readyCount: ready.length, doneCount, acc };
+  });
+  const weak = [...wrongNotePool()].sort((a, b) => b.weakness - a.weakness).slice(0, 5);
+  const badges = unlockedAchievements();
+  const unlockedCount = badges.filter(b => b.unlocked).length;
+
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">통계</div>
+      <h1>내 학습 기록을 한눈에</h1>
+      <p>언어별 정답률과 완료 현황, 자주 틀리는 단원과 모은 뱃지를 확인해보세요.</p>
+    </div>
+    <section class="block card">
+      <h2>언어별 정답률</h2>
+      <div class="body">
+        ${rows.map(r => `
+          <div class="stat-row">
+            <div class="stat-row-label">${esc(r.name)} <span class="muted">(${r.doneCount}/${r.readyCount}개 완료)</span></div>
+            <div class="stat-row-bar"><i style="width:${r.acc ?? 0}%"></i></div>
+            <div class="stat-row-pct">${r.acc === null ? '－' : r.acc + '%'}</div>
+          </div>`).join('')}
+      </div>
+    </section>
+    <section class="block card">
+      <h2>자주 틀리는 단원 Top 5</h2>
+      <div class="body">
+        ${weak.length
+          ? `<div class="wrongnote-list">${weak.map(({ lang, u, weakness }) => `
+              <div class="wrongnote-item">
+                <span class="wrongnote-lang">${esc(COURSES[lang].name)}</span>
+                <span class="wrongnote-unit">${esc(u.title)}</span>
+                <span class="stat">틀린 ${weakness}개</span>
+              </div>`).join('')}</div>`
+          : '<p class="muted" style="margin:0">아직 취약한 단원이 없어요. 잘 하고 있어요!</p>'}
+      </div>
+    </section>
+    <section class="block card">
+      <h2>뱃지 ${unlockedCount}/${badges.length}</h2>
+      <div class="body">
+        <div class="badge-grid">
+          ${badges.map(b => `
+            <div class="badge-item ${b.unlocked ? '' : 'locked'}" title="${escAttr(b.desc)}">
+              <div class="badge-icon">${b.icon}</div>
+              <div class="badge-name">${esc(b.name)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </section>`;
 }
 
 function renderUnits() {
@@ -1174,6 +1337,7 @@ document.addEventListener('click', async e => {
     else if (chip.classList.contains('review-chip')) goReview();
     else if (chip.classList.contains('wrongnote-chip')) goWrongNote();
     else if (chip.classList.contains('playground-chip')) goPlayground();
+    else if (chip.classList.contains('stats-chip')) goStatsDashboard();
     else if (chip.classList.contains('minigame-chip')) goMinigameHub();
     else goLesson(chip.dataset.lang, 0);
     return;
@@ -1188,6 +1352,7 @@ document.addEventListener('click', async e => {
   }
   if (e.target.id === 'pgRun') { runPlayground(); return; }
   if (e.target.id === 'pgSqlReset') { resetSqlPlayground(); return; }
+  if (e.target.id === 'pgShare') { copyPlaygroundShareLink(); return; }
 
   const gotoEl = e.target.closest('[data-goto]');
   if (gotoEl) { goLesson(gotoEl.dataset.goto, 0); return; }
@@ -1364,4 +1529,12 @@ try {
   if (saved) document.documentElement.dataset.theme = saved;
 } catch {}
 renderAuthArea();
-goHome();
+const sharedPlayground = decodePlaygroundShareHash();
+if (sharedPlayground) {
+  playgroundLang = sharedPlayground.lang;
+  playgroundCode[sharedPlayground.lang] = sharedPlayground.code;
+  history.replaceState(null, '', location.pathname + location.search);
+  goPlayground();
+} else {
+  goHome();
+}

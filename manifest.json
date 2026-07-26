@@ -1,0 +1,13 @@
+{
+  "name": "코드공방 — 프로그래밍 언어 학습",
+  "short_name": "코드공방",
+  "description": "완전 처음 배우는 사람을 위한 프로그래밍 언어 학습 페이지. 무한 연습 문제 포함.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12151a",
+  "theme_color": "#3b6cf0",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
