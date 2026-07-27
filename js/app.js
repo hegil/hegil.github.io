@@ -1276,8 +1276,9 @@ function renderProgress() {
 }
 
 /* 설명 블록 하나마다, 그 블록의 예제 코드를 그대로 따라 써보는 작은 연습칸을 붙여줘요.
-   idx는 그 단원 안에서 이 블록이 몇 번째인지(u.blocks의 인덱스)예요. */
-function followAlongWidget(code, idx) {
+   idx는 그 단원 안에서 이 블록이 몇 번째인지(u.blocks의 인덱스)예요.
+   done이 true면 예전에 이미 맞혀본 적 있다는 뜻이라 "완료" 표시를 보여줘요. */
+function followAlongWidget(code, idx, done) {
   const rows = Math.min(Math.max(code.src.split('\n').length, 3), 12);
   return `
     <div class="follow-along">
@@ -1288,6 +1289,7 @@ function followAlongWidget(code, idx) {
       <div class="quiz-foot" style="padding:10px 0 0; border-top:none">
         <button class="btn ghost small follow-along-check" type="button" data-follow-idx="${idx}">확인하기</button>
         <span class="muted" style="align-self:center; font-size:13px">Ctrl+Enter로도 확인할 수 있어요</span>
+        <span class="stat done follow-along-badge" data-follow-idx="${idx}" ${done ? '' : 'hidden'}>완료</span>
       </div>
       <div class="verdict follow-along-verdict" data-follow-idx="${idx}" hidden></div>
     </div>`;
@@ -1381,7 +1383,7 @@ function renderUnit() {
         <div class="body">
           ${b.html}
           ${b.code ? codeFigure(b.code, langKey, true) : ''}
-          ${b.code ? followAlongWidget(b.code, i) : ''}
+          ${b.code ? followAlongWidget(b.code, i, !!progress[`${key}.fa${i}`]) : ''}
           ${b.after || ''}
         </div>
       </section>`).join('')}
@@ -1563,11 +1565,13 @@ function checkAnswer() {
   else updateStreak(ok);
 }
 
-/* "따라 써보기"는 진도·연속정답 기록에는 영향을 주지 않는 가벼운 보조 연습이에요.
+/* "따라 써보기"는 단원 완료(연속 정답 스트릭)에는 영향을 주지 않는 가벼운 보조 연습이에요.
    위에 이미 정답(예제)이 그대로 보이니, 맞았는지 여부만 간단히 알려줘요.
+   한 번이라도 맞히면 그 블록에 "완료" 표시를 남겨서, 다음에 단원에 다시 와도 어디까지 연습했는지 보여요.
    idx로 그 단원의 몇 번째 블록에 달린 연습칸인지 구분해요(한 단원에 여러 개 있을 수 있어요). */
 function checkFollowAlong(idx) {
-  const block = COURSES[langKey].units[unitIdx].blocks[idx];
+  const u = COURSES[langKey].units[unitIdx];
+  const block = u.blocks[idx];
   if (!block || !block.code) return;
   const input = document.querySelector(`.follow-along-input[data-follow-idx="${idx}"]`);
   const verdict = document.querySelector(`.follow-along-verdict[data-follow-idx="${idx}"]`);
@@ -1578,6 +1582,15 @@ function checkFollowAlong(idx) {
   verdict.textContent = ok
     ? '예제를 완벽하게 따라 썼어요!'
     : '위 예제와 비교해서 다른 부분을 찾아 고쳐보세요.';
+  if (ok) {
+    const progressKey = `${langKey}.${u.id}.fa${idx}`;
+    if (!progress[progressKey]) {
+      progress[progressKey] = true;
+      saveProgress(progress);
+    }
+    const badge = document.querySelector(`.follow-along-badge[data-follow-idx="${idx}"]`);
+    if (badge) badge.hidden = false;
+  }
 }
 
 function showHint() {
