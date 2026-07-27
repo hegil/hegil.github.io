@@ -45,6 +45,15 @@ function highlight(code, lang) {
   return tokenize(code, re, ['tok-com', 'tok-str', 'tok-kw', 'tok-num', 'tok-fn']);
 }
 
+/* "따라 써보기"에서 주석(설명용 글) 내용까지 토씨 하나 안 틀리고 베끼도록
+   요구하지 않으려고, 채점 전에 각 언어의 주석 문법에 맞춰 주석을 지워요. */
+function stripComments(code, lang) {
+  if (lang === 'html') return code.replace(/<!--[\s\S]*?-->/g, '');
+  if (lang === 'css') return code.replace(/\/\*[\s\S]*?\*\//g, '');
+  const spec = SYNTAX[lang] || SYNTAX.python;
+  return code.replace(new RegExp(spec.comment, 'g'), '');
+}
+
 /* =========================================================================
    3) 계정 (이 브라우저 안에서만 동작하는 간단한 로그인)
    ---------------------------------------------------------------------
@@ -1272,7 +1281,7 @@ function followAlongWidget(code, idx) {
   const rows = Math.min(Math.max(code.src.split('\n').length, 3), 12);
   return `
     <div class="follow-along">
-      <p class="muted" style="margin:12px 0 8px">위 <code>${esc(code.label)}</code> 예제를 그대로 따라 써보세요. 손으로 직접 입력하면 훨씬 오래 기억에 남아요.</p>
+      <p class="muted" style="margin:12px 0 8px">위 <code>${esc(code.label)}</code> 예제를 그대로 따라 써보세요. 손으로 직접 입력하면 훨씬 오래 기억에 남아요. (주석 내용까지 똑같이 안 써도 돼요)</p>
       <div class="code-editor" style="padding:0">
         <textarea class="follow-along-input" data-follow-idx="${idx}" rows="${rows}" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="위 예제를 그대로 입력해보세요"></textarea>
       </div>
@@ -1526,7 +1535,14 @@ function gradeQuestion(q, box) {
   verdict.hidden = false;
   verdict.className = 'verdict ' + (ok ? 'ok' : 'no');
   verdict.innerHTML = q.why + (!ok ? diffCompareHTML(input.value, q.accept[0], false) : '');
-  if (ok || !retryOnWrong) box.querySelectorAll('input').forEach(i => { i.disabled = true; });
+  if (ok || !retryOnWrong) {
+    box.querySelectorAll('input').forEach(i => { i.disabled = true; });
+  } else {
+    /* 다시 풀 때 이전에 틀리게 쓴 값이 그대로 남아있으면 새로 입력한 글자가
+       뒤에 이어붙어 버려서 혼란스러워요. 전체 선택해서 바로 새로 타이핑할 수 있게 해요. */
+    input.focus();
+    input.select();
+  }
   return ok;
 }
 
@@ -1555,7 +1571,8 @@ function checkFollowAlong(idx) {
   if (!block || !block.code) return;
   const input = document.querySelector(`.follow-along-input[data-follow-idx="${idx}"]`);
   const verdict = document.querySelector(`.follow-along-verdict[data-follow-idx="${idx}"]`);
-  const ok = norm(input.value) === norm(block.code.src);
+  const effectiveLang = block.code.lang || langKey;
+  const ok = norm(stripComments(input.value, effectiveLang)) === norm(stripComments(block.code.src, effectiveLang));
   verdict.hidden = false;
   verdict.className = 'verdict follow-along-verdict ' + (ok ? 'ok' : 'no');
   verdict.textContent = ok
