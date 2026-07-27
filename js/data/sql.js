@@ -4351,6 +4351,415 @@ FROM scores;`
           hint: '마지막 행의 누적 합계는 결국 전체 합계와 같다는 걸 떠올려보세요.'
         };
       }
+    },
+    {
+      id: 'paginationLimitOffset',
+      title: '페이지 나누기: LIMIT / OFFSET',
+      ready: true,
+      summary: '많은 데이터를 한 번에 다 보여주지 않고 몇 개씩 나눠 보여주는 LIMIT/OFFSET 페이지네이션을 배워요.',
+      goals: ['LIMIT으로 개수 제한하기', 'OFFSET으로 건너뛰기', 'OFFSET이 큰 페이지에서 느려지는 이유 이해하기'],
+      blocks: [
+        {
+          h: '개수만 정해서 보기: LIMIT',
+          html: `<p><code>LIMIT 개수</code>는 조회 결과 중 <b>앞에서부터 그 개수만큼만</b> 보여줘요. 한 페이지에 학생을 몇 명씩 보여줄지 정할 때 써요.</p>`,
+          code: {
+            label: 'limit_basic.sql',
+            lang: 'sql',
+            src: `SELECT * FROM students ORDER BY id LIMIT 2;`,
+            out: `id | name | age | city\n---+------+-----+-----\n1  | 지수  | 17  | 서울\n2  | 민준  | 16  | 부산`
+          }
+        },
+        {
+          h: '앞부분을 건너뛰기: OFFSET',
+          html: `<p><code>OFFSET 개수</code>는 앞에서부터 그 개수만큼 <b>건너뛰고</b> 그 다음부터 보여줘요. <code>LIMIT</code>과 함께 쓰면 "몇 번째 페이지"를 조회할 수 있어요.</p>`,
+          code: {
+            label: 'limit_offset.sql',
+            lang: 'sql',
+            src: `-- 2페이지(한 페이지 2명씩): 앞 2명 건너뛰고 그다음 2명
+SELECT * FROM students ORDER BY id LIMIT 2 OFFSET 2;`,
+            out: `id | name | age | city\n---+------+-----+-----\n3  | 서연  | 18  | 서울`
+          }
+        },
+        {
+          h: '주의할 점: OFFSET이 커지면 느려져요',
+          html: `<p><code>OFFSET</code>은 "건너뛴다"고 해서 그 행들을 안 읽는 게 아니라, <b>앞에서부터 다 세어보고 나서</b> 건너뛰어요. 그래서 뒤쪽 페이지(OFFSET이 아주 큰 경우)일수록 점점 느려질 수 있어요. 이럴 때는 "마지막으로 본 id보다 큰 것만" 같은 방식(키셋 페이지네이션)을 대안으로 쓰기도 해요.</p>`,
+          after: `<div class="note"><b>기억하기</b> — 데이터가 많고 뒤 페이지로 갈수록 느려지는 게 신경 쓰인다면, OFFSET 대신 <code>WHERE id > 마지막으로_본_id ORDER BY id LIMIT 개수</code> 방식을 고려해보세요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(1, 3);
+          return {
+            type: 'blank',
+            q: `조회 결과 중 앞에서부터 ${n}개만 보고 싶어요. 빈칸을 채우세요.`,
+            prefix: 'SELECT * FROM students ORDER BY id ', suffix: ` ${n};`, accept: ['LIMIT', 'limit'], placeholder: '키워드',
+            why: `<code>LIMIT ${n}</code>은 결과 중 앞에서부터 ${n}개만 보여줘요.`,
+            hint: '"제한하다"라는 뜻의 영어 단어예요.'
+          };
+        },
+        () => makeChoice(
+          '<code>SELECT * FROM students ORDER BY id LIMIT 2 OFFSET 2;</code>가 하는 일은?',
+          '앞의 2개를 건너뛰고, 그다음 2개를 보여준다', ['앞의 2개만 보여준다', '뒤에서부터 2개를 보여준다', '전체 결과에서 무작위로 2개를 보여준다'],
+          'OFFSET 2는 앞의 2개를 건너뛰고, LIMIT 2는 그다음부터 2개만 보여줘요.',
+          'OFFSET(건너뛰기)과 LIMIT(개수 제한)을 각각 따로 생각해보세요.'
+        ),
+        () => {
+          const pageSize = pick([2, 3]);
+          const page = randInt(2, 4);
+          const offset = pageSize * (page - 1);
+          return {
+            type: 'blank',
+            q: `한 페이지에 ${pageSize}개씩 보여줄 때, ${page}번째 페이지를 조회하려면 OFFSET을 얼마로 써야 할까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(offset)], placeholder: '숫자',
+            why: `${page}번째 페이지는 앞의 ${page - 1}개 페이지(각 ${pageSize}개씩)를 건너뛰어야 하니 OFFSET은 ${pageSize} × ${page - 1} = ${offset}이에요.`,
+            hint: '건너뛸 페이지 수 × 한 페이지당 개수를 계산해보세요.'
+          };
+        },
+        () => makeChoice(
+          'OFFSET이 아주 커지는 뒤쪽 페이지에서 조회가 느려질 수 있는 이유는?',
+          'OFFSET만큼의 행을 앞에서부터 다 세어본 뒤에 건너뛰기 때문에', ['OFFSET은 항상 인덱스를 무시하기 때문에', 'LIMIT과 OFFSET을 같이 쓰면 오류가 나기 때문에', 'OFFSET이 크면 자동으로 표 전체가 삭제되기 때문에'],
+          'OFFSET은 그만큼의 행을 실제로 읽고 세어본 뒤 건너뛰는 방식이라, 값이 커질수록 그만큼 더 많은 행을 미리 읽어야 해서 느려질 수 있어요.',
+          '"건너뛴다"는 게 "안 읽는다"는 뜻이 아니라는 점을 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'students 표를 id 순으로 정렬해서, 앞의 1개를 건너뛰고 그다음 2개를 조회하는 SQL을 작성하세요.',
+          starter: '',
+          placeholder: 'SELECT * FROM students ORDER BY id LIMIT 2 OFFSET 1;',
+          accept: ['SELECT * FROM students ORDER BY id LIMIT 2 OFFSET 1;'],
+          why: 'LIMIT 2 OFFSET 1은 앞의 1개를 건너뛰고 그다음 2개를 보여줘요.',
+          hint: 'SELECT * FROM students ORDER BY id LIMIT 2 OFFSET 1;를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const pageSize = pick([2, 3, 5]);
+        const page = randInt(2, 5);
+        const offset = pageSize * (page - 1);
+        return {
+          type: 'blank',
+          q: `한 페이지에 ${pageSize}개씩 학생을 보여주는 목록에서, ${page}번째 페이지를 조회하는 LIMIT/OFFSET 값은 각각 얼마일까요? "LIMIT값,OFFSET값" 형태로 쓰세요. (예: 2,4)`,
+          prefix: '', suffix: '', accept: [`${pageSize},${offset}`], placeholder: 'LIMIT값,OFFSET값',
+          why: `LIMIT은 한 페이지당 개수인 ${pageSize}, OFFSET은 건너뛸 페이지 수 × 개수인 ${pageSize} × ${page - 1} = ${offset}이에요.`,
+          hint: 'LIMIT은 페이지 크기 그대로, OFFSET은 앞선 페이지 수만큼 곱해서 계산해보세요.'
+        };
+      }
+    },
+    {
+      id: 'antiJoinPattern',
+      title: '안티 조인: 짝이 없는 행 찾기',
+      ready: true,
+      summary: '한쪽 표에만 있고 다른 표에는 대응하는 행이 없는 데이터를 찾는 안티 조인(anti-join) 패턴을 배워요.',
+      goals: ['LEFT JOIN + IS NULL로 짝 없는 행 찾기', 'NOT EXISTS로 같은 결과 얻기', '두 방법의 장단점 비교하기'],
+      blocks: [
+        {
+          h: '짝이 없는 행 찾기: LEFT JOIN + IS NULL',
+          html: `<p>"성적이 하나도 없는 학생"처럼, 한쪽 표에는 있지만 다른 표에는 <b>대응하는 행이 없는</b> 데이터를 찾는 걸 <b>안티 조인(anti-join)</b>이라고 해요. <code>LEFT JOIN</code>으로 일단 다 이어붙인 뒤, 짝을 못 찾아 <code>NULL</code>이 된 행만 <code>WHERE ... IS NULL</code>로 걸러내면 돼요.</p>`,
+          code: {
+            label: 'anti_join_left.sql',
+            lang: 'sql',
+            src: `SELECT students.name
+FROM students
+LEFT JOIN scores ON students.id = scores.student_id
+WHERE scores.student_id IS NULL;`,
+            out: `name\n----\n서연`
+          }
+        },
+        {
+          h: '같은 결과를 얻는 다른 방법: NOT EXISTS',
+          html: `<p><code>NOT EXISTS</code>로도 똑같은 결과를 얻을 수 있어요. "이 학생 id로 scores를 뒤졌을 때, 존재하지 않으면" 조건을 그대로 표현해요.</p>`,
+          code: {
+            label: 'anti_join_not_exists.sql',
+            lang: 'sql',
+            src: `SELECT students.name
+FROM students
+WHERE NOT EXISTS (
+  SELECT 1 FROM scores WHERE scores.student_id = students.id
+);`,
+            out: `name\n----\n서연`
+          }
+        },
+        {
+          h: '왜 NOT IN 대신 이 방법들을 쓸까요',
+          html: `<p><code>WHERE id NOT IN (SELECT student_id FROM scores)</code>도 비슷해 보이지만, 서브쿼리 결과에 <code>NULL</code>이 하나라도 섞이면 <code>NOT IN</code>은 <b>예상과 다르게 아무 행도 찾지 못할 수 있어요</b>. 그래서 실무에서는 <code>LEFT JOIN + IS NULL</code>이나 <code>NOT EXISTS</code>가 더 안전한 안티 조인 방법으로 널리 쓰여요.</p>`,
+          after: `<div class="note"><b>기억하기</b> — "짝이 없는 것 찾기"가 필요하면 먼저 LEFT JOIN + IS NULL이나 NOT EXISTS를 떠올리세요. NOT IN은 NULL 때문에 예상 밖의 결과가 나올 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `LEFT JOIN으로 짝을 못 찾아 NULL이 된 행만 걸러내려고 해요. 빈칸을 채우세요.`,
+          prefix: 'SELECT students.name FROM students LEFT JOIN scores ON students.id = scores.student_id WHERE scores.student_id ', suffix: ';', accept: ['IS NULL', 'is null'], placeholder: '조건',
+          why: 'LEFT JOIN에서 짝을 못 찾은 오른쪽 표의 열은 NULL이 되므로, IS NULL로 그 행들만 골라내요.',
+          hint: 'NULL 여부를 확인할 때 쓰는 그 표현이에요.'
+        }),
+        () => makeChoice(
+          '한쪽 표에만 있고 다른 표에는 대응하는 행이 없는 데이터를 찾는 패턴을 부르는 이름은?',
+          '안티 조인(anti-join)', ['셀프 조인(self-join)', '크로스 조인(cross join)', '이너 조인(inner join)'],
+          '짝이 없는 것을 찾는 패턴을 안티 조인(anti-join)이라고 불러요.',
+          '"반대(anti)"라는 접두어가 무엇의 반대인지 생각해보세요(INNER JOIN은 짝이 있는 것만 찾으니까요).'
+        ),
+        () => makeChoice(
+          '<code>WHERE id NOT IN (SELECT student_id FROM scores)</code> 방식의 위험한 점은?',
+          '서브쿼리 결과에 NULL이 섞이면 예상과 다르게 아무 행도 찾지 못할 수 있다', ['항상 오류가 나서 실행이 안 된다', 'LEFT JOIN보다 항상 더 빠르다', 'IS NULL과 완전히 똑같이 동작해서 안전하다'],
+          'NOT IN은 비교 대상 목록에 NULL이 하나라도 있으면, 그 비교 자체가 알 수 없음(UNKNOWN)이 되어 조건을 만족하는 행이 하나도 없는 것처럼 동작할 수 있어요.',
+          'NULL과 값을 비교하면 항상 "알 수 없음"이 된다는 규칙을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `LEFT JOIN 없이, 서브쿼리로 "존재하지 않으면"이라는 조건을 표현하는 키워드를 쓰세요.`,
+          prefix: 'SELECT students.name FROM students WHERE ', suffix: ' (SELECT 1 FROM scores WHERE scores.student_id = students.id);', accept: ['NOT EXISTS', 'not exists'], placeholder: '키워드',
+          why: 'NOT EXISTS (서브쿼리)는 그 서브쿼리 결과가 하나도 없을 때 참이 돼서, 안티 조인과 같은 효과를 내요.',
+          hint: '"존재한다(EXISTS)"의 반대를 나타내는 두 단어예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: 'scores에 성적 기록이 없는 학생의 이름을 LEFT JOIN과 IS NULL을 이용해 조회하는 SQL을 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'SELECT students.name\nFROM students\nLEFT JOIN scores ON students.id = scores.student_id\nWHERE scores.student_id IS NULL;',
+          accept: ['SELECT students.name\nFROM students\nLEFT JOIN scores ON students.id = scores.student_id\nWHERE scores.student_id IS NULL;'],
+          why: 'LEFT JOIN으로 다 이어붙인 뒤, 짝을 못 찾아 NULL이 된 행만 WHERE ... IS NULL로 걸러내요.',
+          hint: 'LEFT JOIN scores ON students.id = scores.student_id 다음, WHERE scores.student_id IS NULL을 붙이세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        'students에 3명(지수, 민준, 서연)이 있고 scores에는 지수와 민준의 성적만 있을 때, LEFT JOIN + IS NULL로 안티 조인을 실행하면 결과로 나오는 학생은?',
+        '서연', ['지수', '민준', '지수, 민준, 서연 모두'],
+        '서연만 scores에 대응하는 행이 없어서, LEFT JOIN 결과에서 scores 쪽 열이 NULL이 되는 유일한 학생이에요.',
+        '어느 학생이 scores 표에 기록이 없는지 확인해보세요.'
+      )
+    },
+    {
+      id: 'foreignKeyPragma',
+      title: 'FOREIGN KEY 강제하기: PRAGMA foreign_keys',
+      ready: true,
+      summary: 'SQLite에서는 FOREIGN KEY 제약이 기본으로 꺼져 있다는 사실과, PRAGMA로 켜서 참조 무결성을 지키는 법을 배워요.',
+      goals: ['SQLite의 FOREIGN KEY 기본값이 꺼져있다는 것 알기', 'PRAGMA foreign_keys = ON으로 켜기', 'ON DELETE CASCADE로 연쇄 삭제하기'],
+      blocks: [
+        {
+          h: '뜻밖의 사실: SQLite는 FOREIGN KEY를 기본으로 검사하지 않아요',
+          html: `<p><code>REFERENCES</code>나 <code>FOREIGN KEY</code>를 표에 적어놔도, SQLite는 <b>기본 설정에서는 그 제약을 실제로 검사하지 않아요</b>. 그래서 존재하지 않는 student_id를 scores에 넣어도 조용히 성공해버릴 수 있어요.</p>`,
+          code: {
+            label: 'fk_off_default.sql',
+            lang: 'sql',
+            src: `-- 기본 상태: 999번 학생이 없어도 조용히 삽입이 성공할 수 있음
+INSERT INTO scores (student_id, score) VALUES (999, 100);`
+          }
+        },
+        {
+          h: '켜기: PRAGMA foreign_keys = ON',
+          html: `<p>연결을 시작할 때마다 <code>PRAGMA foreign_keys = ON;</code>을 실행해야 FOREIGN KEY 제약이 <b>실제로 검사</b>돼요. 이걸 켜면, 존재하지 않는 student_id를 넣으려는 INSERT는 <b>오류</b>가 나면서 막혀요.</p>`,
+          code: {
+            label: 'fk_on.sql',
+            lang: 'sql',
+            src: `PRAGMA foreign_keys = ON;
+
+INSERT INTO scores (student_id, score) VALUES (999, 100);
+-- FOREIGN KEY constraint failed`
+          }
+        },
+        {
+          h: '연쇄 삭제: ON DELETE CASCADE',
+          html: `<p><code>FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE</code>처럼 정의하면, <b>부모(학생)가 삭제될 때 그 학생의 성적도 자동으로 함께 삭제</b>돼요. (이 옵션도 <code>PRAGMA foreign_keys = ON</code>이 켜져 있어야 동작해요.)</p>`,
+          after: `<div class="note"><b>기억하기</b> — SQLite로 새 연결을 만들 때마다 <code>PRAGMA foreign_keys = ON;</code>을 실행하는 습관을 들이세요. 켜지 않으면 FOREIGN KEY를 정의해놔도 아무 효과가 없어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'SQLite에서 표에 FOREIGN KEY를 정의만 해두고 아무것도 하지 않으면 기본적으로 어떻게 될까요?',
+          '기본 설정에서는 그 제약이 실제로 검사되지 않는다', ['항상 자동으로 검사되어 위반 시 오류가 난다', 'FOREIGN KEY를 정의하는 것 자체가 불가능하다', '표를 만들 때 오류가 난다'],
+          'SQLite는 하위 호환성 때문에 FOREIGN KEY 검사를 기본으로 꺼둬요. PRAGMA로 직접 켜야 해요.',
+          '"기본값이 꺼져 있다"는 이 유닛의 핵심 사실을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `FOREIGN KEY 제약을 실제로 검사하게 켜는 명령을 완성하세요.`,
+          prefix: '', suffix: ' foreign_keys = ON;', accept: ['PRAGMA', 'pragma'], placeholder: '키워드',
+          why: '<code>PRAGMA foreign_keys = ON;</code>으로 FOREIGN KEY 검사를 켤 수 있어요.',
+          hint: 'SQLite 전용 설정 명령을 시작할 때 쓰는 키워드예요.'
+        }),
+        () => makeChoice(
+          '<code>PRAGMA foreign_keys = ON;</code>을 켠 상태에서, 존재하지 않는 student_id로 scores에 INSERT하면?',
+          'FOREIGN KEY 제약 위반으로 오류가 나서 막힌다', ['조용히 성공한다', 'students 표에 그 학생이 자동으로 추가된다', 'scores 표가 통째로 삭제된다'],
+          'FOREIGN KEY 검사가 켜져 있으면, 참조하는 student_id가 students에 없을 경우 INSERT가 오류로 막혀요.',
+          '"제약을 검사한다"는 게 무슨 뜻인지 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `부모 행(학생)이 삭제될 때 자식 행(그 학생의 성적)도 자동으로 함께 삭제되게 하는 옵션을 쓰세요.`,
+          prefix: 'FOREIGN KEY(student_id) REFERENCES students(id) ', suffix: '', accept: ['ON DELETE CASCADE', 'on delete cascade'], placeholder: '옵션',
+          why: 'ON DELETE CASCADE는 부모가 삭제될 때 관련된 자식 행도 연쇄적으로 함께 삭제해줘요.',
+          hint: '"삭제 시(ON DELETE)"와 "연쇄적으로(CASCADE)"라는 뜻의 단어들이에요.'
+        }),
+        () => ({
+          type: 'code',
+          q: 'FOREIGN KEY 제약을 실제로 검사하도록 켜는 PRAGMA 명령을 작성하세요.',
+          starter: '',
+          placeholder: 'PRAGMA foreign_keys = ON;',
+          accept: ['PRAGMA foreign_keys = ON;'],
+          why: 'PRAGMA foreign_keys = ON;으로 FOREIGN KEY 검사를 켜요.',
+          hint: 'PRAGMA foreign_keys = ON;을 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        'PRAGMA foreign_keys = ON;을 켜지 않은 기본 상태에서, scores.student_id가 students에 없는 999를 참조하도록 INSERT하면 어떻게 될까요?',
+        'FOREIGN KEY 제약이 검사되지 않아 조용히 삽입에 성공할 수 있다', ['항상 오류가 나서 막힌다', 'students 표에 999번 학생이 자동 생성된다', 'SQLite가 자동으로 PRAGMA를 켜준다'],
+        'PRAGMA로 켜지 않으면 SQLite는 FOREIGN KEY 제약을 검사하지 않으므로, 존재하지 않는 참조여도 삽입이 성공할 수 있어요.',
+        '이 유닛의 핵심 — 기본값이 "꺼짐"이라는 사실을 떠올려보세요.'
+      )
+    },
+    {
+      id: 'indexSelectivity',
+      title: '인덱스가 도움이 안 되는 경우: 선택도',
+      ready: true,
+      summary: '인덱스를 만든다고 항상 빨라지는 건 아니라는 것과, 선택도(selectivity)로 언제 인덱스가 유용한지 판단하는 법을 배워요.',
+      goals: ['선택도(selectivity)가 무엇인지 이해하기', '값의 종류가 적은 열은 왜 인덱스 효과가 적은지 알기', '인덱스를 만들 열을 고르는 기준 세우기'],
+      blocks: [
+        {
+          h: '값의 다양성: 선택도(selectivity)',
+          html: `<p><b>선택도</b>란 "그 열의 값이 얼마나 다양한가"를 나타내요. <code>id</code>처럼 <b>거의 모든 행이 서로 다른 값</b>을 가지면 선택도가 <b>높고</b>, "성별"이나 "합격 여부"처럼 <b>몇 가지 값만 반복</b>되면 선택도가 <b>낮다</b>고 해요.</p>`
+        },
+        {
+          h: '선택도가 낮은 열에 인덱스를 만들면?',
+          html: `<p>예를 들어 <code>city</code> 열의 값이 "서울" 아니면 "부산"뿐이고 데이터의 절반이 "서울"이라면, <code>WHERE city = '서울'</code>은 어차피 <b>표의 절반</b>을 읽어야 해요. 인덱스로 그 절반을 찾아가는 것보다, 그냥 표를 처음부터 끝까지 읽는(풀 스캔) 게 오히려 더 빠를 수도 있어요.</p>`,
+          code: {
+            label: 'low_selectivity.sql',
+            lang: 'sql',
+            src: `CREATE INDEX idx_city ON students(city);
+-- city 값이 몇 종류 안 되고 골고루 섞여 있다면,
+-- 이 인덱스는 옵티마이저가 안 쓰고 SCAN(풀 스캔)을 선택할 수도 있음
+EXPLAIN QUERY PLAN
+SELECT * FROM students WHERE city = '서울';`
+          }
+        },
+        {
+          h: '어떤 열에 인덱스를 만들면 좋을까요',
+          html: `<p><code>id</code>나 <code>student_id</code>처럼 값이 <b>거의 다 다르고(선택도 높음)</b>, <code>WHERE</code>나 <code>JOIN ON</code>에 <b>자주 쓰이는</b> 열이 인덱스를 만들기 좋은 후보예요. 반대로 "성별", "true/false" 같은 열은 값의 종류가 너무 적어서 인덱스를 만들어도 큰 효과가 없을 때가 많아요.</p>`,
+          after: `<div class="note"><b>기억하기</b> — "인덱스 = 무조건 빠름"이 아니에요. 값이 얼마나 다양한지(선택도)와, 실제로 EXPLAIN QUERY PLAN으로 인덱스가 쓰이는지 함께 확인하는 습관이 중요해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `그 열의 값이 얼마나 다양한지를 나타내는 말을 쓰세요. (영어 단어를 그대로 읽은 표현)`,
+          prefix: '', suffix: '', accept: ['선택도', 'selectivity'], placeholder: '용어',
+          why: '값이 서로 얼마나 다양한지를 선택도(selectivity)라고 불러요.',
+          hint: '"고르다, 선택하다"라는 단어에서 나온 용어예요.'
+        }),
+        () => makeChoice(
+          '값이 몇 종류 안 되고(예: 성별 2종류) 골고루 섞여있는 열에 인덱스를 만들면?',
+          '선택도가 낮아서 인덱스 효과가 크지 않을 수 있다', ['항상 풀 스캔보다 훨씬 빨라진다', '표에 저장할 수 있는 행 수가 줄어든다', 'INSERT가 아예 불가능해진다'],
+          '값의 종류가 적으면 조건에 맞는 행이 표의 상당 부분을 차지해서, 인덱스로 걸러내는 이점이 줄어들어요.',
+          '조건에 맞는 행이 표의 몇 %나 되는지 생각해보세요.'
+        ),
+        () => makeChoice(
+          '인덱스를 만들기 좋은 후보 열의 특징은?',
+          '값이 서로 대부분 다르고(선택도 높음), WHERE/JOIN에 자주 쓰인다', ['값의 종류가 2~3개뿐이다', '한 번도 조회 조건으로 쓰이지 않는다', 'TEXT 타입이 아니어야 한다'],
+          '값이 다양해서 조건에 맞는 행을 적게 걸러낼 수 있고, 자주 검색 조건으로 쓰이는 열이 인덱스 후보로 적합해요.',
+          '"조건에 맞는 행을 적게 남길 수 있는가"를 기준으로 생각해보세요.'
+        ),
+        () => makeChoice(
+          '인덱스를 만든 열이 실제로 쓰이고 있는지 확인하려면?',
+          'EXPLAIN QUERY PLAN으로 실제 실행 계획을 확인한다', ['그냥 느낌으로 판단한다', '표를 다시 만들어본다', 'CREATE INDEX를 여러 번 반복한다'],
+          '추측만 하지 말고 EXPLAIN QUERY PLAN으로 SCAN(풀 스캔)인지 SEARCH(인덱스 사용)인지 실제로 확인해야 해요.',
+          '이전에 배운 실행 계획 확인 도구를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'students 표의 city 열에 인덱스를 만들고, 그 인덱스가 실제로 쓰이는지 확인하는 EXPLAIN QUERY PLAN 쿼리를 작성하세요. (조건: city = \'서울\')',
+          starter: '',
+          rows: 3,
+          placeholder: "CREATE INDEX idx_city ON students(city);\nEXPLAIN QUERY PLAN\nSELECT * FROM students WHERE city = '서울';",
+          accept: ["CREATE INDEX idx_city ON students(city);\nEXPLAIN QUERY PLAN\nSELECT * FROM students WHERE city = '서울';"],
+          why: 'CREATE INDEX로 인덱스를 만든 뒤, EXPLAIN QUERY PLAN으로 그 인덱스가 실제로 쓰이는지 확인해요.',
+          hint: "CREATE INDEX idx_city ON students(city); 다음 줄에 EXPLAIN QUERY PLAN SELECT * FROM students WHERE city = '서울';를 쓰세요."
+        }),
+      ],
+      boss: () => makeChoice(
+        '학생 10,000명 중 city가 "서울"인 학생이 9,000명(90%)일 때, city에 인덱스를 만들어도 옵티마이저가 풀 스캔을 선택할 가능성이 높은 이유는?',
+        '조건에 맞는 행이 표의 대부분을 차지해서, 인덱스로 걸러내는 이점이 거의 없기 때문에', ['인덱스는 90% 이상의 데이터에서 항상 오류가 나기 때문에', 'city 열은 인덱스를 만들 수 없는 타입이기 때문에', '10,000행이 너무 적어서 인덱스 자체가 불가능하기 때문에'],
+        '조건에 맞는 행이 전체의 90%나 되면, 인덱스로 그 행들을 하나씩 찾아가는 것보다 그냥 처음부터 끝까지 읽는 게 더 빠를 수 있어요.',
+        '선택도가 낮다는 것, 즉 조건에 맞는 행이 표의 대부분이라는 점을 떠올려보세요.'
+      )
+    },
+    {
+      id: 'sqliteTypeAffinity',
+      title: 'SQLite의 타입 시스템: 타입 어피니티',
+      ready: true,
+      summary: 'SQLite는 열에 어떤 타입을 적어도 유연하게 값을 저장한다는 것과, 그 뒤에 있는 타입 어피니티 개념을 배워요.',
+      goals: ['SQLite가 동적 타입 데이터베이스라는 것 알기', 'INTEGER/TEXT/REAL 등 타입 어피니티 이해하기', 'typeof()로 실제 저장된 타입 확인하기'],
+      blocks: [
+        {
+          h: 'SQLite는 타입에 유연해요',
+          html: `<p>다른 데이터베이스와 달리, SQLite는 열에 <code>INTEGER</code>라고 적어놔도 그 열에 <b>문자열을 저장하는 것도 허용</b>할 수 있어요. 열에 적은 타입은 "이 열에는 보통 이런 종류의 값이 들어올 거야"라는 <b>강한 힌트(어피니티)</b>에 가깝지, 절대적인 규칙이 아니에요.</p>`,
+          code: {
+            label: 'affinity_flex.sql',
+            lang: 'sql',
+            src: `CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, city TEXT);
+
+-- age 열은 INTEGER지만, 문자열을 넣어도 SQLite는 일단 허용해요
+INSERT INTO students (name, age, city) VALUES ('테스트', '열일곱', '서울');`
+          }
+        },
+        {
+          h: '다섯 가지 타입 어피니티',
+          html: `<p>SQLite는 열마다 <b>TEXT, NUMERIC, INTEGER, REAL, BLOB</b> 다섯 가지 어피니티 중 하나를 가져요. 예를 들어 <code>INTEGER</code> 어피니티를 가진 열은, 숫자로 바꿀 수 있는 값이 들어오면 <b>자동으로 숫자로 변환</b>해서 저장하려고 시도해요.</p>`
+        },
+        {
+          h: '실제로 어떤 타입으로 저장됐는지 확인하기: typeof()',
+          html: `<p><code>typeof(값)</code>으로 그 값이 실제로 어떤 타입(integer, text, real, null, blob)으로 저장됐는지 확인할 수 있어요.</p>`,
+          code: {
+            label: 'typeof_check.sql',
+            lang: 'sql',
+            src: `SELECT typeof(age) FROM students WHERE name = '지수';`,
+            out: `integer`
+          },
+          after: `<div class="note"><b>기억하기</b> — SQLite가 타입에 유연하다고 해서 아무렇게나 넣어도 된다는 뜻은 아니에요. 실무에서는 여전히 열 타입에 맞는 값을 넣는 게 안전하고, CHECK 제약으로 값을 더 엄격히 검증할 수도 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'SQLite에서 열에 적은 타입(예: INTEGER)의 의미로 가장 알맞은 것은?',
+          '어떤 종류의 값이 들어올지에 대한 강한 힌트(어피니티)이지, 절대적인 규칙은 아니다', ['그 타입이 아닌 값은 절대 저장할 수 없다', '타입을 적어도 아무 의미가 없다', 'TEXT와 INTEGER는 완전히 같은 것이다'],
+          'SQLite는 동적 타입 시스템이라, 열 타입은 "보통 이런 값이 들어올 것"이라는 힌트(어피니티)에 가까워요.',
+          '"엄격한 규칙"과 "힌트" 중 어느 쪽에 더 가까운지 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `SQLite가 열마다 가지는 TEXT, NUMERIC, INTEGER, REAL, BLOB 같은 타입 개념을 부르는 용어를 영어로 쓰세요.`,
+          prefix: '', suffix: '', accept: ['affinity', 'Affinity'], placeholder: 'affinity',
+          why: 'SQLite의 이런 유연한 타입 시스템을 타입 어피니티(type affinity)라고 불러요.',
+          hint: '"친화성, 유사성"이라는 뜻의 영어 단어예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `어떤 값이 실제로 저장된 타입(integer, text 등)을 확인할 때 쓰는 함수를 쓰세요.`,
+          prefix: '', suffix: '(age)', accept: ['typeof'], placeholder: '함수 이름',
+          why: '<code>typeof(값)</code>으로 실제 저장된 타입을 문자열로 확인할 수 있어요.',
+          hint: '"타입을 알려준다"는 뜻 그대로의 이름이에요.'
+        }),
+        () => makeChoice(
+          'INTEGER 어피니티를 가진 열에 숫자로 바꿀 수 있는 문자열 값(예: \'17\')을 넣으면 SQLite는 어떻게 할까요?',
+          '숫자로 자동 변환해서 저장하려고 시도한다', ['무조건 오류를 낸다', '항상 문자열 그대로 저장한다', '그 행 전체를 무시한다'],
+          'INTEGER 어피니티는 숫자로 변환 가능한 값이 들어오면 자동으로 숫자로 바꿔서 저장해요.',
+          '"어피니티"가 그 타입 쪽으로 값을 끌어당기려 한다는 의미를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'name이 "지수"인 학생의 age 값이 실제로 어떤 타입으로 저장되어 있는지 typeof()로 확인하는 SQL을 작성하세요.',
+          starter: '',
+          placeholder: "SELECT typeof(age) FROM students WHERE name = '지수';",
+          accept: ["SELECT typeof(age) FROM students WHERE name = '지수';"],
+          why: 'typeof(age)로 age 열에 실제 저장된 값의 타입을 확인해요.',
+          hint: "SELECT typeof(age) FROM students WHERE name = '지수';를 그대로 쓰세요."
+        }),
+      ],
+      boss: () => makeChoice(
+        'age 열이 INTEGER 어피니티인 표에 <code>INSERT INTO students (name, age, city) VALUES (\'하늘\', \'16\', \'대전\');</code>처럼 문자열 \'16\'을 넣었을 때, <code>typeof(age)</code>로 확인하면 결과는?',
+        'integer', ['text', 'real', 'null'],
+        'INTEGER 어피니티는 숫자로 변환 가능한 문자열 \'16\'을 자동으로 정수로 변환해서 저장하므로, typeof는 integer가 돼요.',
+        '어피니티가 값을 어느 타입으로 끌어당기려 하는지 생각해보세요.'
+      )
     }],
   tierBoss: {
     beginner: () => ({

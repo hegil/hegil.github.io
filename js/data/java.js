@@ -4836,6 +4836,593 @@ new Counter();`,
           hint: 'static 블록과 인스턴스 블록 중 어느 것이 new할 때마다 실행되는지 떠올려보세요.'
         };
       }
+    },
+    {
+      id: 'functionalInterfaceCustom',
+      title: '함수형 인터페이스와 표준 인터페이스',
+      ready: true,
+      summary: '람다를 담을 수 있는 나만의 함수형 인터페이스와 자바 표준 함수형 인터페이스를 배워요.',
+      goals: ['@FunctionalInterface로 나만의 함수형 인터페이스 만들기', 'Function / Predicate / Consumer / Supplier 이해하기', '표준 인터페이스로 람다를 매개변수로 주고받기'],
+      blocks: [
+        {
+          h: '추상 메서드가 하나뿐인 인터페이스',
+          html: `<p>추상 메서드가 딱 하나뿐인 인터페이스는 람다식으로 바로 구현체를 만들 수 있어요. 이런 인터페이스를 <b>함수형 인터페이스</b>라고 하고, <code>@FunctionalInterface</code>를 붙이면 실수로 메서드를 두 개 이상 추가하는 걸 컴파일러가 막아줘요.</p>`,
+          code: {
+            label: 'CustomFunctional.java',
+            src: `@FunctionalInterface
+interface Calculator {
+    int calc(int a, int b);
+}
+
+Calculator add = (a, b) -> a + b;
+Calculator multiply = (a, b) -> a * b;
+System.out.println(add.calc(2, 3));
+System.out.println(multiply.calc(2, 3));`,
+            out: `5
+6`
+          }
+        },
+        {
+          h: '자바가 미리 만들어둔 표준 함수형 인터페이스',
+          html: `<p>자바는 자주 쓰는 형태의 함수형 인터페이스를 <code>java.util.function</code> 패키지에 미리 만들어뒀어요. <code>Function&lt;T,R&gt;</code>(입력 받아 결과 반환), <code>Predicate&lt;T&gt;</code>(입력 받아 true/false 반환), <code>Consumer&lt;T&gt;</code>(입력만 받고 반환 없음), <code>Supplier&lt;T&gt;</code>(입력 없이 값만 반환)이 대표적이에요.</p>`,
+          code: {
+            label: 'StandardFunctional.java',
+            src: `import java.util.function.Function;
+import java.util.function.Predicate;
+
+Function<Integer, Integer> square = n -> n * n;
+Predicate<Integer> isEven = n -> n % 2 == 0;
+
+System.out.println(square.apply(4));
+System.out.println(isEven.test(4));`,
+            out: `16
+true`
+          }
+        },
+        {
+          h: '표준 인터페이스로 람다를 주고받기',
+          html: `<p>매개변수 타입을 <code>Predicate&lt;Integer&gt;</code>처럼 표준 함수형 인터페이스로 선언해두면, 호출하는 쪽에서 원하는 조건을 람다로 바로 넘길 수 있어요. 매번 새 인터페이스를 만들 필요가 없어요.</p>`,
+          after: `<div class="note"><b>비교</b> — 나만의 규칙이 필요하면(메서드 이름도 의미 있게 짓고 싶다면) 커스텀 함수형 인터페이스를, 흔한 형태(변환/조건/소비/공급)면 표준 인터페이스를 쓰는 게 좋아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `추상 메서드가 딱 하나뿐인 인터페이스에 붙여서, 실수로 메서드가 두 개 이상 추가되는 걸 막아주는 애너테이션을 쓰세요.`,
+          prefix: '', suffix: '\ninterface Calculator {\n    int calc(int a, int b);\n}', accept: ['@FunctionalInterface'], placeholder: '애너테이션',
+          why: '<code>@FunctionalInterface</code>는 이 인터페이스가 추상 메서드를 딱 하나만 가져야 한다는 걸 컴파일러가 검사하게 해줘요.',
+          hint: '"함수형 인터페이스"라는 뜻의 영어 애너테이션이에요.'
+        }),
+        () => makeChoice(
+          '입력값을 받아 true/false를 반환하는 표준 함수형 인터페이스는?',
+          'Predicate<T>', ['Function<T, R>', 'Consumer<T>', 'Supplier<T>'],
+          'Predicate<T>는 test(T) 메서드로 입력을 검사해 boolean을 반환하는 표준 함수형 인터페이스예요.',
+          '"조건을 판별한다"는 뜻의 영어 단어예요.'
+        ),
+        () => makeChoice(
+          '입력값을 받아 다른 타입으로 변환한 결과를 반환하는 표준 함수형 인터페이스는?',
+          'Function<T, R>', ['Predicate<T>', 'Consumer<T>', 'Runnable'],
+          'Function<T, R>은 apply(T) 메서드로 T를 받아 R로 변환해 반환하는 표준 함수형 인터페이스예요.',
+          '입력과 출력의 타입이 다를 수 있다는 점을 떠올려보세요.'
+        ),
+        () => {
+          const a = randInt(2, 9);
+          const b = randInt(2, 9);
+          return {
+            type: 'blank',
+            q: `위 <code>Calculator</code>로 <code>Calculator multiply = (x, y) -> x * y; System.out.println(multiply.calc(${a}, ${b}));</code>를 실행하면?`,
+            prefix: '', suffix: '', accept: [String(a * b)], placeholder: '출력값',
+            why: `람다 (x, y) -> x * y가 calc의 구현이 되어, calc(${a}, ${b})는 ${a} * ${b} = ${a * b}를 반환해요.`,
+            hint: '람다식이 곧 calc 메서드의 몸체가 된다는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>@FunctionalInterface</code>가 붙은 <code>interface Calculator { int calc(int a, int b); }</code>를 선언하고, 람다 <code>(a, b) -> a - b</code>를 <code>Calculator sub</code>에 대입한 뒤 <code>System.out.println(sub.calc(10, 3));</code>을 실행하는 전체 코드를 작성하세요.',
+          starter: '',
+          rows: 6,
+          placeholder: '@FunctionalInterface\ninterface Calculator {\n    int calc(int a, int b);\n}\n\nCalculator sub = (a, b) -> a - b;\nSystem.out.println(sub.calc(10, 3));',
+          accept: ['@FunctionalInterface\ninterface Calculator {int calc(int a, int b);}Calculator sub = (a, b) -> a - b;System.out.println(sub.calc(10, 3));'],
+          why: '람다 (a, b) -> a - b가 calc의 구현이 되어 sub.calc(10, 3)은 10 - 3 = 7을 반환해요.',
+          hint: '@FunctionalInterface, 인터페이스 선언, 람다 대입, 호출을 순서대로 작성하세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(2, 9);
+        const isEven = n % 2 === 0;
+        return {
+          type: 'blank',
+          q: `<code>Predicate&lt;Integer&gt; isEven = n -> n % 2 == 0;</code>일 때 <code>System.out.println(isEven.test(${n}));</code>를 실행하면? (true 또는 false)`,
+          prefix: '', suffix: '', accept: [String(isEven)], placeholder: 'true 또는 false',
+          why: `${n} % 2는 ${n % 2}이므로, ${n} % 2 == 0은 ${isEven}이에요.`,
+          hint: `${n}이 짝수인지 홀수인지 확인해보세요.`
+        };
+      }
+    },
+    {
+      id: 'streamFlatMapReduce',
+      title: '스트림 flatMap과 reduce',
+      ready: true,
+      summary: '중첩된 컬렉션을 평탄화하는 flatMap과 값들을 하나로 합치는 reduce를 배워요.',
+      goals: ['flatMap으로 중첩 리스트 평탄화하기', 'reduce로 값을 하나로 합치기', 'map과 flatMap의 차이 이해하기'],
+      blocks: [
+        {
+          h: 'List 안에 List가 있을 때',
+          html: `<p><code>List&lt;List&lt;Integer&gt;&gt;</code>처럼 리스트 안에 리스트가 들어있을 때, <code>map</code>만 쓰면 여전히 리스트 안의 리스트로 남아요. 안쪽 값들을 하나의 평평한 스트림으로 펼치고 싶다면 <code>flatMap</code>이 필요해요.</p>`,
+          code: {
+            label: 'FlatMapBasic.java',
+            src: `import java.util.List;
+import java.util.stream.Collectors;
+
+List<List<Integer>> nested = List.of(List.of(1, 2), List.of(3, 4), List.of(5));
+
+List<Integer> flat = nested.stream()
+    .flatMap(list -> list.stream())
+    .collect(Collectors.toList());
+
+System.out.println(flat);`,
+            out: `[1, 2, 3, 4, 5]`
+          }
+        },
+        {
+          h: 'reduce로 값을 하나로 합치기',
+          html: `<p><code>reduce</code>는 스트림의 값들을 순서대로 하나씩 합쳐서 최종 결과 하나만 남겨요. 첫 번째 인자는 초기값, 두 번째 인자는 "누적값과 다음 값을 어떻게 합칠지"를 정하는 람다예요.</p>`,
+          code: {
+            label: 'ReduceBasic.java',
+            src: `import java.util.List;
+
+List<Integer> nums = List.of(1, 2, 3, 4, 5);
+
+int sum = nums.stream().reduce(0, (acc, n) -> acc + n);
+int max = nums.stream().reduce(0, (acc, n) -> acc > n ? acc : n);
+
+System.out.println(sum);
+System.out.println(max);`,
+            out: `15
+5`
+          }
+        },
+        {
+          h: 'map과 flatMap의 차이',
+          html: `<p><code>map</code>은 각 요소를 다른 값 하나로 바꿔서 개수가 그대로 유지돼요. <code>flatMap</code>은 각 요소를 스트림으로 바꾼 뒤 그 스트림들을 모두 이어 붙여서 펼쳐요. "리스트의 리스트"를 "하나의 리스트"로 만들고 싶을 때는 flatMap을 써야 해요.</p>`,
+          after: `<div class="note"><b>실전 팁</b> — 병렬로 처리하고 싶다면 <code>stream()</code> 대신 <code>parallelStream()</code>을 쓸 수 있어요. 다만 순서가 중요하지 않고 각 작업이 서로 독립적일 때만 안전해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>List&lt;List&lt;Integer&gt;&gt;</code>를 하나의 평평한 <code>Stream&lt;Integer&gt;</code>로 펼치고 싶을 때 쓰는 스트림 메서드는? (영어로)`,
+          prefix: 'nested.stream().', suffix: '(list -> list.stream())', accept: ['flatMap'], placeholder: '메서드 이름',
+          why: '<code>flatMap</code>은 각 요소를 스트림으로 변환한 뒤 그 스트림들을 모두 이어붙여 하나의 평평한 스트림으로 만들어줘요.',
+          hint: '"평평하게 펼치다(flat)"와 "변환하다(map)"가 합쳐진 이름이에요.'
+        }),
+        () => makeChoice(
+          'map과 flatMap의 차이로 가장 알맞은 것은?',
+          'map은 요소 개수를 유지한 채 변환하고, flatMap은 중첩된 구조를 하나로 펼쳐서 개수가 달라질 수 있다',
+          ['map과 flatMap은 완전히 같은 동작을 한다', 'flatMap은 요소를 걸러내기만 한다', 'map은 정렬을 하고 flatMap은 정렬을 하지 않는다'],
+          'map은 요소 하나를 다른 값 하나로 바꾸지만, flatMap은 요소 하나를 여러 개(스트림)로 바꾼 뒤 모두 이어 붙이기 때문에 결과 개수가 달라질 수 있어요.',
+          '위 FlatMapBasic.java에서 nested의 리스트 개수(3개)와 flat의 요소 개수(5개)를 비교해보세요.'
+        ),
+        () => makeChoice(
+          '<code>reduce(0, (acc, n) -> acc + n)</code>에서 첫 번째 인자 <code>0</code>의 역할은?',
+          '누적을 시작할 초기값', ['스트림의 마지막 요소', '최대 반복 횟수', '건너뛸 요소의 개수'],
+          'reduce의 첫 번째 인자는 누적을 시작할 초기값이고, 두 번째 인자인 람다가 누적값과 다음 요소를 어떻게 합칠지 정해요.',
+          '빈 스트림에 reduce를 해도 결과가 나와야 한다면, 그 결과가 바로 이 값이에요.'
+        ),
+        () => {
+          const nums = Array.from({ length: 4 }, () => randInt(1, 20));
+          const max = Math.max(...nums);
+          return {
+            type: 'blank',
+            q: `<code>List.of(${nums.join(', ')}).stream().reduce(0, (acc, n) -> acc > n ? acc : n)</code>의 결과는?`,
+            prefix: '', suffix: '', accept: [String(max)], placeholder: '결과값',
+            why: `reduce가 acc와 n 중 더 큰 값을 계속 남기며 진행하므로, ${nums.join(', ')} 중 가장 큰 값인 ${max}가 최종 결과예요.`,
+            hint: '람다가 "더 큰 쪽을 남긴다"는 규칙이라는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>List&lt;List&lt;Integer&gt;&gt; nested = List.of(List.of(1, 2), List.of(3, 4));</code>를 <code>flatMap</code>으로 평탄화해 <code>List&lt;Integer&gt; flat</code>에 담고, 그 값들의 합을 <code>reduce(0, (acc, n) -> acc + n)</code>으로 구해 출력하는 전체 코드를 작성하세요. (맨 위에 <code>import java.util.List;</code>와 <code>import java.util.stream.Collectors;</code> 포함)',
+          starter: '',
+          rows: 10,
+          placeholder: 'import java.util.List;\nimport java.util.stream.Collectors;\n\nList<List<Integer>> nested = List.of(List.of(1, 2), List.of(3, 4));\nList<Integer> flat = nested.stream()\n    .flatMap(list -> list.stream())\n    .collect(Collectors.toList());\nint sum = flat.stream().reduce(0, (acc, n) -> acc + n);\nSystem.out.println(sum);',
+          accept: ['import java.util.List;import java.util.stream.Collectors;List<List<Integer>> nested = List.of(List.of(1, 2), List.of(3, 4));List<Integer> flat = nested.stream().flatMap(list -> list.stream()).collect(Collectors.toList());int sum = flat.stream().reduce(0, (acc, n) -> acc + n);System.out.println(sum);'],
+          why: 'flatMap으로 [1,2,3,4]로 펼친 뒤 reduce로 모두 더하면 10이 나와요.',
+          hint: 'flatMap으로 펼친 뒤 collect로 리스트를 만들고, 다시 stream()에 reduce를 적용하세요.'
+        }),
+      ],
+      boss: () => {
+        const groups = [Array.from({ length: randInt(1, 3) }, () => randInt(1, 9)), Array.from({ length: randInt(1, 3) }, () => randInt(1, 9))];
+        const flatSum = groups.flat().reduce((a, b) => a + b, 0);
+        const literal = `List.of(${groups.map(g => `List.of(${g.join(', ')})`).join(', ')})`;
+        return {
+          type: 'blank',
+          q: `<code>${literal}.stream().flatMap(list -> list.stream()).reduce(0, (acc, n) -> acc + n)</code>의 결과는? (숫자만)`,
+          prefix: '', suffix: '', accept: [String(flatSum)], placeholder: '결과값',
+          why: `flatMap이 모든 안쪽 리스트를 하나로 펼친 뒤, reduce가 그 값들을 모두 더해 ${flatSum}이 나와요.`,
+          hint: '먼저 모든 안쪽 리스트의 값을 하나로 펼친다고 생각하고, 그다음 다 더해보세요.'
+        };
+      }
+    },
+    {
+      id: 'enumAdvanced',
+      title: '생성자와 메서드를 가진 enum',
+      ready: true,
+      summary: '상수마다 값과 동작을 가질 수 있는, 생성자·메서드·추상 메서드가 있는 enum을 배워요.',
+      goals: ['enum 상수에 필드와 생성자로 값 담기', 'enum 안에 공통 메서드 정의하기', '상수마다 다른 동작을 하는 추상 메서드 구현하기'],
+      blocks: [
+        {
+          h: 'enum 상수마다 값을 담고 싶다면',
+          html: `<p>enum도 클래스처럼 필드와 생성자를 가질 수 있어요. 각 상수를 선언할 때 <code>MON(1)</code>처럼 생성자 인자를 넘기면, 상수마다 서로 다른 값을 들고 있을 수 있어요.</p>`,
+          code: {
+            label: 'EnumWithField.java',
+            src: `enum Day {
+    MON(1), TUE(2), WED(3);
+
+    final int order;
+
+    Day(int order) {
+        this.order = order;
+    }
+}
+
+System.out.println(Day.TUE.order);`,
+            out: `2`
+          }
+        },
+        {
+          h: 'enum 안에 공통 메서드 정의하기',
+          html: `<p>enum 안에 일반 메서드도 정의할 수 있어요. 모든 상수가 공유하는 동작을 메서드로 만들어두면 코드를 상수마다 반복할 필요가 없어요.</p>`,
+          code: {
+            label: 'EnumWithMethod.java',
+            src: `enum Day {
+    MON(1), TUE(2), WED(3);
+
+    final int order;
+
+    Day(int order) {
+        this.order = order;
+    }
+
+    boolean isBefore(Day other) {
+        return this.order < other.order;
+    }
+}
+
+System.out.println(Day.MON.isBefore(Day.WED));`,
+            out: `true`
+          }
+        },
+        {
+          h: '상수마다 다른 동작: 추상 메서드',
+          html: `<p>enum에 추상 메서드를 선언하고, 각 상수 뒤에 <code>{ }</code>로 그 상수만의 구현을 주면, 상수마다 완전히 다른 동작을 하게 만들 수 있어요. if-else로 상수를 분기하는 대신 이 방식을 쓰면 새 상수를 추가할 때 구현을 빠뜨리기 어려워져요.</p>`,
+          code: {
+            label: 'EnumAbstractMethod.java',
+            src: `enum Operation {
+    PLUS {
+        int apply(int a, int b) { return a + b; }
+    },
+    MINUS {
+        int apply(int a, int b) { return a - b; }
+    };
+
+    abstract int apply(int a, int b);
+}
+
+System.out.println(Operation.PLUS.apply(3, 4));
+System.out.println(Operation.MINUS.apply(3, 4));`,
+            out: `7
+-1`
+          },
+          after: `<div class="note"><b>비교</b> — if-else나 switch로 enum 값을 분기하는 대신, 상수별 추상 메서드 구현을 쓰면 새 상수를 추가할 때 구현을 깜빡해도 컴파일 오류로 바로 알 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `enum 상수에 값을 담을 때, 상수 이름 뒤 괄호 안에 넘긴 값을 받아 필드에 저장하는 역할을 하는 것은 무엇일까요? <code>Day(int order) { this.order = order; }</code>`,
+          prefix: '', suffix: '', accept: ['생성자', '생성자(constructor)'], placeholder: '용어',
+          why: 'enum도 클래스처럼 생성자를 가질 수 있고, 각 상수를 선언할 때 넘긴 값이 이 생성자를 통해 필드에 저장돼요.',
+          hint: '클래스에서 객체를 만들 때 호출되는 그것과 같은 이름이에요.'
+        }),
+        () => makeChoice(
+          '위 <code>EnumWithField.java</code>에서 <code>Day.TUE.order</code>의 값은?',
+          '2', ['1', '3', '0'],
+          'TUE(2)로 선언했으므로 생성자에 2가 전달되어 order 필드에 저장돼요.',
+          'MON(1), TUE(2), WED(3) 순서를 다시 살펴보세요.'
+        ),
+        () => makeChoice(
+          'enum 상수마다 완전히 다른 동작을 하게 만들고 싶을 때 가장 알맞은 방법은?',
+          'enum에 추상 메서드를 선언하고, 각 상수 뒤 { }에서 그 상수만의 구현을 작성한다',
+          ['모든 상수를 위한 if-else를 apply 메서드 안에 하나로 몰아 작성한다', 'enum 대신 String 상수만 사용한다', 'enum은 메서드를 가질 수 없으므로 불가능하다'],
+          '추상 메서드를 상수별로 구현하면, 새 상수를 추가할 때 구현을 빠뜨리면 컴파일 오류가 나서 실수를 바로 발견할 수 있어요.',
+          '위 Operation enum에서 PLUS와 MINUS가 각각 자신만의 apply를 갖고 있다는 걸 떠올려보세요.'
+        ),
+        () => {
+          const a = randInt(2, 9);
+          const b = randInt(1, a - 1);
+          return {
+            type: 'blank',
+            q: `위 <code>Operation</code> enum으로 <code>System.out.println(Operation.MINUS.apply(${a}, ${b}));</code>를 실행하면?`,
+            prefix: '', suffix: '', accept: [String(a - b)], placeholder: '출력값',
+            why: `MINUS의 apply는 a - b를 계산하므로 ${a} - ${b} = ${a - b}예요.`,
+            hint: 'MINUS 상수의 apply 구현이 무엇을 반환하는지 다시 보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Day</code> enum을 만드세요. 상수는 <code>MON(1), TUE(2), WED(3)</code>이고, <code>final int order;</code> 필드와 생성자로 값을 받으며, <code>boolean isBefore(Day other)</code> 메서드가 <code>this.order &lt; other.order</code>를 반환하도록 작성하세요.',
+          starter: '',
+          rows: 12,
+          placeholder: 'enum Day {\n    MON(1), TUE(2), WED(3);\n\n    final int order;\n\n    Day(int order) {\n        this.order = order;\n    }\n\n    boolean isBefore(Day other) {\n        return this.order < other.order;\n    }\n}',
+          accept: ['enum Day {MON(1), TUE(2), WED(3);final int order;Day(int order) {this.order = order;}boolean isBefore(Day other) {return this.order < other.order;}}'],
+          why: '각 상수가 생성자로 order 값을 받아 저장하고, isBefore는 두 상수의 order를 비교해 순서를 판단해요.',
+          hint: '상수 목록 뒤에 세미콜론을 찍고, 필드/생성자/메서드를 일반 클래스처럼 작성하세요.'
+        }),
+      ],
+      boss: () => {
+        const useOps = pick(['PLUS', 'MINUS']);
+        const a = randInt(5, 20);
+        const b = randInt(1, 4);
+        const result = useOps === 'PLUS' ? a + b : a - b;
+        return {
+          type: 'blank',
+          q: `상수별로 <code>apply(int, int)</code>를 다르게 구현한 <code>Operation</code> enum(PLUS는 덧셈, MINUS는 뺄셈)에서 <code>System.out.println(Operation.${useOps}.apply(${a}, ${b}));</code>를 실행하면? (숫자만)`,
+          prefix: '', suffix: '', accept: [String(result)], placeholder: '출력값',
+          why: `${useOps}는 ${useOps === 'PLUS' ? `${a} + ${b}` : `${a} - ${b}`} = ${result}을 계산해요.`,
+          hint: '선택된 상수가 어떤 연산을 구현했는지 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'navigableCollections',
+      title: 'TreeMap/TreeSet과 정렬된 컬렉션',
+      ready: true,
+      summary: '항상 정렬된 순서를 유지하는 TreeSet/TreeMap과 그 탐색 메서드들을 배워요.',
+      goals: ['TreeSet으로 자동 정렬된 값 저장하기', 'TreeMap으로 자동 정렬된 키-값 저장하기', 'floor/ceiling/higher/lower로 값 탐색하기'],
+      blocks: [
+        {
+          h: '넣는 순서와 상관없이 항상 정렬되는 TreeSet',
+          html: `<p><code>HashSet</code>은 순서를 보장하지 않지만, <code>TreeSet</code>은 값을 넣을 때마다 자동으로 정렬된 상태를 유지해요. 숫자는 오름차순, 문자열은 사전순으로 정렬돼요.</p>`,
+          code: {
+            label: 'TreeSetBasic.java',
+            src: `import java.util.TreeSet;
+
+TreeSet<Integer> nums = new TreeSet<>();
+nums.add(30);
+nums.add(10);
+nums.add(20);
+System.out.println(nums);`,
+            out: `[10, 20, 30]`
+          }
+        },
+        {
+          h: '키를 정렬된 순서로 유지하는 TreeMap',
+          html: `<p><code>TreeMap</code>도 마찬가지로 키를 넣을 때마다 자동으로 정렬해서 보관해요. <code>for</code>로 순회하면 항상 키가 작은 순서대로 나와요.</p>`,
+          code: {
+            label: 'TreeMapBasic.java',
+            src: `import java.util.TreeMap;
+
+TreeMap<String, Integer> scores = new TreeMap<>();
+scores.put("baek", 90);
+scores.put("ann", 95);
+scores.put("chan", 80);
+
+for (String name : scores.keySet()) {
+    System.out.println(name + ": " + scores.get(name));
+}`,
+            out: `ann: 95
+baek: 90
+chan: 80`
+          }
+        },
+        {
+          h: 'floor/ceiling/higher/lower로 근처 값 찾기',
+          html: `<p>TreeSet/TreeMap은 정렬돼 있다는 걸 이용해, 특정 값 근처를 빠르게 찾는 메서드도 제공해요. <code>floor(x)</code>는 x 이하 중 가장 큰 값, <code>ceiling(x)</code>는 x 이상 중 가장 작은 값, <code>higher(x)</code>는 x보다 큰 것 중 가장 작은 값, <code>lower(x)</code>는 x보다 작은 것 중 가장 큰 값을 돌려줘요.</p>`,
+          code: {
+            label: 'NavigableSet.java',
+            src: `import java.util.TreeSet;
+
+TreeSet<Integer> nums = new TreeSet<>();
+nums.add(10);
+nums.add(20);
+nums.add(30);
+
+System.out.println(nums.floor(25));
+System.out.println(nums.ceiling(25));
+System.out.println(nums.higher(20));
+System.out.println(nums.lower(20));`,
+            out: `20
+30
+30
+10`
+          },
+          after: `<div class="note"><b>실전 팁</b> — 정렬이 필요 없다면 HashSet/HashMap이 더 빨라요. "항상 정렬된 상태"나 "근처 값 탐색"이 꼭 필요할 때만 TreeSet/TreeMap을 쓰는 게 좋아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `값을 넣는 순서와 상관없이 항상 정렬된 상태를 유지하는 Set 구현체는 무엇일까요? (영어로)`,
+          prefix: 'new ', suffix: '<>();', accept: ['TreeSet'], placeholder: '클래스 이름',
+          why: 'TreeSet은 값을 추가할 때마다 자동으로 정렬 상태를 유지하는 Set 구현체예요.',
+          hint: '"나무" 구조로 정렬을 유지한다는 뜻의 이름이에요.'
+        }),
+        () => makeChoice(
+          '위 <code>TreeMapBasic.java</code>에서 <code>scores</code>를 <code>for (String name : scores.keySet())</code>로 순회할 때 출력 순서는?',
+          'ann, baek, chan (키의 사전순)',
+          ['baek, ann, chan (넣은 순서 그대로)', 'chan, baek, ann (역순)', '매번 무작위 순서'],
+          'TreeMap은 키를 항상 정렬된 상태로 유지하므로, 넣은 순서(baek, ann, chan)와 상관없이 사전순인 ann, baek, chan 순서로 순회돼요.',
+          'TreeMap이 "정렬을 유지한다"는 특징을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '<code>TreeSet&lt;Integer&gt;</code>에 10, 20, 30이 들어있을 때, <code>ceiling(15)</code>가 반환하는 값은?',
+          '20 (15 이상 중 가장 작은 값)', ['10 (15 이하 중 가장 큰 값)', '30', 'null'],
+          'ceiling(x)은 x 이상인 값들 중 가장 작은 값을 반환하므로, 15 이상인 20, 30 중 더 작은 20이 반환돼요.',
+          'ceiling은 "천장"이라는 뜻으로, 기준값 이상 중 가장 가까운 값을 찾는다는 걸 떠올려보세요.'
+        ),
+        () => {
+          const arr = shuffle([5, 15, 25, 35]).slice(0, 4).sort((a, b) => a - b);
+          const target = pick(arr);
+          const idx = arr.indexOf(target);
+          const lower = idx > 0 ? arr[idx - 1] : null;
+          return {
+            type: 'blank',
+            q: `<code>TreeSet&lt;Integer&gt;</code>에 ${arr.join(', ')}이 들어있을 때, <code>lower(${target})</code>의 결과는? (없으면 null)`,
+            prefix: '', suffix: '', accept: [lower === null ? 'null' : String(lower)], placeholder: '결과값',
+            why: lower === null
+              ? `${target}보다 작은 값이 없으므로 lower(${target})는 null이에요.`
+              : `lower(x)는 x보다 작은 값 중 가장 큰 값을 반환하므로, ${target}보다 작은 값 중 가장 큰 ${lower}이 반환돼요.`,
+            hint: 'lower는 "기준값보다 작은 것 중 가장 큰 값"을 찾는다는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>TreeSet&lt;Integer&gt; nums = new TreeSet&lt;&gt;();</code>를 만들어 30, 10, 20을 순서대로 <code>add</code>한 뒤, <code>System.out.println(nums);</code>로 출력하는 전체 코드를 작성하세요. (맨 위에 <code>import java.util.TreeSet;</code> 포함)',
+          starter: '',
+          rows: 6,
+          placeholder: 'import java.util.TreeSet;\n\nTreeSet<Integer> nums = new TreeSet<>();\nnums.add(30);\nnums.add(10);\nnums.add(20);\nSystem.out.println(nums);',
+          accept: ['import java.util.TreeSet;TreeSet<Integer> nums = new TreeSet<>();nums.add(30);nums.add(10);nums.add(20);System.out.println(nums);'],
+          why: 'TreeSet은 넣는 순서와 상관없이 항상 정렬된 상태를 유지하므로 [10, 20, 30]으로 출력돼요.',
+          hint: 'TreeSet을 만들고 add를 세 번 호출한 뒤 그대로 출력하세요.'
+        }),
+      ],
+      boss: () => {
+        const arr = shuffle([2, 8, 14, 20, 26]).slice(0, 4).sort((a, b) => a - b);
+        const target = pick(arr.filter(x => x !== arr[arr.length - 1]));
+        const idx = arr.indexOf(target);
+        const higher = arr[idx + 1];
+        return {
+          type: 'blank',
+          q: `<code>TreeSet&lt;Integer&gt;</code>에 ${arr.join(', ')}이 들어있을 때, <code>higher(${target})</code>의 결과는? (숫자만)`,
+          prefix: '', suffix: '', accept: [String(higher)], placeholder: '결과값',
+          why: `higher(x)는 x보다 큰 값 중 가장 작은 값을 반환하므로, ${target}보다 큰 값 중 가장 작은 ${higher}이 반환돼요.`,
+          hint: '정렬된 값들 중 기준값 바로 다음 값을 찾아보세요.'
+        };
+      }
+    },
+    {
+      id: 'javaSerialization',
+      title: '객체 직렬화(Serialization)',
+      ready: true,
+      summary: '객체를 파일이나 네트워크로 저장/전송할 수 있는 형태로 바꾸는 직렬화를 배워요.',
+      goals: ['직렬화가 필요한 이유', 'Serializable 구현하고 파일에 쓰고 읽기', 'transient와 serialVersionUID의 역할'],
+      blocks: [
+        {
+          h: '객체를 파일로 저장하고 싶다면',
+          html: `<p>프로그램이 꺼지면 메모리에 있던 객체도 사라져요. 객체의 상태를 파일에 저장했다가 나중에 다시 그대로 읽어오고 싶다면, 객체를 바이트로 바꾸는 <b>직렬화(serialization)</b>가 필요해요.</p>`,
+          code: {
+            label: 'WhySerialize.java',
+            src: `class User {
+    String name;
+    int age;
+    User(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+// User 객체를 파일에 통째로 저장했다가, 나중에 그대로 복원하고 싶어요`
+          }
+        },
+        {
+          h: 'Serializable을 구현하고 파일에 쓰고 읽기',
+          html: `<p>클래스가 <code>java.io.Serializable</code>을 구현하면, <code>ObjectOutputStream</code>으로 객체를 파일에 쓰고 <code>ObjectInputStream</code>으로 다시 읽어올 수 있어요. <code>Serializable</code>은 메서드가 없는 <b>표시용 인터페이스</b>로, "이 클래스는 직렬화해도 안전하다"는 걸 표시하는 역할이에요.</p>`,
+          code: {
+            label: 'UserSerializable.java',
+            src: `import java.io.*;
+
+class User implements Serializable {
+    String name;
+    int age;
+    User(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+
+// 저장
+ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("user.dat"));
+out.writeObject(new User("지수", 17));
+out.close();
+
+// 복원
+ObjectInputStream in = new ObjectInputStream(new FileInputStream("user.dat"));
+User loaded = (User) in.readObject();
+in.close();
+
+System.out.println(loaded.name + " " + loaded.age);`,
+            out: `지수 17`
+          }
+        },
+        {
+          h: 'transient와 serialVersionUID',
+          html: `<p><code>transient</code>가 붙은 필드는 직렬화 대상에서 제외돼요(비밀번호처럼 저장하면 안 되는 값에 사용해요). <code>serialVersionUID</code>는 클래스의 "버전 번호" 역할을 해서, 클래스가 바뀐 뒤 예전에 저장된 파일을 읽을 때 호환되는지 확인하는 데 쓰여요.</p>`,
+          code: {
+            label: 'TransientField.java',
+            src: `class User implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+    String name;
+    transient String password;
+
+    User(String name, String password) {
+        this.name = name;
+        this.password = password;
+    }
+}
+// 직렬화 후 복원하면 password는 null, name만 남아있어요`
+          },
+          after: `<div class="note"><b>실전 팁</b> — 실무에서는 파일 직렬화보다 JSON 변환 라이브러리(Jackson, Gson)를 더 많이 쓰지만, 직렬화의 기본 개념(transient, 버전 관리)은 캐시나 세션 저장 등에서 여전히 중요해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `객체를 파일에 저장하거나 네트워크로 보낼 수 있도록 표시하려면 클래스에 어떤 인터페이스를 구현해야 할까요? (영어로)`,
+          prefix: 'class User implements ', suffix: ' {\n}', accept: ['Serializable'], placeholder: '인터페이스 이름',
+          why: '<code>Serializable</code>은 메서드가 없는 표시용 인터페이스로, 이 클래스의 객체가 직렬화될 수 있다는 걸 나타내요.',
+          hint: '"직렬화 가능한"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '직렬화 대상에서 특정 필드를 제외하고 싶을 때 그 필드 앞에 붙이는 키워드는?',
+          'transient', ['static', 'final', 'volatile'],
+          '<code>transient</code>가 붙은 필드는 직렬화될 때 제외되어, 복원 시 기본값(참조 타입은 null)이 돼요.',
+          '비밀번호처럼 저장하면 안 되는 값에 붙이는 키워드예요.'
+        ),
+        () => makeChoice(
+          '<code>serialVersionUID</code>의 역할로 가장 알맞은 것은?',
+          '클래스의 버전을 표시해서, 저장된 데이터와 현재 클래스가 호환되는지 확인하는 데 쓰인다',
+          ['객체가 저장될 파일의 이름을 정한다', '필드의 접근 제어자를 결정한다', '메서드 실행 순서를 정한다'],
+          'serialVersionUID는 클래스의 버전 번호 역할을 해서, 클래스가 바뀐 뒤에도 이전에 저장된 데이터를 읽을 때 호환성을 검사하는 데 쓰여요.',
+          '"버전 관리"라는 이름의 의미를 생각해보세요.'
+        ),
+        () => {
+          const name = pick(['민준', '서연', '하늘', '도윤']);
+          return {
+            type: 'blank',
+            q: `<code>User</code>에 <code>String name;</code>과 <code>transient String password;</code>가 있을 때, <code>new User("${name}", "1234")</code>를 직렬화했다가 복원하면 <code>loaded.password</code>의 값은?`,
+            prefix: '', suffix: '', accept: ['null'], placeholder: '값',
+            why: 'transient가 붙은 password 필드는 직렬화 대상에서 제외되므로, 복원된 객체의 password는 null이에요.',
+            hint: 'transient 필드는 저장되지 않는다는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>User</code> 클래스가 <code>java.io.Serializable</code>을 구현하도록 하고, <code>private static final long serialVersionUID = 1L;</code> 필드와 <code>String name;</code>, <code>transient String password;</code> 필드, 그리고 두 값을 받는 생성자를 작성하세요.',
+          starter: '',
+          rows: 10,
+          placeholder: 'class User implements java.io.Serializable {\n    private static final long serialVersionUID = 1L;\n    String name;\n    transient String password;\n\n    User(String name, String password) {\n        this.name = name;\n        this.password = password;\n    }\n}',
+          accept: ['class User implements java.io.Serializable {private static final long serialVersionUID = 1L;String name;transient String password;User(String name, String password) {this.name = name;this.password = password;}}'],
+          why: 'Serializable을 구현하고 serialVersionUID를 두면 버전 관리가 되고, transient가 붙은 password는 직렬화되지 않아요.',
+          hint: 'implements java.io.Serializable을 클래스 선언에 추가하고, 필드와 생성자를 순서대로 작성하세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '자바 객체를 파일에 저장했다가 나중에 그대로 복원하고 싶은데, 그 안에 있는 비밀번호 필드는 저장하고 싶지 않아요. 가장 적합한 방법은?',
+        '클래스가 Serializable을 구현하게 하고, 비밀번호 필드 앞에 transient를 붙인다',
+        ['클래스에 Serializable을 구현하지 않고 파일에 직접 문자열로 적는다', '비밀번호 필드를 static으로 선언한다', '비밀번호 필드의 이름을 password가 아닌 다른 이름으로 바꾼다'],
+        'Serializable을 구현해야 직렬화가 가능해지고, transient를 붙인 필드는 직렬화 대상에서 제외되어 저장되지 않아요.',
+        '"직렬화는 가능하게 하되, 특정 필드만 빼고 싶다"는 요구에 맞는 키워드 조합을 떠올려보세요.'
+      )
     }],
   tierBoss: {
     beginner: () => ({

@@ -4394,6 +4394,1170 @@ reader.readAsDataURL(file);`
         'readAsDataURL로 이미지를 base64 문자열로 읽으면, 서버에 보내기 전에도 <img src="...">로 바로 미리보기를 보여줄 수 있어요.',
         '이미지 파일을 화면에 즉시 표시하려면 어떤 형식으로 읽어야 하는지 생각해보세요.'
       )
+    },
+    {
+      id: 'asyncGenerators',
+      title: '비동기 제너레이터와 for await...of',
+      ready: true,
+      summary: '비동기 작업의 결과를 하나씩 순서대로 받아오는 비동기 제너레이터와, 이를 순회하는 for await...of 문법을 배워요.',
+      goals: ['async function*로 비동기 제너레이터 만들기', 'yield로 기다린 값 하나씩 내놓기', 'for await...of로 순회하기'],
+      blocks: [
+        {
+          h: '기다리면서 하나씩 내놓기: async function*',
+          html: `<p>제너레이터(<code>function*</code>) 앞에 <code>async</code>를 붙이면 <b>비동기 제너레이터</b>가 돼요. 안에서 <code>await</code>로 시간이 걸리는 작업을 기다린 뒤 <code>yield</code>로 값을 하나씩 내놓을 수 있어요.</p>`,
+          code: {
+            label: 'async_gen_basic.js',
+            src: `function delay(ms, value) {
+  return new Promise(resolve => setTimeout(() => resolve(value), ms));
+}
+
+async function* countUpAsync(n) {
+  for (let i = 1; i <= n; i++) {
+    const value = await delay(100, i);
+    yield value;
+  }
+}`
+          }
+        },
+        {
+          h: '값이 도착할 때마다 처리하기: for await...of',
+          html: `<p>일반 <code>for...of</code>는 비동기 제너레이터를 그대로 순회할 수 없어요. <code>for await (const x of ...)</code>처럼 <b>await를 붙인 for...of</b>를 쓰면, 매번 다음 값이 도착할 때까지 자동으로 기다려줘요.</p>`,
+          code: {
+            label: 'for_await.js',
+            src: `async function run() {
+  for await (const num of countUpAsync(3)) {
+    console.log(num);
+  }
+}
+
+run();`,
+            out: `1\n2\n3`
+          },
+          after: `<div class="note"><b>참고</b> — 0.1초 간격으로 값이 하나씩 도착하는 순서대로 콘솔에 찍혀요.</div>`
+        },
+        {
+          h: '이미 있는 Promise 배열도 순서대로 처리하기',
+          html: `<p><code>for await...of</code>는 평범한 배열에 담긴 Promise들도 순회할 수 있어요. 이때는 <b>완료되는 순서가 아니라, 배열에 적힌 순서대로</b> 하나씩 기다려요.</p>`,
+          code: {
+            label: 'for_await_array.js',
+            src: `async function run2() {
+  const tasks = [delay(300, "A"), delay(100, "B"), delay(200, "C")];
+  for await (const value of tasks) {
+    console.log(value);
+  }
+}
+
+run2();`,
+            out: `A\nB\nC`
+          },
+          after: `<div class="note"><b>주의</b> — "B"가 가장 먼저 끝나도, 배열에 적힌 순서(A, B, C)대로 출력돼요. 가장 빠른 것만 필요하다면 <code>Promise.race</code>를 써야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `비동기 제너레이터 함수를 선언할 때 <code>function*</code> 앞에 붙이는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' function* countUpAsync(n) { ... }', accept: ['async'], placeholder: '키워드',
+          why: '<code>async function*</code>처럼 async와 *를 함께 써야 비동기 제너레이터가 돼요.',
+          hint: 'Promise를 기다릴 때 함수 앞에 붙이던 그 키워드예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `비동기 제너레이터 <code>gen()</code>이 내놓는 값을 순서대로 기다리며 순회하는 반복문을 완성하세요.`,
+          prefix: 'for ', suffix: '(const value of gen()) {\n  console.log(value);\n}', accept: ['await'], placeholder: '키워드',
+          why: '<code>for await (const value of gen())</code>처럼 for 뒤에 await를 붙여야 비동기 제너레이터를 순회할 수 있어요.',
+          hint: '일반 for...of 앞에 무엇을 붙여야 각 값을 기다릴 수 있을지 생각해보세요.'
+        }),
+        () => makeChoice(
+          '일반 제너레이터용 <code>for...of</code>로 비동기 제너레이터(<code>async function*</code>)를 그대로 순회하려고 하면 어떻게 될까요?',
+          'await 없이는 순회할 수 없어 오류가 난다',
+          ['정상 동작하지만 값의 순서가 뒤바뀐다', '자동으로 동기 제너레이터로 바뀐다', '아무 값도 출력되지 않고 조용히 끝난다'],
+          '비동기 제너레이터가 내놓는 값은 Promise라서, await가 붙은 for await...of로만 제대로 순회할 수 있어요.',
+          '비동기 제너레이터의 값 하나하나는 실제로 Promise라는 걸 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '배열에 담긴 Promise 여러 개를 <code>for await...of</code>로 순회하면, 값이 나오는 순서는?',
+          '배열에 적힌 순서대로(먼저 끝난 것부터가 아니라)',
+          ['가장 먼저 완료된 것부터', '가장 나중에 완료된 것부터', '무작위 순서로'],
+          'for await...of는 배열의 각 자리를 순서대로 하나씩 기다리기 때문에, 실제로 먼저 끝난 것과 상관없이 배열 순서대로 값이 나와요.',
+          '더 빨리 끝나는 걸 먼저 받고 싶다면 다른 방법(Promise.race)이 필요하다는 것과 비교해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '<code>gen()</code>이라는 비동기 제너레이터 함수를 만들어 <code>yield</code>로 1, 2, 3을 순서대로 내놓게 하고, <code>async function run()</code> 안에서 <code>for await...of</code>로 순회하며 각 값을 <code>console.log</code>로 출력한 뒤 <code>run()</code>을 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 9,
+          placeholder: 'async function* gen() {\n  yield 1;\n  yield 2;\n  yield 3;\n}\n\nasync function run() {\n  for await (const n of gen()) {\n    console.log(n);\n  }\n}\n\nrun();',
+          expectedOutput: '1\n2\n3',
+          why: 'gen()이 yield로 1, 2, 3을 순서대로 내놓고, for await...of가 그 값들을 순서대로 기다리며 출력해요.',
+          hint: 'async function* gen() { yield 1; yield 2; yield 3; }를 만든 뒤, for await (const n of gen())로 순회하세요.'
+        }),
+      ],
+      boss: () => {
+        const delays = shuffle([100, 200, 300]);
+        return {
+          type: 'blank',
+          q: `<code>const tasks = [delay(${delays[0]}, "A"), delay(${delays[1]}, "B"), delay(${delays[2]}, "C")];</code>를 <code>for await (const value of tasks) console.log(value);</code>로 순회하면 순서대로 무엇이 출력될까요? 쉼표로 구분해서 쓰세요.`,
+          prefix: '', suffix: '', accept: ['A, B, C', 'A,B,C'], placeholder: '값, 값, 값',
+          why: '지연 시간이 서로 달라도, for await...of는 완료 순서가 아니라 배열에 적힌 순서(A, B, C)대로 하나씩 기다려요.',
+          hint: '가장 먼저 끝나는 게 어떤 것이든, 배열에 적힌 순서는 그대로라는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'structuredClone',
+      title: '진짜 깊은 복사: structuredClone',
+      ready: true,
+      summary: '얕은 복사와 깊은 복사의 차이를 이해하고, 중첩된 객체까지 안전하게 통째로 복사하는 structuredClone을 배워요.',
+      goals: ['얕은 복사와 깊은 복사의 차이', 'JSON 방식 복사의 한계', 'structuredClone으로 깊은 복사하기'],
+      blocks: [
+        {
+          h: '얕은 복사의 함정',
+          html: `<p>스프레드(<code>{...obj}</code>)나 <code>Object.assign</code>은 <b>겉면만</b> 복사해요. 객체 안에 또 다른 객체(중첩 객체)가 있으면, 그 안쪽은 복사되지 않고 원본과 <b>같은 것을 공유</b>해요.</p>`,
+          code: {
+            label: 'shallow_copy.js',
+            src: `const original = { name: "지수", address: { city: "서울" } };
+const shallow = { ...original };
+
+shallow.address.city = "부산";
+console.log(original.address.city);`,
+            out: `부산`
+          },
+          after: `<div class="note"><b>왜 이럴까요</b> — address는 얕은 복사라 shallow와 original이 <b>같은 address 객체</b>를 가리켜요. 그래서 하나를 바꾸면 둘 다 바뀐 것처럼 보여요.</div>`
+        },
+        {
+          h: 'JSON으로 깊은 복사하기 — 그리고 한계',
+          html: `<p>예전에는 <code>JSON.parse(JSON.stringify(obj))</code>로 깊은 복사를 흉내냈어요. 하지만 이 방법은 함수, <code>undefined</code>, <code>Date</code> 같은 값을 제대로 복사하지 못하고 사라지거나 형태가 바뀌어요.</p>`,
+          code: {
+            label: 'json_copy.js',
+            src: `const data = { when: new Date(0), greet: function () {}, count: undefined };
+const copy = JSON.parse(JSON.stringify(data));
+console.log(copy);`,
+            out: `{ when: '1970-01-01T00:00:00.000Z' }`
+          },
+          after: `<div class="note"><b>사라진 것들</b> — greet(함수)과 count(undefined)는 통째로 사라졌고, when은 Date 객체가 아니라 그냥 문자열이 됐어요.</div>`
+        },
+        {
+          h: '제대로 된 깊은 복사: structuredClone',
+          html: `<p>최신 자바스크립트는 <code>structuredClone(값)</code>이라는 내장 함수를 제공해요. 중첩된 객체는 물론 <code>Date</code>, <code>Map</code>, <code>Set</code>, 배열까지 <b>진짜 깊은 복사</b>를 해줘요. (단, 함수는 여전히 복사할 수 없어요.)</p>`,
+          code: {
+            label: 'structured_clone.js',
+            src: `const original = { name: "지수", address: { city: "서울" } };
+const deep = structuredClone(original);
+
+deep.address.city = "부산";
+console.log(original.address.city, deep.address.city);`,
+            out: `서울 부산`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `중첩된 객체까지 안전하게 통째로 깊은 복사하는 내장 함수의 이름을 쓰세요.`,
+          prefix: 'const deep = ', suffix: '(original);', accept: ['structuredClone'], placeholder: '함수 이름',
+          why: '<code>structuredClone(original)</code>은 중첩 객체까지 진짜로 새로 복사해줘요.',
+          hint: '"구조화된 복제"라는 뜻의 두 영어 단어를 붙여 쓴 함수 이름이에요.'
+        }),
+        () => makeChoice(
+          '스프레드(<code>{...original}</code>)로 복사했을 때, 원본 안에 중첩돼 있던 객체 속성은 어떻게 될까요?',
+          '원본과 같은 객체를 그대로 공유해서, 하나를 바꾸면 다른 것도 바뀐다',
+          ['완전히 새로운 복사본이 만들어진다', '자동으로 삭제된다', '문자열로 바뀐다'],
+          '스프레드는 겉면만 복사(얕은 복사)해서, 중첩 객체는 원본과 똑같은 것을 그대로 가리켜요.',
+          '"얕은"이라는 표현이 뜻하는 게 "겉면만"이라는 걸 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '다음 중 <code>JSON.parse(JSON.stringify(obj))</code> 방식으로 복사했을 때 있는 그대로 잘 복사되는 값은?',
+          '문자열(string)과 숫자(number)',
+          ['함수(function)', 'undefined 값', 'Date 객체(그대로 Date로 유지)'],
+          '문자열/숫자 같은 순수 데이터는 JSON으로도 잘 복사되지만, 함수·undefined는 사라지고 Date는 문자열로 바뀌어요.',
+          'JSON은 함수나 특수 객체를 표현할 방법이 없다는 걸 떠올려보세요.'
+        ),
+        () => {
+          const level = randInt(1, 9);
+          return {
+            type: 'blank',
+            q: `<code>const original = { meta: { level: ${level} } }; const deep = structuredClone(original); deep.meta.level = 99;</code>를 실행한 뒤 <code>console.log(original.meta.level);</code>을 하면? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(level)], placeholder: '숫자',
+            why: `structuredClone은 진짜 깊은 복사라서 deep과 original은 완전히 분리된 객체예요. deep을 바꿔도 original.meta.level은 그대로 ${level}이에요.`,
+            hint: 'structuredClone으로 복사하면 중첩 객체까지 완전히 별개가 된다는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '객체 <code>{ a: 1, nested: { b: 2 } }</code>를 <code>structuredClone</code>으로 깊은 복사한 뒤, 복사본의 <code>nested.b</code>를 100으로 바꾸고, 원본의 <code>nested.b</code>를 <code>console.log</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'const original = { a: 1, nested: { b: 2 } };\nconst copy = structuredClone(original);\ncopy.nested.b = 100;\nconsole.log(original.nested.b);',
+          expectedOutput: '2',
+          why: 'structuredClone은 nested 객체까지 새로 복사하기 때문에, copy를 바꿔도 original.nested.b는 그대로 2예요.',
+          hint: 'structuredClone(original)로 완전히 분리된 복사본을 만든 뒤, copy 쪽만 바꿔보세요.'
+        }),
+      ],
+      boss: () => {
+        const before = randInt(10, 99);
+        const after = randInt(100, 999);
+        return {
+          type: 'blank',
+          q: `<code>const original = { score: ${before} }; const shallow = { ...original }; const deep = structuredClone(original); shallow.score = ${after}; deep.score = ${after};</code>를 실행한 뒤 <code>console.log(original.score);</code>를 하면? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(before)], placeholder: '숫자',
+          why: `score는 중첩 객체가 아니라 그냥 숫자 값이라서, 스프레드(얕은 복사)든 structuredClone(깊은 복사)이든 상관없이 애초에 original과는 별개의 값으로 복사돼요. 그래서 shallow와 deep을 아무리 바꿔도 original.score는 그대로 ${before}예요.`,
+          hint: '얕은 복사도 객체 안의 "값 하나짜리 속성"(숫자, 문자열 등)은 이미 복사해서 별개로 만들어요. 문제가 되는 건 중첩된 객체뿐이에요.'
+        };
+      }
+    },
+    {
+      id: 'objectFreezeSeal',
+      title: '객체 잠그기: Object.freeze와 Object.seal',
+      ready: true,
+      summary: '객체를 수정하지 못하게 잠그는 freeze와 seal의 차이, 그리고 중첩 객체까지는 잠기지 않는 함정을 배워요.',
+      goals: ['Object.freeze로 완전히 잠그기', 'Object.seal로 속성 추가/삭제만 막기', '얕은 동결의 함정'],
+      blocks: [
+        {
+          h: '아예 못 바꾸게: Object.freeze',
+          html: `<p><code>Object.freeze(obj)</code>는 그 객체의 <b>기존 속성 값 변경, 속성 추가, 속성 삭제를 전부</b> 막아요. 일반 모드에서는 조용히 무시되고 오류는 나지 않아요.</p>`,
+          code: {
+            label: 'freeze_basic.js',
+            src: `const user = Object.freeze({ name: "지수", age: 20 });
+
+user.age = 21;      // 조용히 무시돼요(오류 없음)
+console.log(user.age);`,
+            out: `20`
+          },
+          after: `<div class="note"><b>참고</b> — <code>"use strict"</code> 모드에서 같은 코드를 실행하면 <code>TypeError</code>가 나요.</div>`
+        },
+        {
+          h: '속성 추가/삭제만 막기: Object.seal',
+          html: `<p><code>Object.seal(obj)</code>은 <b>속성을 추가하거나 삭제하는 것만</b> 막아요. 이미 있는 속성의 <b>값은 여전히 바꿀 수 있어요</b>. freeze보다 느슨한 잠금이에요.</p>`,
+          code: {
+            label: 'seal_basic.js',
+            src: `const user = Object.seal({ name: "지수", age: 20 });
+
+user.age = 21;      // 됨! 값 변경은 허용돼요
+delete user.name;   // 안 됨, 조용히 무시돼요
+user.city = "서울";  // 안 됨, 새 속성 추가도 막혀요
+
+console.log(user);`,
+            out: `{ name: '지수', age: 21 }`
+          }
+        },
+        {
+          h: '함정: 얕은 동결',
+          html: `<p><code>Object.freeze</code>와 <code>Object.seal</code>은 <b>객체의 가장 바깥쪽만</b> 잠가요. 안에 중첩된 객체는 여전히 자유롭게 바꿀 수 있어요.</p>`,
+          code: {
+            label: 'freeze_shallow.js',
+            src: `const user = Object.freeze({ name: "지수", address: { city: "서울" } });
+
+user.address.city = "부산";  // 중첩 객체는 안 잠겨서 바뀜!
+console.log(user.address.city);`,
+            out: `부산`
+          },
+          after: `<div class="note"><b>완전히 잠그려면</b> — 중첩된 객체마다 재귀적으로 <code>Object.freeze</code>를 호출하는 <code>deepFreeze</code> 함수를 직접 만들어야 해요. 동결 여부는 <code>Object.isFrozen(obj)</code>로 확인할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `객체가 <code>Object.freeze</code>로 동결됐는지 확인하는 메서드를 쓰세요.`,
+          prefix: 'Object.', suffix: '(user)', accept: ['isFrozen'], placeholder: '메서드 이름',
+          why: '<code>Object.isFrozen(obj)</code>는 그 객체가 동결됐으면 true를 돌려줘요.',
+          hint: '"얼다, 동결되다"라는 뜻의 영어 단어에 is가 붙어요.'
+        }),
+        () => makeChoice(
+          'Object.freeze와 Object.seal의 차이로 옳은 것은?',
+          'seal은 기존 속성 값 변경은 허용하지만, freeze는 값 변경까지 막는다',
+          ['seal이 freeze보다 더 강력하게 잠근다', '둘 다 완전히 같은 동작을 한다', 'freeze는 배열에는 쓸 수 없다'],
+          'seal은 속성 추가/삭제만 막고 값 변경은 허용하지만, freeze는 값 변경까지 전부 막아요.',
+          '어느 쪽이 더 많은 것을 막는지 이름의 어감으로 생각해보세요 — "얼리다"가 더 강해 보이죠.'
+        ),
+        () => makeChoice(
+          '<code>Object.freeze({ a: 1, nested: { b: 2 } })</code>로 얼린 객체의 <code>nested.b</code>를 바꾸려고 하면?',
+          '중첩 객체는 얼지 않아서 정상적으로 바뀐다',
+          ['오류가 난다', '조용히 무시된다', '자동으로 깊은 동결이 적용돼 안 바뀐다'],
+          'freeze는 객체의 가장 바깥쪽 속성만 잠그기 때문에, 중첩된 객체 안쪽은 여전히 자유롭게 바꿀 수 있어요.',
+          '"얕은 동결"이라는 표현이 뜻하는 걸 떠올려보세요.'
+        ),
+        () => {
+          const n = randInt(10, 99);
+          return {
+            type: 'blank',
+            q: `<code>const obj = Object.seal({ score: ${n} }); delete obj.score;</code>를 실행한 뒤 <code>console.log(obj.score);</code>를 하면? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `Object.seal은 속성 삭제를 막기 때문에 delete는 조용히 무시되고, score는 그대로 ${n}으로 남아요.`,
+            hint: 'seal이 걸린 객체에서 delete는 아무 효과가 없다는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '객체 <code>{ count: 10 }</code>을 <code>Object.freeze</code>로 동결한 뒤, <code>count</code>를 20으로 바꾸려는 대입을 하고(오류 없이 무시됨), 마지막 <code>count</code> 값을 <code>console.log</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'const obj = Object.freeze({ count: 10 });\nobj.count = 20;\nconsole.log(obj.count);',
+          expectedOutput: '10',
+          why: 'freeze로 동결된 객체는 값을 바꾸려는 시도가 조용히 무시돼서 count는 그대로 10이에요.',
+          hint: 'Object.freeze({ count: 10 })로 얼린 뒤 값을 바꿔봐도 바뀌지 않는다는 걸 확인해보세요.'
+        }),
+      ],
+      boss: () => {
+        const city1 = pick(['서울', '부산', '대구', '광주']);
+        const city2 = pick(['인천', '대전', '울산', '수원']);
+        return {
+          type: 'blank',
+          q: `<code>const config = Object.freeze({ mode: "prod", options: { city: "${city1}" } }); config.options.city = "${city2}";</code>를 실행한 뒤 <code>console.log(config.options.city);</code>를 하면? 따옴표 없이 쓰세요.`,
+          prefix: '', suffix: '', accept: [city2], placeholder: '값',
+          why: `Object.freeze는 config의 바깥쪽 속성(mode, options 자체)만 잠그고, options 안의 city는 잠기지 않아서 "${city2}"로 바뀌어요.`,
+          hint: 'freeze는 딱 한 단계(가장 바깥쪽)만 잠근다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'taggedTemplates',
+      title: '태그드 템플릿 리터럴',
+      ready: true,
+      summary: '템플릿 리터럴 앞에 함수를 붙여 문자열 조합 과정 자체를 가로채고 커스터마이징하는 태그드 템플릿을 배워요.',
+      goals: ['태그 함수의 기본 형태', 'strings와 values 인자 이해하기', '실전 예: 값 가공과 이스케이프 처리'],
+      blocks: [
+        {
+          h: '템플릿 리터럴 앞에 함수 붙이기',
+          html: `<p>템플릿 리터럴(백틱 문자열) 바로 앞에 함수 이름을 <b>공백 없이</b> 붙이면, 그 함수가 문자열을 조합하는 과정을 직접 가로채서 원하는 대로 처리할 수 있어요. 이걸 <b>태그드 템플릿</b>이라고 불러요.</p>`,
+          code: {
+            label: 'tag_basic.js',
+            src: `function tag(strings, ...values) {
+  console.log(strings);
+  console.log(values);
+}
+
+const name = "지수";
+const age = 20;
+tag\`이름: \${name}, 나이: \${age}\`;`,
+            out: `[ '이름: ', ', 나이: ', '' ]\n[ '지수', 20 ]`
+          },
+          after: `<div class="note"><b>참고</b> — strings는 값 자리를 뺀 고정 글자 조각들의 배열이고, values는 값 자리에 들어간 값들만 모은 배열이에요.</div>`
+        },
+        {
+          h: 'strings와 values를 다시 조합하기',
+          html: `<p>태그 함수는 <code>strings</code>와 <code>values</code>를 받아서, 원하는 방식으로 <b>직접 이어 붙인 새 문자열</b>을 반환할 수 있어요.</p>`,
+          code: {
+            label: 'tag_upper.js',
+            src: `function upperTag(strings, ...values) {
+  return strings.reduce((result, str, i) => {
+    const value = values[i] !== undefined ? String(values[i]).toUpperCase() : "";
+    return result + str + value;
+  }, "");
+}
+
+const name = "jisu";
+console.log(upperTag\`hello, \${name}!\`);`,
+            out: `hello, JISU!`
+          }
+        },
+        {
+          h: '실전 예: 위험한 글자 이스케이프하기',
+          html: `<p>태그드 템플릿은 사용자가 입력한 값을 HTML에 넣기 전에 <b>위험한 문자를 안전하게 바꿔주는 용도</b>로도 많이 써요.</p>`,
+          code: {
+            label: 'tag_safe_html.js',
+            src: `function safeHtml(strings, ...values) {
+  const escape = (v) => String(v).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return strings.reduce((result, str, i) => {
+    const value = values[i] !== undefined ? escape(values[i]) : "";
+    return result + str + value;
+  }, "");
+}
+
+const userInput = "<script>";
+console.log(safeHtml\`입력값: \${userInput}\`);`,
+            out: `입력값: &lt;script&gt;`
+          },
+          after: `<div class="note"><b>기억하기</b> — <code>String.raw</code>도 자바스크립트에 이미 내장된 태그 함수예요. 이스케이프 문자를 해석하지 않고 그대로(raw) 보여줄 때 써요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '태그드 템플릿에서 태그 함수가 받는 첫 번째 인자는 무엇일까요?',
+          '값 자리로 나뉜 고정 문자열 조각들의 배열',
+          ['템플릿 전체를 합친 문자열 하나', '값 자리에 들어간 값들만 모은 배열', '아무 인자도 받지 않는다'],
+          '태그 함수의 첫 번째 인자(strings)는 값 자리를 기준으로 나뉜 고정 글자 조각들의 배열이에요.',
+          '값 자리에 들어간 것들은 나머지 매개변수(values)로 따로 받는다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `태그 함수가 나머지 매개변수로 값들을 모아 받을 때 쓰는 문법을 완성하세요.`,
+          prefix: 'function tag(strings, ', suffix: ') { ... }', accept: ['...values'], placeholder: '...이름',
+          why: '<code>...values</code>처럼 나머지 매개변수 문법을 쓰면 값 자리에 들어간 값들을 배열로 모아 받을 수 있어요.',
+          hint: '스프레드/레스트 문법에 쓰는 세 개의 점을 떠올려보세요.'
+        }),
+        () => {
+          const n = randInt(10, 99);
+          return {
+            type: 'blank',
+            q: `태그 함수 <code>function firstValue(strings, ...values) { return values[0]; }</code>를 태그로 사용해서, 템플릿 리터럴 안의 값 자리에 순서대로 ${n}, 그리고 다른 값을 넣었다면, 이 함수가 반환하는 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `values 배열은 템플릿 리터럴에 넣은 값들을 순서대로 담고 있어서, values[0]은 첫 번째로 넣은 값인 ${n}이에요.`,
+            hint: '나머지 매개변수 values는 배열이고, 배열의 첫 번째 값은 인덱스 0이에요.'
+          };
+        },
+        () => makeChoice(
+          '태그 함수 이름과 템플릿 리터럴(백틱 문자열) 사이에는 무엇이 있어야 할까요?',
+          '아무것도 없이 바로 붙여야 한다(공백 없이)',
+          ['마침표(.)', '화살표(=>)', '느낌표(!)'],
+          '태그 함수는 함수 이름 뒤에 공백 없이 바로 백틱 문자열을 붙여요.',
+          '함수 호출처럼 괄호를 쓰는 게 아니라, 이름 뒤에 바로 백틱 문자열이 온다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '<code>shout</code>라는 태그 함수를 만들어서, 값들을 모두 대문자로 바꾼 뒤 조각들과 이어붙여 반환하게 하세요. 이 함수를 이름 "jisu"에 태그로 적용해서 만든 결과를 <code>console.log</code>로 출력하는 전체 코드를 작성하세요.',
+          starter: '',
+          rows: 8,
+          placeholder: 'function shout(strings, ...values) {\n  return strings.reduce((result, str, i) => {\n    const value = values[i] !== undefined ? String(values[i]).toUpperCase() : "";\n    return result + str + value;\n  }, "");\n}\n\nconsole.log(shout`hi ${"jisu"}!`);',
+          expectedOutput: 'hi JISU!',
+          why: 'shout 태그 함수가 문자열 조각과 대문자로 바꾼 값을 순서대로 이어붙여서 "hi JISU!"가 출력돼요.',
+          hint: 'strings.reduce로 조각들 사이에 대문자로 바꾼 값(values[i].toUpperCase())을 끼워 넣어보세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(1, 4);
+        return {
+          type: 'blank',
+          q: `템플릿 리터럴 안에 값이 들어가는 자리가 ${n}개 있다면, 태그 함수가 받는 strings 배열의 길이는 몇일까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(n + 1)], placeholder: '숫자',
+          why: `문자열 조각은 항상 값이 들어가는 자리보다 하나 더 많아요. 값 자리 앞뒤로 조각이 하나씩 더 있기 때문에, 값 자리가 ${n}개면 조각은 ${n + 1}개가 돼요.`,
+          hint: '가장 간단한 예로, 값 자리가 1개일 때 조각은 그 앞과 뒤로 2개라는 것부터 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'iteratorProtocol',
+      title: '나만의 순회 규칙 만들기: Symbol.iterator 프로토콜',
+      ready: true,
+      summary: '배열이나 Map처럼 for...of로 순회할 수 있는 나만의 객체를, Symbol.iterator를 직접 구현해서 만들어봐요.',
+      goals: ['이터러블(iterable) 객체의 조건', '[Symbol.iterator]() 메서드 직접 구현하기', '커스텀 객체를 for...of와 스프레드로 순회하기'],
+      blocks: [
+        {
+          h: '일반 객체는 왜 for...of가 안 될까',
+          html: `<p>배열, 문자열, Map, Set은 <code>for...of</code>로 순회할 수 있지만, <code>{}</code>로 만든 평범한 객체는 안 돼요. 이 객체들은 <code>Symbol.iterator</code>라는 특별한 키에 "다음 값을 어떻게 꺼낼지" 알려주는 함수를 가지고 있고, 일반 객체는 그게 없기 때문이에요.</p>`,
+          code: {
+            label: 'not_iterable.js',
+            src: `const range = { from: 1, to: 3 };
+
+for (const n of range) {
+  console.log(n);
+}`,
+            out: `TypeError: range is not iterable`
+          }
+        },
+        {
+          h: '직접 이터러블 만들기: [Symbol.iterator]()',
+          html: `<p>객체에 <code>[Symbol.iterator]()</code>라는 메서드를 추가하고, 그 메서드가 <code>{ next() {...} }</code> 형태의 <b>이터레이터</b>를 반환하게 하면, 그 객체는 이터러블이 돼요. <code>next()</code>는 매번 <code>{ value, done }</code> 형태를 반환해야 해요.</p>`,
+          code: {
+            label: 'custom_iterable.js',
+            src: `const range = {
+  from: 1,
+  to: 3,
+  [Symbol.iterator]() {
+    let current = this.from;
+    const last = this.to;
+    return {
+      next() {
+        if (current <= last) {
+          return { value: current++, done: false };
+        }
+        return { value: undefined, done: true };
+      }
+    };
+  }
+};
+
+for (const n of range) {
+  console.log(n);
+}`,
+            out: `1\n2\n3`
+          }
+        },
+        {
+          h: '제너레이터로 더 짧게 만들기',
+          html: `<p><code>[Symbol.iterator]()</code>를 제너레이터 함수(<code>*[Symbol.iterator]() {...}</code>)로 만들면, <code>next()</code>를 직접 안 만들어도 <code>yield</code>만으로 훨씬 짧게 같은 걸 구현할 수 있어요. 이제 이 객체는 스프레드(<code>...</code>)와도 함께 쓸 수 있어요.</p>`,
+          code: {
+            label: 'custom_iterable_generator.js',
+            src: `const range2 = {
+  from: 1,
+  to: 3,
+  *[Symbol.iterator]() {
+    for (let i = this.from; i <= this.to; i++) {
+      yield i;
+    }
+  }
+};
+
+console.log([...range2]);`,
+            out: `[ 1, 2, 3 ]`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '어떤 객체가 <code>for...of</code>로 순회 가능한(이터러블) 조건은?',
+          '<code>[Symbol.iterator]</code>라는 이름의 메서드를 가지고 있어야 한다',
+          ['배열을 상속받아야 한다', 'length 속성만 있으면 된다', '객체 안에 배열이 하나라도 있어야 한다'],
+          '이터러블이 되려면 <code>Symbol.iterator</code>라는 잘 알려진 심벌을 키로 갖는 메서드가 있어야 해요.',
+          '배열, 문자열, Map, Set이 공통으로 가지고 있는 특별한 메서드 키를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `객체에 순회 방법을 알려주는 메서드를 추가하려고 해요. 어떤 이름의 심벌을 키로 써야 할까요?`,
+          prefix: 'const range = { [Symbol.', suffix: ']() { ... } };', accept: ['iterator'], placeholder: '단어',
+          why: '<code>Symbol.iterator</code>라는 잘 알려진 심벌에 순회 방법을 담아야 해요.',
+          hint: '"반복하다, 순회하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => {
+          const from = randInt(1, 3);
+          const to = from + randInt(2, 3);
+          const nums = [];
+          for (let i = from; i <= to; i++) nums.push(i);
+          return {
+            type: 'blank',
+            q: `<code>*[Symbol.iterator]()</code>가 <code>this.from</code>부터 <code>this.to</code>까지 <code>yield</code>하는 제너레이터일 때, <code>{ from: ${from}, to: ${to}, *[Symbol.iterator]() {...} }</code>를 <code>[...range2]</code>로 펼치면? 대괄호 포함해서 쓰세요.`,
+            prefix: '', suffix: '', accept: [`[${nums.join(', ')}]`, `[${nums.join(',')}]`], placeholder: '[값, 값, ...]',
+            why: `${from}부터 ${to}까지 순서대로 yield되어 [${nums.join(', ')}]이 만들어져요.`,
+            hint: 'from부터 to까지 순서대로 하나씩 늘어난다는 걸 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          '이터레이터의 <code>next()</code>가 더 이상 내놓을 값이 없을 때 반환해야 하는 <code>done</code> 값은?',
+          '<code>true</code>', ['<code>false</code>', '<code>undefined</code>', '아무 값도 필요 없다'],
+          '더 이상 값이 없으면 <code>{ value: undefined, done: true }</code>를 반환해야 for...of가 반복을 멈춰요.',
+          '제너레이터가 다 끝났을 때 done이 어떤 값이었는지 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '1부터 3까지 순회 가능한 객체 <code>counter</code>를 만드세요. <code>[Symbol.iterator]()</code>를 제너레이터로 구현해서 1, 2, 3을 yield하게 하고, <code>for...of</code>로 순회하며 각 값을 <code>console.log</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 8,
+          placeholder: 'const counter = {\n  *[Symbol.iterator]() {\n    yield 1;\n    yield 2;\n    yield 3;\n  }\n};\n\nfor (const n of counter) {\n  console.log(n);\n}',
+          expectedOutput: '1\n2\n3',
+          why: 'counter가 제너레이터로 구현한 [Symbol.iterator]() 덕분에 이터러블이 되어, for...of로 1, 2, 3을 순서대로 출력해요.',
+          hint: '*[Symbol.iterator]() { yield 1; yield 2; yield 3; }를 객체 안에 넣고, for...of로 순회하세요.'
+        }),
+      ],
+      boss: () => {
+        const from = randInt(1, 3);
+        const to = from + randInt(1, 3);
+        const nums = [];
+        for (let i = from; i <= to; i++) nums.push(i);
+        return {
+          type: 'blank',
+          q: `<code>{ from: ${from}, to: ${to}, *[Symbol.iterator]() { for (let i = this.from; i <= this.to; i++) yield i; } }</code>를 <code>for (const n of range) console.log(n);</code>으로 순회하면 순서대로 무엇이 출력될까요? 쉼표로 구분해서 쓰세요.`,
+          prefix: '', suffix: '', accept: [nums.join(', '), nums.join(',')], placeholder: '값, 값, ...',
+          why: `${from}부터 ${to}까지 순서대로 yield되어 ${nums.join(', ')}이 순서대로 출력돼요.`,
+          hint: 'from부터 to까지 하나씩 늘어나는 값을 순서대로 나열해보세요.'
+        };
+      }
+    },
+    {
+      id: 'promiseRaceAny',
+      title: '가장 빠른 것 하나만: Promise.race와 Promise.any',
+      ready: true,
+      summary: '여러 비동기 작업 중 가장 먼저 끝나는 것 하나만 골라내는 Promise.race와 Promise.any의 차이를 배워요.',
+      goals: ['Promise.race로 가장 먼저 끝난 결과 받기', 'Promise.any로 가장 먼저 성공한 결과만 받기', 'race와 any가 실패를 다루는 차이'],
+      blocks: [
+        {
+          h: '가장 먼저 끝나는 것 하나: Promise.race',
+          html: `<p><code>Promise.race([...])</code>는 여러 Promise 중 <b>가장 먼저 끝나는 것 하나</b>의 결과(성공이든 실패든)로 결정돼요. 나머지는 나중에 끝나도 무시돼요.</p>`,
+          code: {
+            label: 'promise_race.js',
+            src: `function delay(ms, value) {
+  return new Promise(resolve => setTimeout(() => resolve(value), ms));
+}
+
+async function run() {
+  const result = await Promise.race([delay(300, "느림"), delay(100, "빠름")]);
+  console.log(result);
+}
+
+run();`,
+            out: `빠름`
+          }
+        },
+        {
+          h: '타임아웃 만들기: race의 대표 활용',
+          html: `<p><code>Promise.race</code>는 "일정 시간 안에 응답이 없으면 실패로 처리"하는 <b>타임아웃</b> 구현에 자주 써요. 실제 요청과 "일정 시간 후 실패하는 Promise"를 경쟁시키는 방식이에요.</p>`,
+          code: {
+            label: 'promise_timeout.js',
+            src: `function timeout(ms) {
+  return new Promise((_, reject) => setTimeout(() => reject(new Error("시간 초과")), ms));
+}
+
+async function fetchWithTimeout() {
+  try {
+    const result = await Promise.race([delay(500, "서버 응답"), timeout(200)]);
+    console.log(result);
+  } catch (e) {
+    console.log(e.message);
+  }
+}
+
+fetchWithTimeout();`,
+            out: `시간 초과`
+          }
+        },
+        {
+          h: '실패는 건너뛰고 성공만: Promise.any',
+          html: `<p><code>Promise.race</code>는 가장 먼저 끝난 게 <b>실패여도 바로 그 실패로 끝나요</b>. 반면 <code>Promise.any</code>는 <b>가장 먼저 성공한 것</b>만 기다려요. 모두 실패했을 때만 <code>AggregateError</code>로 실패해요.</p>`,
+          code: {
+            label: 'promise_any.js',
+            src: `function fail(ms, msg) {
+  return new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
+}
+
+async function run2() {
+  const result = await Promise.any([fail(100, "서버1 실패"), delay(300, "서버2 성공")]);
+  console.log(result);
+}
+
+run2();`,
+            out: `서버2 성공`
+          },
+          after: `<div class="note"><b>비교</b> — 만약 <code>Promise.race</code>를 썼다면, 100ms 만에 먼저 실패한 서버1 때문에 즉시 실패로 끝났을 거예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `여러 작업 중 가장 먼저 끝난 것 하나(성공/실패 상관없이)로 결정되는 메서드 이름을 쓰세요.`,
+          prefix: 'Promise.', suffix: '([task1, task2])', accept: ['race'], placeholder: '메서드 이름',
+          why: '<code>Promise.race</code>는 가장 먼저 끝나는 것 하나로 승부가 결정돼요.',
+          hint: '"경주하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `여러 작업 중 가장 먼저 성공한 것만 기다리는(실패는 건너뛰는) 메서드 이름을 쓰세요.`,
+          prefix: 'Promise.', suffix: '([task1, task2])', accept: ['any'], placeholder: '메서드 이름',
+          why: '<code>Promise.any</code>는 실패는 무시하고 가장 먼저 성공하는 것만 기다려요.',
+          hint: '"어느 하나라도"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'Promise.race에 넘긴 여러 작업 중 가장 먼저 끝난 것이 실패(reject)라면?',
+          '즉시 그 실패로 전체가 끝난다',
+          ['그 실패는 무시하고 다음 것을 기다린다', '자동으로 성공한 것처럼 처리된다', '에러 없이 undefined를 반환한다'],
+          'Promise.race는 성공이든 실패든 상관없이 가장 먼저 끝난 것 하나로 바로 결정돼요.',
+          '"경주"라는 이름처럼, 등수만 중요하고 이겼는지 졌는지는 안 따진다는 걸 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'Promise.any에 넘긴 모든 작업이 실패했을 때는?',
+          'AggregateError로 실패한다',
+          ['가장 먼저 실패한 것을 반환한다', '조용히 undefined를 반환한다', '무한정 기다린다'],
+          '모든 작업이 실패하면 Promise.any는 모든 실패를 모은 AggregateError로 거절(reject)돼요.',
+          '단 하나라도 성공하면 좋겠지만, 전부 실패했을 때는 어떻게 될지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '<code>delay(ms, value)</code> 함수(이미 있다고 가정)로 <code>delay(200, "A")</code>와 <code>delay(100, "B")</code> 두 작업을 만들고, <code>Promise.race</code>로 가장 먼저 끝나는 결과를 <code>console.log</code>로 출력하는 <code>async function run()</code>을 작성하고 호출하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'async function run() {\n  const result = await Promise.race([delay(200, "A"), delay(100, "B")]);\n  console.log(result);\n}\n\nrun();',
+          expectedOutput: 'B',
+          why: 'delay(100, "B")가 더 빨리 끝나서 Promise.race의 결과는 "B"예요.',
+          hint: '둘 중 더 짧은 시간(100ms)이 걸리는 작업이 먼저 끝난다는 걸 떠올려보세요.'
+        }),
+      ],
+      boss: () => {
+        const t1 = randInt(50, 150);
+        const t2 = t1 + randInt(100, 200);
+        return {
+          type: 'blank',
+          q: `<code>fail(${t1}, "실패")</code>가 ${t1}ms 뒤에 실패하고 <code>delay(${t2}, "성공")</code>이 ${t2}ms 뒤에 성공할 때, <code>await Promise.any([fail(${t1}, "실패"), delay(${t2}, "성공")])</code>의 결과는? 따옴표 없이 쓰세요.`,
+          prefix: '', suffix: '', accept: ['성공'], placeholder: '값',
+          why: 'Promise.any는 실패는 건너뛰고 처음 성공하는 것만 기다리므로, fail이 먼저 끝나도 무시하고 나중에 성공하는 delay의 결과를 받아요.',
+          hint: '먼저 끝나는 게 실패라도, any는 계속 기다려서 성공하는 걸 찾는다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'abortController',
+      title: 'AbortController로 요청 취소하기',
+      ready: true,
+      summary: '오래 걸리거나 더 이상 필요 없어진 fetch 요청을 중간에 취소하는 AbortController 사용법을 배워요.',
+      goals: ['AbortController와 signal의 관계', 'fetch 요청을 중간에 취소하기', 'AbortError 처리하기'],
+      blocks: [
+        {
+          h: '취소 스위치 만들기: AbortController',
+          html: `<p><code>new AbortController()</code>는 취소 스위치를 하나 만들어줘요. 이 컨트롤러의 <code>.signal</code>을 <code>fetch</code>의 옵션으로 넘기면, 나중에 <code>controller.abort()</code>를 호출해서 그 요청을 <b>중간에 취소</b>할 수 있어요.</p>`,
+          code: {
+            label: 'abort_basic.js',
+            src: `const controller = new AbortController();
+
+fetch("/api/data", { signal: controller.signal })
+  .then(res => res.json())
+  .then(data => console.log(data))
+  .catch(err => {
+    if (err.name === "AbortError") {
+      console.log("요청이 취소됐어요");
+    }
+  });
+
+controller.abort();`,
+            out: `요청이 취소됐어요`
+          }
+        },
+        {
+          h: '타임아웃과 함께 쓰기',
+          html: `<p>일정 시간이 지나도 응답이 없으면 자동으로 취소하고 싶을 때, <code>setTimeout</code>과 함께 <code>AbortController</code>를 써요. 요청이 먼저 끝나면 <code>clearTimeout</code>으로 취소 예약을 없애면 돼요.</p>`,
+          code: {
+            label: 'abort_timeout.js',
+            src: `async function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    return await res.json();
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("요청 시간 초과");
+    }
+    throw err;
+  }
+}`
+          }
+        },
+        {
+          h: '이전 요청 취소하고 최신 요청만 반영하기',
+          html: `<p>검색창처럼 <b>이전 요청이 아직 안 끝났는데 새 요청이 시작</b>되는 상황에서도 <code>AbortController</code>를 활용해요. 새 요청을 시작하기 전에 이전 요청을 취소하면, 늦게 도착한 옛 결과가 화면을 덮어쓰는 걸 막을 수 있어요.</p>`,
+          code: {
+            label: 'abort_search.js',
+            src: `let currentController = null;
+
+function search(keyword) {
+  if (currentController) {
+    currentController.abort();
+  }
+  currentController = new AbortController();
+  return fetch(\`/search?q=\${keyword}\`, { signal: currentController.signal });
+}`
+          },
+          after: `<div class="note"><b>실전 팁</b> — 사용자가 검색어를 빠르게 여러 번 입력해도, 항상 <b>가장 최근 요청의 결과만</b> 화면에 반영돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `fetch 요청에 취소 신호를 연결하려면, 옵션 객체에 어떤 속성 이름으로 넘겨야 할까요?`,
+          prefix: 'fetch(url, { ', suffix: ': controller.signal });', accept: ['signal'], placeholder: '속성 이름',
+          why: '<code>{ signal: controller.signal }</code>처럼 signal 속성으로 넘겨야 fetch가 그 신호를 듣고 취소를 감지해요.',
+          hint: '"신호"라는 뜻의 영어 단어예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `AbortController로 만든 요청을 실제로 취소시키는 메서드를 쓰세요.`,
+          prefix: 'controller.', suffix: '();', accept: ['abort'], placeholder: '메서드 이름',
+          why: '<code>controller.abort()</code>를 호출하면 signal을 넘긴 모든 요청이 취소돼요.',
+          hint: '"중단하다, 취소하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'AbortController로 취소된 fetch 요청이 catch에서 잡히는 에러의 name은 무엇일까요?',
+          '<code>"AbortError"</code>',
+          ['<code>"TimeoutError"</code>', '<code>"NetworkError"</code>', '<code>"CancelError"</code>'],
+          '요청이 취소되면 fetch는 <code>name</code>이 <code>"AbortError"</code>인 에러로 거절(reject)돼요.',
+          '"중단됨"이라는 뜻의 영어 단어가 에러 이름에 그대로 들어가요.'
+        ),
+        () => makeChoice(
+          '검색창처럼 이전 요청이 끝나기 전에 새 요청을 보낼 때 AbortController를 쓰는 주된 이유는?',
+          '늦게 도착한 옛 요청의 결과가 화면을 덮어쓰는 것을 막기 위해',
+          ['서버 부하를 완전히 없애기 위해', 'fetch 자체의 속도를 더 빠르게 만들기 위해', '브라우저 캐시를 지우기 위해'],
+          '이전 요청을 취소해두면, 나중에 그 요청이 뒤늦게 응답해도 결과를 무시할 수 있어서 최신 요청 결과만 화면에 반영돼요.',
+          '입력할 때마다 요청이 여러 번 나가면, 응답이 도착하는 순서가 뒤바뀔 수 있다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: 'AbortController를 만들고, <code>controller.signal.addEventListener("abort", () =&gt; console.log("취소됨"))</code>으로 취소 이벤트를 등록한 뒤, <code>controller.abort()</code>를 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'const controller = new AbortController();\ncontroller.signal.addEventListener("abort", () => console.log("취소됨"));\ncontroller.abort();',
+          expectedOutput: '취소됨',
+          why: 'abort()가 호출되면 signal에 등록해둔 "abort" 이벤트 리스너가 실행돼서 "취소됨"이 출력돼요.',
+          hint: 'new AbortController()로 만든 뒤, .signal에 addEventListener("abort", ...)를 등록하고 abort()를 호출하세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '하나의 AbortController에서 나온 signal을 fetch 요청 두 개에 똑같이 넘겼을 때, controller.abort()를 한 번 호출하면?',
+        '두 요청이 모두 한꺼번에 취소된다',
+        ['첫 번째 요청만 취소된다', '두 번째 요청만 취소된다', '아무 요청도 취소되지 않는다'],
+        '같은 signal을 공유하는 모든 요청은 abort() 한 번으로 동시에 취소돼요.',
+        'signal은 여러 fetch에 나눠줄 수 있고, 하나의 스위치로 전부 연결돼 있다는 걸 떠올려보세요.'
+      )
+    },
+    {
+      id: 'memoization',
+      title: '계산 결과 기억해두기: 메모이제이션',
+      ready: true,
+      summary: '똑같은 입력에 대해 반복 계산을 하지 않도록, 클로저와 캐시로 결과를 기억해두는 메모이제이션 패턴을 배워요.',
+      goals: ['메모이제이션의 개념과 필요성', '클로저 + Map으로 캐시 만들기', '범용 memoize 함수 만들기'],
+      blocks: [
+        {
+          h: '같은 계산을 반복하지 않으려면',
+          html: `<p>입력값이 같으면 결과도 항상 같은 함수라면(그리고 계산이 느릴수록), 한 번 계산한 결과를 <b>저장해뒀다가 재사용</b>하면 훨씬 빨라져요. 이런 기법을 <b>메모이제이션(memoization)</b>이라고 해요.</p>`,
+          code: {
+            label: 'no_memo.js',
+            src: `function slowSquare(n) {
+  for (let i = 0; i < 1e8; i++) {} // 일부러 시간을 잡아먹는 계산
+  return n * n;
+}
+
+console.log(slowSquare(5));  // 느림
+console.log(slowSquare(5));  // 또 느림 (매번 다시 계산)`,
+            out: `25\n25`
+          },
+          after: `<div class="note"><b>낭비되는 부분</b> — 똑같이 5를 넣었는데도, 매번 처음부터 다시 계산해요.</div>`
+        },
+        {
+          h: '클로저와 Map으로 캐시 만들기',
+          html: `<p>클로저 안에 <code>Map</code>을 하나 만들어서, "이 입력값으로 이미 계산한 적 있나?"를 확인해요. 있으면 저장된 값을 바로 돌려주고, 없으면 계산한 뒤 저장해요.</p>`,
+          code: {
+            label: 'memo_closure.js',
+            src: `function memoizedSquare() {
+  const cache = new Map();
+  return function (n) {
+    if (cache.has(n)) {
+      console.log("캐시에서 꺼냄");
+      return cache.get(n);
+    }
+    console.log("새로 계산함");
+    const result = n * n;
+    cache.set(n, result);
+    return result;
+  };
+}
+
+const square = memoizedSquare();
+console.log(square(5));
+console.log(square(5));`,
+            out: `새로 계산함\n25\n캐시에서 꺼냄\n25`
+          }
+        },
+        {
+          h: '어떤 함수에도 쓸 수 있는 범용 memoize',
+          html: `<p>이 패턴을 <b>일반화</b>하면, 어떤 함수든 감싸서 메모이제이션을 붙여주는 <code>memoize(fn)</code> 헬퍼를 만들 수 있어요. 인자가 여러 개면 <code>JSON.stringify</code>로 하나의 캐시 키로 합쳐서 써요.</p>`,
+          code: {
+            label: 'memoize_generic.js',
+            src: `function memoize(fn) {
+  const cache = new Map();
+  return function (...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) return cache.get(key);
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  };
+}
+
+const add = memoize((a, b) => a + b);
+console.log(add(2, 3));
+console.log(add(2, 3));`,
+            out: `5\n5`
+          },
+          after: `<div class="note"><b>주의</b> — 메모이제이션은 <b>순수 함수</b>(같은 입력엔 항상 같은 출력, 부작용 없음)에만 안전하게 쓸 수 있어요. <code>Math.random()</code>처럼 매번 다른 값을 주는 함수엔 쓰면 안 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `메모이제이션 캐시로 빠른 조회를 위해 자주 쓰는 자료구조를 채우세요.`,
+          prefix: 'const cache = new ', suffix: '();', accept: ['Map'], placeholder: '자료구조 이름',
+          why: '<code>Map</code>은 키로 값을 빠르게 찾을 수 있어서 캐시로 자주 써요.',
+          hint: '키-값 쌍을 저장하는, ES6에서 추가된 자료구조 이름이에요.'
+        }),
+        () => makeChoice(
+          '메모이제이션을 적용하기에 적합한 함수는?',
+          '같은 입력을 넣으면 항상 같은 출력이 나오는 순수 함수',
+          ['Math.random()처럼 호출할 때마다 다른 값을 주는 함수', '현재 시간을 반환하는 함수', '매번 서버에서 최신 데이터를 가져오는 함수'],
+          '메모이제이션은 "같은 입력 = 같은 출력"이 보장되는 순수 함수에만 안전하게 쓸 수 있어요.',
+          '캐시된 옛날 값을 재사용해도 문제가 없으려면 어떤 조건이 필요할지 생각해보세요.'
+        ),
+        () => {
+          const n = randInt(1, 9);
+          return {
+            type: 'blank',
+            q: `<code>memoizedSquare()</code>로 만든 <code>square</code> 함수에 같은 값 <code>${n}</code>을 연달아 3번 넣으면(<code>square(${n})</code>을 3번 호출), "캐시에서 꺼냄"이 몇 번 출력될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: ['2'], placeholder: '숫자',
+            why: '첫 번째 호출만 캐시에 없어서 새로 계산하고, 나머지 두 번은 캐시에서 꺼내 쓰므로 "캐시에서 꺼냄"은 2번 출력돼요.',
+            hint: '처음 한 번만 계산하고, 그 다음부터는 저장된 값을 재사용한다는 걸 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          '여러 개의 인자를 받는 함수를 메모이제이션할 때, 캐시의 키로 흔히 쓰는 방법은?',
+          '<code>JSON.stringify(args)</code>처럼 인자들을 하나의 문자열로 합친다',
+          ['첫 번째 인자만 키로 쓴다', '인자 개수만 키로 쓴다', '캐시 키가 필요 없다'],
+          '인자가 여러 개일 때는 <code>JSON.stringify(args)</code>로 전체 인자를 하나의 문자열 키로 만들어 구분해요.',
+          '인자가 다르면 다른 캐시 키가 필요하다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '<code>memoize(fn)</code>이라는 함수를 만들어서, Map 캐시로 같은 인자에 대해 다시 계산하지 않고 저장된 값을 재사용하게 하세요. 이 memoize로 <code>(a, b) =&gt; a * b</code> 함수를 감싸 <code>double</code>이라는 이름을 붙이고, <code>double(3, 4)</code>를 두 번 호출한 결과를 각각 <code>console.log</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 12,
+          placeholder: 'function memoize(fn) {\n  const cache = new Map();\n  return function (...args) {\n    const key = JSON.stringify(args);\n    if (cache.has(key)) return cache.get(key);\n    const result = fn(...args);\n    cache.set(key, result);\n    return result;\n  };\n}\n\nconst double = memoize((a, b) => a * b);\nconsole.log(double(3, 4));\nconsole.log(double(3, 4));',
+          expectedOutput: '12\n12',
+          why: 'double(3, 4)는 처음엔 새로 계산(3 * 4 = 12)하고, 두 번째 호출은 캐시에서 꺼내 와서 둘 다 12가 출력돼요.',
+          hint: 'memoize가 반환하는 함수 안에서 JSON.stringify(args)를 캐시 키로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(2, 9);
+        const b = randInt(2, 9);
+        return {
+          type: 'blank',
+          q: `memoize로 감싼 함수 <code>multiply(a, b)</code>에 대해 <code>multiply(${a}, ${b})</code>를 두 번 호출한 뒤, <code>multiply(${b}, ${a})</code>를 한 번 더 호출했어요. 실제 곱셈 계산이 진짜로 실행된 횟수는 몇 번일까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: ['2'], placeholder: '숫자',
+          why: `첫 (${a}, ${b}) 호출은 새로 계산하고, 두 번째 (${a}, ${b}) 호출은 캐시를 재사용해요. 그런데 (${b}, ${a})는 인자 순서가 달라서 JSON.stringify 결과(캐시 키)도 달라지므로 다시 새로 계산돼요. 그래서 총 2번 실제로 계산돼요.`,
+          hint: '인자의 순서가 다르면 JSON.stringify(args) 결과도 달라져서 캐시 키가 달라진다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'arrayAdvanced',
+      title: '배열 메서드 심화: flatMap, at, reduceRight',
+      ready: true,
+      summary: '중첩 배열을 한 번에 펼치는 flatMap, 음수 인덱스로 뒤에서 접근하는 at, 반대 방향으로 누적하는 reduceRight를 배워요.',
+      goals: ['flat/flatMap으로 중첩 배열 펼치기', 'at()으로 끝에서부터 접근하기', 'reduceRight로 반대 방향 누적하기'],
+      blocks: [
+        {
+          h: '중첩 배열 펼치기: flat과 flatMap',
+          html: `<p><code>배열.flat()</code>은 중첩된 배열을 한 단계 펼쳐줘요. <code>flatMap</code>은 <code>map</code>을 한 뒤 자동으로 한 단계 <code>flat</code>까지 해주는, 둘을 합친 메서드예요.</p>`,
+          code: {
+            label: 'flat_flatmap.js',
+            src: `const nested = [[1, 2], [3, 4], [5]];
+console.log(nested.flat());
+
+const words = ["hello world", "foo bar"];
+console.log(words.flatMap(s => s.split(" ")));`,
+            out: `[ 1, 2, 3, 4, 5 ]\n[ 'hello', 'world', 'foo', 'bar' ]`
+          }
+        },
+        {
+          h: '뒤에서부터 접근하기: at()',
+          html: `<p>예전에는 배열의 마지막 값을 <code>배열[배열.length - 1]</code>처럼 길게 써야 했어요. <code>배열.at(-1)</code>은 <b>음수 인덱스</b>로 뒤에서부터 바로 접근할 수 있게 해줘요.</p>`,
+          code: {
+            label: 'array_at.js',
+            src: `const nums = [10, 20, 30, 40];
+console.log(nums[nums.length - 1]);
+console.log(nums.at(-1));
+console.log(nums.at(-2));`,
+            out: `40\n40\n30`
+          }
+        },
+        {
+          h: '반대 방향으로 누적하기: reduceRight',
+          html: `<p><code>reduce</code>는 배열의 <b>앞에서부터</b> 누적하지만, <code>reduceRight</code>는 <b>뒤에서부터</b> 누적해요. 순서가 중요한 계산(예: 문자열을 오른쪽부터 이어붙이기)에서 결과가 달라져요.</p>`,
+          code: {
+            label: 'reduce_right.js',
+            src: `const parts = ["a", "b", "c"];
+console.log(parts.reduce((acc, cur) => acc + cur));
+console.log(parts.reduceRight((acc, cur) => acc + cur));`,
+            out: `abc\ncba`
+          },
+          after: `<div class="note"><b>참고</b> — 숫자 덧셈처럼 순서가 안 중요한 계산은 결과가 같지만, 문자열 이어붙이기처럼 순서가 중요한 계산은 결과가 완전히 달라져요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const a = randInt(1, 9), b = randInt(1, 9), c = randInt(1, 9), d = randInt(1, 9);
+          return {
+            type: 'blank',
+            q: `<code>[[${a}, ${b}], [${c}, ${d}]].flat()</code>의 결과를 배열 형태로 쓰세요.`,
+            prefix: '', suffix: '', accept: [`[${a}, ${b}, ${c}, ${d}]`, `[${a},${b},${c},${d}]`], placeholder: '[값, 값, ...]',
+            why: `flat()은 중첩된 배열을 한 단계 펼쳐서 [${a}, ${b}, ${c}, ${d}]가 돼요.`,
+            hint: '중첩된 대괄호를 한 겹 벗기고 값들을 순서대로 나열해보세요.'
+          };
+        },
+        () => {
+          const nums = Array.from({ length: 4 }, () => randInt(1, 50));
+          return {
+            type: 'blank',
+            q: `<code>[${nums.join(', ')}].at(-1)</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(nums[nums.length - 1])], placeholder: '숫자',
+            why: `at(-1)은 배열의 맨 마지막 값을 돌려줘서 ${nums[nums.length - 1]}이 돼요.`,
+            hint: 'at(-1)은 배열[배열.length - 1]과 같은 결과를 준다는 걸 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          'flatMap이 하는 일로 정확한 설명은?',
+          'map으로 변환한 뒤, 결과 배열을 한 단계 평평하게(flat) 펼친다',
+          ['map과 완전히 똑같이 동작한다', '배열을 정렬한 뒤 map한다', '중첩 단계를 무한히 다 펼친다'],
+          'flatMap은 map(변환)과 flat(1)(한 단계 펼치기)을 합친 동작을 해요.',
+          '"map" 다음에 "flat"이 붙었다는 이름 그대로의 동작을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'reduce와 reduceRight의 차이는?',
+          'reduce는 앞에서부터, reduceRight는 뒤에서부터 누적한다',
+          ['reduceRight는 배열을 정렬한 뒤 누적한다', 'reduce만 초기값을 줄 수 있다', '둘은 이름만 다르고 동작은 완전히 같다'],
+          'reduce는 왼쪽(인덱스 0)부터, reduceRight는 오른쪽(마지막 인덱스)부터 누적을 시작해요.',
+          '이름에 붙은 "Right"가 어느 방향을 뜻하는지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '배열 <code>[[1, 2], [3, 4], [5, 6]]</code>을 <code>flatMap</code>으로 각 쌍의 합(예: 1+2=3)으로 이루어진 새 배열로 만들어 <code>console.log</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'const pairs = [[1, 2], [3, 4], [5, 6]];\nconsole.log(pairs.flatMap(([a, b]) => a + b));',
+          expectedOutput: '[ 3, 7, 11 ]',
+          why: 'flatMap이 각 쌍 [a, b]를 a + b로 변환한 뒤 자동으로 한 단계 펼쳐서 [3, 7, 11]이 돼요.',
+          hint: 'flatMap(([a, b]) => a + b)처럼 배열 구조분해로 쌍을 받아 더해보세요.'
+        }),
+      ],
+      boss: () => {
+        const pool = ['가', '나', '다', '라'];
+        const words = shuffle(pool).slice(0, 3);
+        const result = [...words].reverse().join('');
+        const display = words.map(w => `"${w}"`).join(', ');
+        return {
+          type: 'blank',
+          q: `<code>[${display}].reduceRight((acc, cur) => acc + cur)</code>의 결과는? 따옴표 없이 쓰세요.`,
+          prefix: '', suffix: '', accept: [result], placeholder: '값',
+          why: `reduceRight는 배열의 오른쪽 끝부터 왼쪽으로 이어붙이므로, 순서를 뒤집어 이어붙인 "${result}"가 돼요.`,
+          hint: 'reduceRight는 초기값이 없으면 맨 마지막 값부터 시작해서 왼쪽으로 하나씩 이어붙인다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'classPrivateFields',
+      title: '클래스 심화: 비공개 필드와 정적 멤버',
+      ready: true,
+      summary: '외부에서 접근할 수 없는 비공개 필드(#), 인스턴스 없이 쓰는 정적(static) 멤버, 그리고 getter/setter를 배워요.',
+      goals: ['#필드로 완전히 비공개 만들기', 'static으로 클래스 자체에 붙는 멤버 만들기', 'get/set으로 속성처럼 보이는 메서드 만들기'],
+      blocks: [
+        {
+          h: '진짜로 숨기기: #비공개 필드',
+          html: `<p>일반 속성(<code>this.name</code>)은 밖에서 그냥 접근하고 바꿀 수 있어요. 이름 앞에 <code>#</code>을 붙이면 <b>클래스 밖에서는 절대 접근할 수 없는</b> 진짜 비공개 필드가 돼요.</p>`,
+          code: {
+            label: 'private_field.js',
+            src: `class BankAccount {
+  #balance = 0;
+
+  deposit(amount) {
+    this.#balance += amount;
+    return this.#balance;
+  }
+}
+
+const account = new BankAccount();
+console.log(account.deposit(1000));
+console.log(account.balance);`,
+            out: `1000\nundefined`
+          },
+          after: `<div class="note"><b>참고</b> — <code>account.#balance</code>처럼 <code>#</code>을 붙여 클래스 밖에서 직접 접근하려고 하면 문법 오류(SyntaxError)가 나요. <code>account.balance</code>(# 없이)는 그냥 존재하지 않는 속성이라 undefined예요.</div>`
+        },
+        {
+          h: '인스턴스가 아니라 클래스 자체에 붙는 것: static',
+          html: `<p><code>static</code>을 붙인 속성/메서드는 <code>new</code>로 만든 <b>개별 객체가 아니라 클래스 자체</b>에 속해요. "지금까지 몇 개 만들어졌는지"처럼 모든 인스턴스가 공유하는 값을 셀 때 유용해요.</p>`,
+          code: {
+            label: 'static_member.js',
+            src: `class User {
+  static count = 0;
+
+  constructor(name) {
+    this.name = name;
+    User.count += 1;
+  }
+
+  static getCount() {
+    return User.count;
+  }
+}
+
+new User("지수");
+new User("민준");
+console.log(User.getCount());`,
+            out: `2`
+          }
+        },
+        {
+          h: '속성처럼 보이는 메서드: get과 set',
+          html: `<p><code>get</code>을 붙인 메서드는 <b>괄호 없이 속성처럼</b> 읽을 수 있고, <code>set</code>을 붙인 메서드는 <b>대입하듯</b> 값을 넣을 수 있어요. 비공개 필드를 안전하게 밖에 노출할 때 자주 함께 써요.</p>`,
+          code: {
+            label: 'getter_setter.js',
+            src: `class BankAccount2 {
+  #balance = 0;
+
+  get balance() {
+    return this.#balance;
+  }
+
+  set balance(value) {
+    if (value < 0) {
+      throw new Error("잔액은 음수가 될 수 없어요");
+    }
+    this.#balance = value;
+  }
+}
+
+const acc = new BankAccount2();
+acc.balance = 5000;
+console.log(acc.balance);`,
+            out: `5000`
+          },
+          after: `<div class="note"><b>주의</b> — <code>acc.balance()</code>처럼 괄호를 붙이면 안 돼요. 메서드지만 속성처럼 괄호 없이 읽고 써야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `클래스 안에서 비공개 필드를 만들 때 이름 앞에 붙이는 기호를 쓰세요.`,
+          prefix: 'class Box { ', suffix: 'value = 0; }', accept: ['#'], placeholder: '기호',
+          why: '<code>#value</code>처럼 이름 앞에 <code>#</code>을 붙이면 클래스 밖에서 접근할 수 없는 비공개 필드가 돼요.',
+          hint: 'SNS의 해시태그에도 쓰이는 그 기호예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `인스턴스가 아니라 클래스 자체에 속하는 멤버를 만들 때 앞에 붙이는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' count = 0;', accept: ['static'], placeholder: '키워드',
+          why: '<code>static</code>이 붙은 멤버는 각 인스턴스가 아니라 클래스 전체가 공유해요.',
+          hint: '"정적인, 고정된"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>#balance</code>처럼 비공개 필드로 선언된 속성을 클래스 밖에서 <code>account.#balance</code>로 접근하려고 하면?',
+          '문법 오류(SyntaxError)가 난다',
+          ['undefined가 반환된다', '항상 0이 반환된다', '조용히 무시되고 아무 일도 없다'],
+          '#으로 시작하는 비공개 필드는 그 클래스 몸통 밖에서는 문법적으로 아예 접근할 수 없어서 SyntaxError가 나요.',
+          '일반 속성이 없을 때 나오는 undefined와는 다르다는 걸 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'get/set으로 만든 접근자(accessor)를 사용하는 올바른 방법은?',
+          '괄호 없이 속성처럼 acc.balance로 읽거나 acc.balance = 값으로 쓴다',
+          ['일반 메서드처럼 acc.balance()로 호출한다', 'static 메서드로만 쓸 수 있다', '생성자 안에서만 호출할 수 있다'],
+          'get/set으로 만든 접근자는 메서드가 아니라 속성처럼 괄호 없이 읽고 쓰도록 설계됐어요.',
+          '겉보기엔 보통 속성 접근과 똑같이 보인다는 게 get/set의 핵심이에요.'
+        ),
+        () => ({
+          type: 'code',
+          mode: 'run-js',
+          q: '<code>BankAccount</code> 클래스를 만드세요. <code>#balance</code>라는 비공개 필드를 0으로 시작하고, <code>deposit(amount)</code> 메서드가 <code>#balance</code>에 <code>amount</code>를 더한 뒤 그 값을 반환하게 하세요. <code>new BankAccount()</code>를 만들고 <code>deposit(500)</code>을 호출한 결과를 <code>console.log</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 10,
+          placeholder: 'class BankAccount {\n  #balance = 0;\n\n  deposit(amount) {\n    this.#balance += amount;\n    return this.#balance;\n  }\n}\n\nconst account = new BankAccount();\nconsole.log(account.deposit(500));',
+          expectedOutput: '500',
+          why: '#balance는 0에서 시작해서, deposit(500)이 500을 더한 뒤 그 값을 반환하므로 500이 출력돼요.',
+          hint: '#balance = 0;으로 시작하고, deposit 메서드 안에서 this.#balance += amount; 후 반환하세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(2, 5);
+        return {
+          type: 'blank',
+          q: `<code>static count = 0;</code>으로 시작하고 생성자마다 <code>User.count += 1;</code>을 실행하는 <code>User</code> 클래스가 있을 때, <code>new User()</code>를 ${n}번 호출한 뒤 <code>User.count</code>를 출력하면? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+          why: `static 속성은 모든 인스턴스가 공유하므로, 생성자가 ${n}번 실행되면서 count도 ${n}번 늘어나 ${n}이 돼요.`,
+          hint: 'static 속성은 인스턴스마다 따로 있는 게 아니라 클래스 전체가 공유한다는 걸 떠올려보세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({

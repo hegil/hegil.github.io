@@ -4754,6 +4754,507 @@ run();`,
           hint: 'Promise가 몇 겹이든 가장 안쪽 값의 타입을 찾으세요.'
         };
       }
+    },
+    {
+      id: 'functionComposition',
+      title: '함수 합성의 타입 표현',
+      ready: true,
+      summary: '여러 함수를 이어붙여 하나로 만드는 함수 합성(compose)을, 제네릭으로 안전하게 타입을 표현하는 법을 배워요.',
+      goals: ['두 함수를 이어붙이는 compose 만들기', '제네릭으로 입출력 타입 연결하기', '타입이 안 맞으면 막히는 이유'],
+      blocks: [
+        {
+          h: '두 함수를 하나로 이어붙이기',
+          html: `<p>함수 합성이란, <code>f</code>의 결과를 <code>g</code>에 넘기는 <code>g(f(x))</code>를 하나의 새 함수로 만드는 걸 말해요. 제네릭을 쓰면 <code>f</code>의 반환 타입과 <code>g</code>의 매개변수 타입이 <b>반드시 같도록</b> 강제할 수 있어요.</p>`,
+          code: {
+            label: 'compose_basic.ts',
+            lang: 'typescript',
+            src: `function compose<A, B, C>(f: (a: A) => B, g: (b: B) => C): (a: A) => C {
+  return (a: A) => g(f(a));
+}
+
+const toLength = (s: string): number => s.length;
+const double = (n: number): number => n * 2;
+
+const lengthTimesTwo = compose(toLength, double);
+console.log(lengthTimesTwo("hello"));`,
+            out: `10`
+          }
+        },
+        {
+          h: '타입이 안 맞으면 합성 자체가 막혀요',
+          html: `<p><code>f</code>의 반환 타입(<code>B</code>)과 <code>g</code>의 매개변수 타입(<code>B</code>)이 제네릭으로 <b>같은 이름</b>에 묶여 있어서, 실제로 두 타입이 안 맞으면 TypeScript가 컴파일 시점에 바로 막아줘요.</p>`,
+          code: {
+            label: 'compose_mismatch.ts',
+            lang: 'typescript',
+            src: `const toLength2 = (s: string): number => s.length;
+const shout = (s: string): string => s.toUpperCase();
+
+// const broken = compose(toLength2, shout);
+// 오류! toLength2는 number를 반환하는데, shout은 string을 받음`,
+          },
+          after: `<div class="note"><b>왜 유용할까요</b> — 함수를 여러 개 파이프라인처럼 이어붙이는 코드에서, 중간에 타입이 어긋나는 실수를 실행 전에 바로 잡을 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>function compose&lt;A, B, C&gt;(f: (a: A) =&gt; B, g: (b: B) =&gt; C): (a: A) =&gt; C</code>에서, f의 반환 타입과 g의 매개변수 타입은 같은 제네릭 이름 (무엇)으로 묶여 있나요? (알파벳 한 글자)`,
+          prefix: '', suffix: '', accept: ['B'], placeholder: '글자',
+          why: 'f: (a: A) => B와 g: (b: B) => C에서, f의 결과와 g의 입력이 모두 B로 연결돼 있어요.',
+          hint: 'f가 돌려주는 타입 이름을 보세요.'
+        }),
+        () => makeChoice(
+          'compose(f, g)에서 f의 반환 타입과 g의 매개변수 타입이 서로 다르면 어떻게 되나요?',
+          '컴파일 오류가 난다 (제네릭 B가 서로 다른 타입으로 동시에 만족될 수 없으므로)',
+          ['자동으로 타입 변환이 일어난다', '실행할 때만 오류가 난다', 'g의 매개변수 타입이 자동으로 f의 반환 타입에 맞춰진다'],
+          '제네릭 B가 f의 반환 타입이면서 동시에 g의 매개변수 타입이어야 하므로, 둘이 다르면 이 제약을 만족하는 타입을 찾을 수 없어 오류가 나요.',
+          '하나의 제네릭 이름이 두 군데서 동시에 쓰인다는 점을 떠올려보세요.'
+        ),
+        () => {
+          const word = pick(['hello', 'world', 'code']);
+          return {
+            type: 'blank',
+            q: `<code>const toLength = (s: string): number =&gt; s.length; const double = (n: number): number =&gt; n * 2; const f = compose(toLength, double);</code>일 때, <code>f("${word}")</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(word.length * 2)], placeholder: '숫자',
+            why: `"${word}".length는 ${word.length}이고, 그 값을 2배 하면 ${word.length * 2}예요.`,
+            hint: '먼저 문자열 길이를 구한 다음, 그 값을 2배 하세요.'
+          };
+        },
+        () => makeChoice(
+          '함수 합성을 제네릭으로 표현할 때 얻는 이점은?',
+          '두 함수의 입출력 타입이 실제로 맞물리는지 컴파일 시점에 검사할 수 있다',
+          ['실행 속도가 항상 빨라진다', '함수를 몇 개든 자동으로 합쳐준다', '매개변수 개수를 자동으로 줄여준다'],
+          '제네릭으로 f의 출력과 g의 입력을 같은 타입 이름으로 묶으면, 실제로 안 맞는 조합을 실행 전에 걸러낼 수 있어요.',
+          '"타입이 안 맞으면 막힌다"는 점이 핵심 이점이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '문자열을 받아 boolean을 반환하는 함수 <code>f</code>와, boolean을 받아 string을 반환하는 함수 <code>g</code>를 합성하는 제네릭 함수 <code>compose&lt;A, B, C&gt;(f: (a: A) =&gt; B, g: (b: B) =&gt; C): (a: A) =&gt; C</code>를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'function compose<A, B, C>(f: (a: A) => B, g: (b: B) => C): (a: A) => C {\n  return (a: A) => g(f(a));\n}',
+          accept: ['function compose<A, B, C>(f: (a: A) => B, g: (b: B) => C): (a: A) => C {\n  return (a: A) => g(f(a));\n}'],
+          why: '반환하는 함수 안에서 f(a)의 결과를 g에 그대로 넘기면 돼요.',
+          hint: 'return (a: A) => g(f(a)); 형태로 작성하세요.'
+        }),
+      ],
+      boss: () => {
+        const word = pick(['hi', 'test', 'typescript']);
+        return {
+          type: 'blank',
+          q: `<code>const toLength = (s: string): number =&gt; s.length; const double = (n: number): number =&gt; n * 2; const f = compose(toLength, double);</code>일 때, <code>f("${word}")</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(word.length * 2)], placeholder: '숫자',
+          why: `"${word}".length는 ${word.length}이고, 2배 하면 ${word.length * 2}예요.`,
+          hint: '문자열 길이를 먼저 구하고, 2를 곱하세요.'
+        };
+      }
+    },
+    {
+      id: 'indexAccessTypes',
+      title: '인덱스 접근 타입(T[\\'key\\'])',
+      ready: true,
+      summary: '객체 타입에서 특정 속성만 콕 집어 그 속성의 타입을 그대로 재사용하는 인덱스 접근 타입을 배워요.',
+      goals: ['T[\\'key\\'] 문법 이해하기', '값의 속성 접근과 타입의 인덱스 접근 비교하기', 'keyof와 함께 모든 속성 타입 뽑아내기'],
+      blocks: [
+        {
+          h: '속성 하나의 타입만 뽑아내기',
+          html: `<p><code>T['속성이름']</code>이라고 쓰면, 타입 <code>T</code>에서 그 속성이 어떤 타입인지 그대로 가져올 수 있어요. 값에서 <code>obj.속성</code>으로 값을 꺼내는 것과 비슷한 원리예요.</p>`,
+          code: {
+            label: 'index_access_basic.ts',
+            lang: 'typescript',
+            src: `interface Student {
+  name: string;
+  age: number;
+}
+
+type AgeType = Student["age"]; // number
+
+let a: AgeType = 17;
+console.log(a);`,
+            out: `17`
+          }
+        },
+        {
+          h: 'keyof와 함께 쓰면: 모든 속성의 타입을 유니언으로',
+          html: `<p><code>T[keyof T]</code>처럼 <code>keyof</code>와 함께 쓰면, "이 타입이 가질 수 있는 모든 속성 값의 타입"을 유니언으로 한 번에 뽑아낼 수 있어요.</p>`,
+          code: {
+            label: 'index_access_keyof.ts',
+            lang: 'typescript',
+            src: `type StudentValue = Student[keyof Student]; // string | number
+
+let v: StudentValue = "지수";
+v = 17; // 둘 다 가능
+console.log(v);`,
+            out: `17`
+          },
+          after: `<div class="note"><b>어디에 쓰일까요</b> — 라이브러리에서 "이 객체의 특정 속성과 똑같은 타입"을 매개변수로 요구할 때, 그 타입을 새로 적지 않고 <code>T['속성']</code>으로 재사용할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>interface Student { name: string; age: number; }</code>에서, age 속성만의 타입을 뽑아내는 표기를 쓰세요.`,
+          prefix: 'type AgeType = Student[', suffix: '];', accept: ['"age"', "'age'"], placeholder: "'속성이름'",
+          why: `<code>Student["age"]</code>는 Student의 age 속성 타입인 number를 그대로 가져와요.`,
+          hint: '대괄호 안에 속성 이름을 문자열처럼 적어요.'
+        }),
+        () => makeChoice(
+          '<code>Student["age"]</code>가 뽑아내는 것은?',
+          'Student 인터페이스에서 age 속성이 어떤 타입인지(number)',
+          ['Student 객체의 age 속성의 실제 값', 'Student의 age 속성이 존재하는지 여부(boolean)', 'age라는 이름의 새로운 타입'],
+          '인덱스 접근 타입은 값이 아니라, 그 속성이 어떤 타입인지를 타입 레벨에서 가져와요.',
+          '이건 값이 아니라 타입을 다루는 문법이라는 점을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '<code>Student[keyof Student]</code>는 무엇을 뜻하나요? (Student는 name: string, age: number)',
+          'string | number (Student가 가질 수 있는 모든 속성 값 타입의 유니언)',
+          ['"name" | "age" (속성 이름들의 유니언)', 'number (age 타입만)', 'Student 타입 자체와 완전히 같은 타입'],
+          'keyof Student는 "name" | "age"이고, 그 각각을 인덱스로 접근한 타입들을 유니언으로 합치면 string | number예요.',
+          'keyof로 얻는 것과 그 결과를 다시 인덱스로 쓸 때의 차이를 생각해보세요.'
+        ),
+        () => {
+          const name = pick(['지수', '민준', '서연']);
+          return {
+            type: 'blank',
+            q: `<code>interface Student { name: string; age: number; } type NameType = Student["name"]; const n: NameType = "${name}";</code>일 때, <code>n</code>의 값은?`,
+            prefix: '', suffix: '', accept: [name], placeholder: '값',
+            why: `NameType은 string이므로, n에는 "${name}"이 그대로 담겨요.`,
+            hint: '인덱스 접근 타입은 그냥 그 속성의 타입일 뿐, 값 자체는 평소와 같아요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>interface Product { id: number; price: number; }</code>에서, price 속성만의 타입을 그대로 가져와 타입 별칭 <code>PriceType</code>을 만드세요.',
+          starter: '',
+          placeholder: 'type PriceType = Product["price"];',
+          accept: ['type PriceType = Product["price"];'],
+          why: 'Product["price"]로 price 속성의 타입(number)을 그대로 가져와요.',
+          hint: 'type PriceType = Product["price"]; 를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const age = randInt(14, 19);
+        return {
+          type: 'blank',
+          q: `<code>interface Student { name: string; age: number; } type AgeType = Student["age"]; const a: AgeType = ${age};</code>일 때, <code>a</code>의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(age)], placeholder: '숫자',
+          why: `AgeType은 number이므로, a에는 ${age}가 그대로 담겨요.`,
+          hint: '인덱스 접근 타입은 값이 아니라 타입만 가져온다는 점을 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'parametersReturnTypeCombos',
+      title: 'Parameters와 ReturnType 조합하기',
+      ready: true,
+      summary: '함수 타입에서 매개변수 목록과 반환 타입을 각각 뽑아내는 Parameters<T>와 ReturnType<T>를 조합해서 활용하는 법을 배워요.',
+      goals: ['Parameters<T>로 매개변수 튜플 뽑기', 'ReturnType<T>로 반환 타입 뽑기', '두 유틸리티를 함께 조합해 활용하기'],
+      blocks: [
+        {
+          h: '함수의 매개변수 목록을 튜플로 뽑기',
+          html: `<p><code>Parameters&lt;T&gt;</code>는 함수 타입 <code>T</code>의 매개변수들을 <b>튜플 타입</b>으로 뽑아줘요. <code>ReturnType&lt;T&gt;</code>는 그 함수의 반환 타입을 뽑아줘요.</p>`,
+          code: {
+            label: 'params_return_basic.ts',
+            lang: 'typescript',
+            src: `function greet(name: string, age: number): string {
+  return \`\${name}(\${age})\`;
+}
+
+type Params = Parameters<typeof greet>; // [string, number]
+type Result = ReturnType<typeof greet>; // string
+
+const args: Params = ["지수", 17];
+console.log(greet(...args));`,
+            out: `지수(17)`
+          }
+        },
+        {
+          h: '두 유틸리티 조합하기: 함수 감싸는 유틸 만들기',
+          html: `<p>기존 함수와 <b>똑같은 매개변수와 반환 타입</b>을 갖는 새 함수를 만들 때, 원래 함수의 타입을 다시 손으로 적지 않고 <code>Parameters</code>와 <code>ReturnType</code>으로 그대로 재사용할 수 있어요.</p>`,
+          code: {
+            label: 'params_return_combo.ts',
+            lang: 'typescript',
+            src: `function logged(fn: (...args: Parameters<typeof greet>) => ReturnType<typeof greet>) {
+  return (...args: Parameters<typeof greet>): ReturnType<typeof greet> => {
+    console.log("호출됨:", args);
+    return fn(...args);
+  };
+}
+
+const loggedGreet = logged(greet);
+console.log(loggedGreet("민준", 16));`,
+            out: `호출됨: [ '민준', 16 ]\n민준(16)`
+          },
+          after: `<div class="note"><b>왜 유용할까요</b> — 로깅, 캐싱처럼 "어떤 함수든 감싸서 기능을 덧붙이는" 유틸리티를 만들 때, 원본 함수의 타입 정보를 그대로 재사용해 타입 안전성을 유지할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>function greet(name: string, age: number): string { ... }</code>일 때, <code>Parameters&lt;typeof greet&gt;</code>의 결과 타입은? (튜플 형태로 쓰세요)`,
+          prefix: '', suffix: '', accept: ['[string, number]'], placeholder: '타입',
+          why: 'Parameters는 함수의 매개변수들을 튜플로 뽑아주므로, [string, number]가 돼요.',
+          hint: '매개변수 순서 그대로 대괄호 튜플로 나열하세요.'
+        }),
+        () => makeChoice(
+          'ReturnType<T>가 하는 역할은?',
+          '함수 타입 T의 반환 타입을 뽑아낸다', ['함수의 매개변수 개수를 센다', '함수를 실제로 호출해서 반환값을 얻는다', '함수 이름을 문자열로 뽑아낸다'],
+          'ReturnType은 실행이 아니라 타입 레벨에서, 함수가 반환하는 값의 타입을 뽑아줘요.',
+          '"Return"이 반환을 뜻한다는 점에서 짐작해보세요.'
+        ),
+        () => makeChoice(
+          '기존 함수를 감싸서 로깅 기능을 추가하는 유틸 함수를 만들 때, Parameters와 ReturnType을 함께 쓰는 이유는?',
+          '원본 함수의 매개변수·반환 타입 정보를 다시 적지 않고 그대로 재사용해서 타입 안전성을 유지하려고',
+          ['함수 실행 속도를 높이기 위해서', '매개변수 개수를 자동으로 줄이기 위해서', '함수를 async로 자동 변환하기 위해서'],
+          '두 유틸리티를 조합하면 원본 함수의 시그니처를 그대로 재사용하면서 감싸는 함수를 만들 수 있어요.',
+          '"타입을 다시 적지 않고 재사용한다"는 표현이 핵심이에요.'
+        ),
+        () => {
+          const name = pick(['지수', '민준']);
+          const age = randInt(14, 19);
+          return {
+            type: 'blank',
+            q: `<code>function greet(name: string, age: number): string { return \`\${name}(\${age})\`; }</code>이고 <code>const args: Parameters&lt;typeof greet&gt; = ["${name}", ${age}];</code>일 때, <code>greet(...args)</code>의 결과는?`,
+            prefix: '', suffix: '', accept: [`${name}(${age})`], placeholder: '값',
+            why: `args를 펼쳐서 greet에 넘기면 "${name}(${age})"가 반환돼요.`,
+            hint: '...args로 튜플을 펼쳐서 greet에 그대로 넘겨준다는 점을 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>function add(a: number, b: number): number { return a + b; }</code>일 때, add와 똑같은 매개변수·반환 타입을 갖는 타입 별칭 두 개 <code>AddParams</code>(Parameters 사용)와 <code>AddResult</code>(ReturnType 사용)를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'type AddParams = Parameters<typeof add>;\ntype AddResult = ReturnType<typeof add>;',
+          accept: ['type AddParams = Parameters<typeof add>;\ntype AddResult = ReturnType<typeof add>;'],
+          why: 'Parameters<typeof add>와 ReturnType<typeof add>로 각각 매개변수 튜플과 반환 타입을 뽑아요.',
+          hint: 'type AddParams = Parameters<typeof add>;\ntype AddResult = ReturnType<typeof add>; 를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['지수', '민준', '서연']);
+        const age = randInt(14, 19);
+        return {
+          type: 'blank',
+          q: `<code>function greet(name: string, age: number): string { return \`\${name}(\${age})\`; }</code>이고 <code>const args: Parameters&lt;typeof greet&gt; = ["${name}", ${age}];</code>일 때, <code>greet(...args)</code>의 결과는?`,
+          prefix: '', suffix: '', accept: [`${name}(${age})`], placeholder: '값',
+          why: `args가 펼쳐져 greet(${JSON.stringify(name)}, ${age})처럼 호출되어 "${name}(${age})"가 나와요.`,
+          hint: '튜플을 펼쳐서 원래 함수를 호출한다고 생각하세요.'
+        };
+      }
+    },
+    {
+      id: 'decoratorsBasics',
+      title: '데코레이터 기초',
+      ready: true,
+      summary: '클래스와 메서드 앞에 @을 붙여, 코드를 고치지 않고도 부가 기능을 덧붙이는 데코레이터의 기본 개념을 배워요.',
+      goals: ['@ 문법으로 데코레이터 적용하기', '메서드 데코레이터의 동작 원리', '데코레이터가 실제로 하는 일 이해하기'],
+      blocks: [
+        {
+          h: '메서드 앞에 @을 붙이면',
+          html: `<p>데코레이터는 클래스나 메서드 앞에 <code>@함수이름</code> 형태로 붙여서, 그 대상에 <b>추가 동작을 끼워 넣는</b> 함수예요. 메서드 데코레이터는 원래 메서드를 감싸는 새 함수로 바꿔치기할 수 있어요.</p>`,
+          code: {
+            label: 'decorator_method.ts',
+            lang: 'typescript',
+            src: `function log(target: any, context: ClassMethodDecoratorContext) {
+  const methodName = String(context.name);
+  return function (this: any, ...args: any[]) {
+    console.log(\`\${methodName} 호출됨\`);
+    return target.call(this, ...args);
+  };
+}
+
+class Calculator {
+  @log
+  add(a: number, b: number): number {
+    return a + b;
+  }
+}
+
+const calc = new Calculator();
+console.log(calc.add(3, 4));`,
+            out: `add 호출됨\n7`
+          }
+        },
+        {
+          h: '클래스 데코레이터: 클래스 자체를 감싸기',
+          html: `<p>클래스 앞에 붙이는 데코레이터는 클래스 자체를 매개변수로 받아서, 새로운 클래스로 바꾸거나 정적 속성을 덧붙이는 등의 작업을 할 수 있어요.</p>`,
+          code: {
+            label: 'decorator_class.ts',
+            lang: 'typescript',
+            src: `function sealed(constructor: Function) {
+  Object.seal(constructor);
+  Object.seal(constructor.prototype);
+}
+
+@sealed
+class Config {
+  timeout = 3000;
+}`,
+          },
+          after: `<div class="note"><b>왜 유용할까요</b> — 로깅, 권한 검사, 캐싱처럼 여러 메서드에 공통으로 필요한 부가 기능을, 메서드 본문을 하나하나 고치지 않고 데코레이터 한 줄로 붙일 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `메서드 <code>add</code>에 <code>log</code>라는 데코레이터를 적용하는 문법을 쓰세요.`,
+          prefix: 'class Calculator {\n  ', suffix: '\n  add(a: number, b: number): number { return a + b; }\n}', accept: ['@log'], placeholder: '데코레이터',
+          why: '<code>@log</code>처럼 @ 기호와 데코레이터 함수 이름을 메서드 바로 위에 적어요.',
+          hint: '골뱅이(@) 기호와 함수 이름을 붙여 쓰세요.'
+        }),
+        () => makeChoice(
+          '메서드 데코레이터가 하는 일로 가장 알맞은 설명은?',
+          '원래 메서드를 감싸는 새로운 함수로 바꿔치기해서, 호출 전후에 추가 동작을 끼워 넣을 수 있다',
+          ['메서드의 매개변수 개수를 자동으로 바꾼다', '클래스를 완전히 다른 클래스로 대체한다', '메서드를 항상 비동기로 만든다'],
+          '데코레이터는 원래 메서드(target)를 감싸는 새 함수를 반환해서, 호출 전후에 로깅 같은 부가 동작을 끼워 넣을 수 있어요.',
+          '"감싼다", "끼워 넣는다"는 표현이 핵심이에요.'
+        ),
+        () => makeChoice(
+          '데코레이터를 쓰는 가장 큰 이유는?',
+          '여러 곳에서 공통으로 필요한 부가 기능(로깅, 캐싱 등)을 원본 코드를 고치지 않고 덧붙이기 위해',
+          ['타입 검사를 완전히 꺼버리기 위해', '클래스를 인터페이스로 자동 변환하기 위해', '실행 속도를 항상 높이기 위해'],
+          '데코레이터는 원본 메서드나 클래스의 본문은 그대로 둔 채, 바깥에서 부가 기능을 덧붙일 수 있게 해줘요.',
+          '"원본을 고치지 않는다"는 점을 떠올려보세요.'
+        ),
+        () => {
+          const a = randInt(1, 20), b = randInt(1, 20);
+          return {
+            type: 'blank',
+            q: `<code>@log</code> 데코레이터가 붙은 <code>add(a, b)</code> 메서드를 <code>calc.add(${a}, ${b})</code>로 호출하면, 로그가 찍힌 뒤 반환되는 숫자는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(a + b)], placeholder: '숫자',
+            why: `데코레이터는 로그만 추가로 찍을 뿐, 실제 계산 결과는 그대로 ${a} + ${b} = ${a + b}예요.`,
+            hint: '데코레이터가 계산 자체를 바꾸는 건 아니라는 점을 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '클래스 <code>Config</code>에 <code>@sealed</code> 데코레이터를 적용하는 코드를 작성하세요. (Config는 <code>timeout = 3000;</code> 속성 하나를 가짐)',
+          starter: '',
+          rows: 3,
+          placeholder: '@sealed\nclass Config {\n  timeout = 3000;\n}',
+          accept: ['@sealed\nclass Config {\n  timeout = 3000;\n}'],
+          why: '클래스 선언 바로 위에 @sealed를 적으면 클래스 데코레이터가 적용돼요.',
+          hint: '@sealed\\nclass Config { timeout = 3000; } 형태로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(1, 30), b = randInt(1, 30);
+        return {
+          type: 'blank',
+          q: `<code>@log</code>가 붙은 <code>add(a, b)</code> 메서드를 <code>calc.add(${a}, ${b})</code>로 호출했을 때, 콘솔에 로그가 한 번 찍힌 뒤 반환되는 숫자는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(a + b)], placeholder: '숫자',
+          why: `데코레이터는 부가 동작만 추가할 뿐 계산 로직은 그대로라서, ${a} + ${b} = ${a + b}예요.`,
+          hint: '데코레이터가 있어도 원래 함수의 계산 결과는 바뀌지 않아요.'
+        };
+      }
+    },
+    {
+      id: 'polymorphicThisTypes',
+      title: '다형적 this 타입과 메서드 체이닝',
+      ready: true,
+      summary: '메서드가 자기 자신을 가리키는 this 타입을 반환하도록 만들어서, 자식 클래스에서도 안전하게 메서드 체이닝을 이어가는 법을 배워요.',
+      goals: ['반환 타입으로서의 this 이해하기', '메서드 체이닝(fluent interface) 만들기', '상속 시에도 정확한 타입이 유지되는 이유'],
+      blocks: [
+        {
+          h: 'this를 반환 타입으로 쓰기',
+          html: `<p>메서드의 반환 타입을 <code>this</code>로 적으면, "이 메서드는 항상 자기 자신의 인스턴스를 반환한다"는 뜻이 돼요. 이러면 메서드를 점(.)으로 계속 이어 부르는 <b>메서드 체이닝</b>을 만들 수 있어요.</p>`,
+          code: {
+            label: 'this_return_basic.ts',
+            lang: 'typescript',
+            src: `class Builder {
+  private parts: string[] = [];
+
+  add(part: string): this {
+    this.parts.push(part);
+    return this;
+  }
+
+  build(): string {
+    return this.parts.join(" ");
+  }
+}
+
+const result = new Builder().add("안녕").add("하세요").build();
+console.log(result);`,
+            out: `안녕 하세요`
+          }
+        },
+        {
+          h: '상속받은 자식 클래스에서도 정확하게 유지돼요',
+          html: `<p>반환 타입을 <code>Builder</code>처럼 구체적으로 적으면, 자식 클래스에서 체이닝했을 때 자식만의 메서드가 안 보일 수 있어요. 하지만 <code>this</code>로 적으면 <b>실제 호출한 인스턴스의 타입</b>을 그대로 유지해줘서, 자식 클래스 메서드까지 안전하게 이어 부를 수 있어요.</p>`,
+          code: {
+            label: 'this_return_inherit.ts',
+            lang: 'typescript',
+            src: `class SpecialBuilder extends Builder {
+  shout(): this {
+    console.log("짜잔!");
+    return this;
+  }
+}
+
+const r2 = new SpecialBuilder().add("안녕").shout().add("하세요").build();
+console.log(r2);`,
+            out: `짜잔!\n안녕 하세요`
+          },
+          after: `<div class="note"><b>비유</b> — this 반환 타입은 "누가 나를 불렀든, 부른 사람과 똑같은 타입으로 돌아간다"는 약속이에요. 그래서 자식 클래스가 불러도 자식 타입 그대로 이어져요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `메서드가 자기 자신의 인스턴스를 반환한다는 걸 나타내는 반환 타입 표기를 쓰세요. (예: add(part: string): ___)`,
+          prefix: 'add(part: string): ', suffix: ' { this.parts.push(part); return this; }', accept: ['this'], placeholder: '타입',
+          why: '<code>this</code>를 반환 타입으로 쓰면, 이 메서드가 항상 자기 자신의 인스턴스를 반환한다는 뜻이 돼요.',
+          hint: '자바스크립트에서 "이 인스턴스"를 가리키는 그 키워드예요.'
+        }),
+        () => makeChoice(
+          '메서드 반환 타입을 this로 적으면 얻는 장점은?',
+          '자식 클래스가 상속받아 체이닝해도, 자식 클래스만의 타입과 메서드까지 안전하게 이어 부를 수 있다',
+          ['메서드 실행 속도가 빨라진다', '메서드를 static으로 자동 변환해준다', '매개변수 타입 검사를 생략한다'],
+          'this 반환 타입은 실제로 호출한 인스턴스의 타입을 그대로 유지해줘서, 자식 클래스에서도 체이닝이 안전하게 이어져요.',
+          '"실제로 호출한 인스턴스의 타입을 유지한다"는 표현이 핵심이에요.'
+        ),
+        () => makeChoice(
+          '반환 타입을 this 대신 구체적인 클래스 이름(Builder)으로 고정하면 생기는 문제는?',
+          '자식 클래스에서 체이닝할 때, 자식 클래스만의 메서드가 안 보일 수 있다',
+          ['부모 클래스의 메서드가 모두 사라진다', '컴파일이 항상 실패한다', '아무 문제도 생기지 않는다'],
+          '반환 타입을 Builder로 고정하면, 자식 인스턴스로 호출해도 Builder 타입으로 취급돼서 자식만의 메서드에 접근할 수 없어요.',
+          '반환 타입이 "고정된 이름"이면 실제 호출자가 누구인지 상관없이 그 타입으로 취급된다는 점을 생각해보세요.'
+        ),
+        () => {
+          const w1 = pick(['안녕', '반가워']);
+          const w2 = pick(['하세요', '요']);
+          return {
+            type: 'blank',
+            q: `<code>class Builder { private parts: string[] = []; add(part: string): this { this.parts.push(part); return this; } build(): string { return this.parts.join(" "); } }</code>일 때, <code>new Builder().add("${w1}").add("${w2}").build()</code>의 결과는?`,
+            prefix: '', suffix: '', accept: [`${w1} ${w2}`], placeholder: '값',
+            why: `add를 호출할 때마다 parts 배열에 문자열이 쌓이고, build()가 공백으로 이어붙이므로 "${w1} ${w2}"가 돼요.`,
+            hint: '각 add 호출로 추가된 문자열들이 공백으로 이어져요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>count</code>라는 number 속성(초기값 0)을 가지는 클래스 <code>Counter</code>에, 호출할 때마다 count를 1 증가시키고 <code>this</code>를 반환하는 메서드 <code>increment(): this</code>를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'class Counter {\n  count = 0;\n  increment(): this {\n    this.count++;\n    return this;\n  }\n}',
+          accept: ['class Counter {\n  count = 0;\n  increment(): this {\n    this.count++;\n    return this;\n  }\n}'],
+          why: 'increment 안에서 count를 늘리고 this를 반환하면, 메서드 체이닝이 가능해져요.',
+          hint: 'increment(): this { this.count++; return this; } 형태로 작성하세요.'
+        }),
+      ],
+      boss: () => {
+        const w1 = pick(['안녕', '반가워', '환영해']);
+        const w2 = pick(['하세요', '요', '!']);
+        return {
+          type: 'blank',
+          q: `<code>class Builder { private parts: string[] = []; add(part: string): this { this.parts.push(part); return this; } build(): string { return this.parts.join(" "); } }</code>일 때, <code>new Builder().add("${w1}").add("${w2}").build()</code>의 결과는?`,
+          prefix: '', suffix: '', accept: [`${w1} ${w2}`], placeholder: '값',
+          why: `두 번의 add 호출로 쌓인 문자열이 공백으로 이어져 "${w1} ${w2}"가 돼요.`,
+          hint: 'add가 호출된 순서대로 문자열이 공백을 사이에 두고 이어져요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({

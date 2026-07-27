@@ -1266,17 +1266,56 @@ function renderProgress() {
   el('sidebarTip').innerHTML = `<b>팁</b> ${pick(TIPS)}`;
 }
 
-function codeFigure(b, lang) {
+/* 설명 블록 하나마다, 그 블록의 예제 코드를 그대로 따라 써보는 작은 연습칸을 붙여줘요.
+   idx는 그 단원 안에서 이 블록이 몇 번째인지(u.blocks의 인덱스)예요. */
+function followAlongWidget(code, idx) {
+  const rows = Math.min(Math.max(code.src.split('\n').length, 3), 12);
+  return `
+    <div class="follow-along">
+      <p class="muted" style="margin:12px 0 8px">위 <code>${esc(code.label)}</code> 예제를 그대로 따라 써보세요. 손으로 직접 입력하면 훨씬 오래 기억에 남아요.</p>
+      <div class="code-editor" style="padding:0">
+        <textarea class="follow-along-input" data-follow-idx="${idx}" rows="${rows}" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="위 예제를 그대로 입력해보세요"></textarea>
+      </div>
+      <div class="quiz-foot" style="padding:10px 0 0; border-top:none">
+        <button class="btn ghost small follow-along-check" type="button" data-follow-idx="${idx}">확인하기</button>
+        <span class="muted" style="align-self:center; font-size:13px">Ctrl+Enter로도 확인할 수 있어요</span>
+      </div>
+      <div class="verdict follow-along-verdict" data-follow-idx="${idx}" hidden></div>
+    </div>`;
+}
+
+function codeFigure(b, lang, noCopy) {
   const c = b;
   const useLang = c.lang || lang;
   const resultBlock = c.preview
     ? `<div class="preview"><span class="preview-label">미리보기</span><iframe sandbox="" title="미리보기" srcdoc="${escAttr(c.preview)}"></iframe></div>`
     : (c.out ? `<div class="out"><b>실행 결과</b>${esc(c.out)}</div>` : '');
-  return `<figure class="code">
-    <figcaption>${esc(c.label)}<button class="copy" type="button">복사</button></figcaption>
+  return `<figure class="code${noCopy ? ' no-copy' : ''}">
+    <figcaption>${esc(c.label)}${noCopy ? '<span class="muted" style="font-size:12px">직접 타이핑 연습을 위해 복사가 꺼져 있어요</span>' : '<button class="copy" type="button">복사</button>'}</figcaption>
     <pre><code>${highlight(c.src, useLang)}</code></pre>
     ${resultBlock}
   </figure>`;
+}
+
+/* "내가 쓴 답"과 "정답"을 글자 단위로 비교해서, 다른 부분만 강조해서 보여줘요.
+   block=true면 여러 줄 코드처럼 <pre>로, false면 한 줄짜리 답처럼 <code>로 보여줘요.
+   labels로 두 줄의 이름표를 바꿀 수 있어요(기본은 "내가 쓴 답"/"정답"). */
+function diffCompareHTML(userAnswer, correctAnswer, block, labels) {
+  const [userLabel, correctLabel] = labels || ['내가 쓴 답', '정답'];
+  const diff = diffChars(userAnswer, correctAnswer);
+  const tag = block ? 'pre' : 'code';
+  const userHTML = diff
+    .filter(d => d.type !== 'add')
+    .map(d => d.type === 'del' ? `<span class="diff-del">${esc(d.value)}</span>` : esc(d.value))
+    .join('');
+  const correctHTML = diff
+    .filter(d => d.type !== 'del')
+    .map(d => d.type === 'add' ? `<span class="diff-add">${esc(d.value)}</span>` : esc(d.value))
+    .join('');
+  return `<div class="diff-compare">
+    <div class="diff-row"><span class="diff-label">${esc(userLabel)}</span><${tag} class="diff-code">${userHTML || '<i>(비어있음)</i>'}</${tag}></div>
+    <div class="diff-row"><span class="diff-label">${esc(correctLabel)}</span><${tag} class="diff-code">${correctHTML}</${tag}></div>
+  </div>`;
 }
 
 function quizItem(q) {
@@ -1327,19 +1366,20 @@ function renderUnit() {
       <p>${u.summary}</p>
       <ul class="goals">${u.goals.map(g => `<li>${g}</li>`).join('')}</ul>
     </div>
-    ${u.blocks.map(b => `
+    ${u.blocks.map((b, i) => `
       <section class="block card">
         <h2>${b.h}</h2>
         <div class="body">
           ${b.html}
-          ${b.code ? codeFigure(b.code, langKey) : ''}
+          ${b.code ? codeFigure(b.code, langKey, true) : ''}
+          ${b.code ? followAlongWidget(b.code, i) : ''}
           ${b.after || ''}
         </div>
       </section>`).join('')}
     <section class="block card" id="quiz">
-      <h2>연습 문제 <span class="muted" style="font-weight:400">· 계속 새 문제가 나와요</span></h2>
+      <h2>연습 문제 <span class="muted" style="font-weight:400">· 연속 ${STREAK_GOAL}개를 맞히면 단원 완료</span></h2>
       <div class="body" style="padding-bottom:6px">
-        <p class="muted" style="margin:0 0 12px">문제를 풀고 <b>확인하기</b>를 누르면 정답과 설명이 나와요. 막히면 <b>힌트 보기</b>를 눌러보세요. 다 봤으면 <b>다음 문제</b>를 눌러서 계속 연습하세요. 가끔 직접 코드를 작성하는 문제도 나와요 (제출은 Ctrl+Enter로도 가능해요). 문제는 무한히 만들어져요.</p>
+        <p class="muted" style="margin:0 0 12px">문제를 풀고 <b>확인하기</b>를 누르면 정답과 설명이 나와요. 틀리면 그 자리에서 다시 풀어야 <b>다음 문제</b>로 넘어갈 수 있어요. 막히면 <b>힌트 보기</b>를 눌러보세요. 가끔 직접 코드를 작성하는 문제도 나와요 (제출은 Ctrl+Enter로도 가능해요).</p>
         <div class="quiz-stats" id="quiz-stats"></div>
       </div>
       <div id="qlist"></div>
@@ -1348,6 +1388,7 @@ function renderUnit() {
         <button class="btn" type="button" id="check">확인하기</button>
         <button class="btn ghost" type="button" id="hintBtn">힌트 보기</button>
         <button class="btn ghost" type="button" id="next">다음 문제</button>
+        <span class="muted" style="align-self:center; font-size:13px">정답을 맞혀야 다음 문제 버튼이 열려요</span>
       </div>
     </section>
     ${bossHTML}`;
@@ -1389,6 +1430,10 @@ function newQuestion() {
   el('check').disabled = false;
   el('check').textContent = '확인하기';
   el('hintBox').hidden = true;
+  /* 단원 학습(practice)에서는 이번 문제를 맞히기 전까지 "다음 문제"를 눌러도 못 넘어가요.
+     복습·오답노트는 예전처럼 언제든 다음 문제로 넘어갈 수 있어요. */
+  const nextBtn = el('next');
+  if (nextBtn) nextBtn.disabled = quizMode === 'practice';
   renderStats();
 }
 
@@ -1412,6 +1457,9 @@ function runUserJS(code) {
 
 function gradeQuestion(q, box) {
   const verdict = box.querySelector('.verdict');
+  /* quizMode는 view를 벗어나도 값이 남아있을 수 있어서(예: 홈에서 'practice'로
+     설정된 채 오늘의 문제로 이동), 단원 학습 화면(view === 'lesson')일 때만 다시 풀기를 적용해요. */
+  const retryOnWrong = view === 'lesson' && quizMode === 'practice';
   let ok = null;
 
   if (q.type === 'choice') {
@@ -1425,13 +1473,16 @@ function gradeQuestion(q, box) {
     ok = Number(chosen.value) === q.answer;
     box.querySelectorAll('.opt').forEach((lab, j) => {
       lab.classList.remove('correct', 'wrong');
-      if (j === q.answer) lab.classList.add('correct');
-      else if (Number(chosen.value) === j) lab.classList.add('wrong');
+      /* 다시 풀어야 하는 모드에서는 오답이어도 정답 위치를 바로 알려주지 않고,
+         내가 고른 것만 틀렸다고 표시해서 스스로 다시 골라보게 해요. */
+      if (ok && j === q.answer) lab.classList.add('correct');
+      else if (!ok && Number(chosen.value) === j) lab.classList.add('wrong');
+      else if (!retryOnWrong && j === q.answer) lab.classList.add('correct');
     });
     verdict.hidden = false;
     verdict.className = 'verdict ' + (ok ? 'ok' : 'no');
     verdict.innerHTML = q.why;
-    box.querySelectorAll('input').forEach(i => { i.disabled = true; });
+    if (ok || !retryOnWrong) box.querySelectorAll('input').forEach(i => { i.disabled = true; });
     return ok;
   }
 
@@ -1449,7 +1500,9 @@ function gradeQuestion(q, box) {
         ok = norm(result.output) === norm(q.expectedOutput);
         resultHTML = `<div class="code-output"><b>실행 결과</b>${esc(result.output || '(아무것도 출력되지 않았어요)')}</div>`;
       }
-      if (!ok) resultHTML += `<div class="code-output"><b>기대한 실행 결과</b>${esc(q.expectedOutput)}</div>`;
+      if (!ok) resultHTML += result.ok
+        ? diffCompareHTML(result.output, q.expectedOutput, true, ['실제 출력', '기대한 출력'])
+        : `<div class="code-output"><b>기대한 실행 결과</b>${esc(q.expectedOutput)}</div>`;
     } else {
       ok = q.accept.some(a => norm(a) === norm(code));
       if (q.preview) {
@@ -1461,8 +1514,8 @@ function gradeQuestion(q, box) {
     verdict.hidden = false;
     verdict.className = 'verdict ' + (ok ? 'ok' : 'no');
     verdict.innerHTML = resultHTML + `<div style="margin-top:8px">${q.why}</div>` +
-      (!ok && q.mode !== 'run-js' ? `<div class="muted" style="margin-top:6px">예시 정답: <code>${esc(q.accept[0])}</code></div>` : '');
-    input.disabled = true;
+      (!ok && q.mode !== 'run-js' ? diffCompareHTML(code, q.accept[0], true) : '');
+    if (ok || !retryOnWrong) input.disabled = true;
     return ok;
   }
 
@@ -1472,8 +1525,8 @@ function gradeQuestion(q, box) {
 
   verdict.hidden = false;
   verdict.className = 'verdict ' + (ok ? 'ok' : 'no');
-  verdict.innerHTML = q.why + (!ok ? ` (정답: <code>${esc(q.accept[0])}</code>)` : '');
-  box.querySelectorAll('input').forEach(i => { i.disabled = true; });
+  verdict.innerHTML = q.why + (!ok ? diffCompareHTML(input.value, q.accept[0], false) : '');
+  if (ok || !retryOnWrong) box.querySelectorAll('input').forEach(i => { i.disabled = true; });
   return ok;
 }
 
@@ -1483,11 +1536,31 @@ function checkAnswer() {
   const ok = gradeQuestion(currentQuestion, box);
   if (ok === null) return;
 
-  el('check').disabled = true;
+  /* quizMode는 view를 벗어나도 값이 남아있을 수 있어서(예: 홈에서 'practice'로
+     설정된 채 오늘의 문제로 이동), 단원 학습 화면(view === 'lesson')일 때만 다시 풀기를 적용해요. */
+  const retryOnWrong = view === 'lesson' && quizMode === 'practice';
+  el('check').disabled = ok || !retryOnWrong;
+  if (ok && retryOnWrong) el('next').disabled = false;
   touchDailyStreak();
   if (quizMode === 'review') updateReviewStats(ok);
   else if (quizMode === 'wrongnote') updateWrongNoteStats(ok);
   else updateStreak(ok);
+}
+
+/* "따라 써보기"는 진도·연속정답 기록에는 영향을 주지 않는 가벼운 보조 연습이에요.
+   위에 이미 정답(예제)이 그대로 보이니, 맞았는지 여부만 간단히 알려줘요.
+   idx로 그 단원의 몇 번째 블록에 달린 연습칸인지 구분해요(한 단원에 여러 개 있을 수 있어요). */
+function checkFollowAlong(idx) {
+  const block = COURSES[langKey].units[unitIdx].blocks[idx];
+  if (!block || !block.code) return;
+  const input = document.querySelector(`.follow-along-input[data-follow-idx="${idx}"]`);
+  const verdict = document.querySelector(`.follow-along-verdict[data-follow-idx="${idx}"]`);
+  const ok = norm(input.value) === norm(block.code.src);
+  verdict.hidden = false;
+  verdict.className = 'verdict follow-along-verdict ' + (ok ? 'ok' : 'no');
+  verdict.textContent = ok
+    ? '예제를 완벽하게 따라 썼어요!'
+    : '위 예제와 비교해서 다른 부분을 찾아 고쳐보세요.';
 }
 
 function showHint() {
@@ -1735,6 +1808,8 @@ document.addEventListener('click', async e => {
   if (e.target.id === 'check') { checkAnswer(); return; }
   if (e.target.id === 'next') { newQuestion(); return; }
   if (e.target.id === 'hintBtn') { showHint(); return; }
+  const followAlongBtn = e.target.closest('.follow-along-check');
+  if (followAlongBtn) { checkFollowAlong(Number(followAlongBtn.dataset.followIdx)); return; }
 
   if (e.target.id === 'startBoss') { startBossChallenge(langKey, COURSES[langKey].units[unitIdx].id); return; }
   const gauntletBtn = e.target.closest('[data-gauntlet]');
@@ -1795,6 +1870,15 @@ document.addEventListener('click', e => {
   }
 });
 
+/* 단원 학습의 예제(figure.no-copy)는 직접 타이핑 연습을 유도하기 위해
+   복사/우클릭 메뉴를 막아요. (완전한 방지는 아니고, 손으로 치도록 유도하는 정도예요) */
+document.addEventListener('copy', e => {
+  if (e.target.closest('figure.no-copy')) e.preventDefault();
+});
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('figure.no-copy')) e.preventDefault();
+});
+
 /* 검색창은 입력할 때마다(클릭이 아니라 input 이벤트) 결과만 다시 그려요.
    #main 전체를 새로 그리면 입력칸이 포커스/커서 위치를 잃어버리기 때문이에요. */
 document.addEventListener('input', e => {
@@ -1815,11 +1899,15 @@ document.addEventListener('keydown', e => {
     const btn = el('check') || el('challengeCheck');
     if (btn && !btn.disabled) btn.click();
   }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.classList.contains('follow-along-input')) {
+    e.preventDefault();
+    checkFollowAlong(Number(e.target.dataset.followIdx));
+  }
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.id === 'pgInput') {
     e.preventDefault();
     runPlayground();
   }
-  if (e.key === 'Tab' && e.target.matches('#codeInput, #pgInput') && !e.target.disabled) {
+  if (e.key === 'Tab' && (e.target.matches('#codeInput, #pgInput') || e.target.classList.contains('follow-along-input')) && !e.target.disabled) {
     e.preventDefault();
     const ta = e.target;
     const start = ta.selectionStart, end = ta.selectionEnd;

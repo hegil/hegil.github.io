@@ -287,6 +287,10 @@
   .tok-num { color: var(--c-num); }
   .tok-com { color: var(--c-com); font-style: italic; }
   .tok-fn { color: var(--c-fn); }
+  figure.code.no-copy pre, figure.code.no-copy code {
+    user-select: none; -webkit-user-select: none; -moz-user-select: none;
+  }
+  figure.code.no-copy figcaption { color: #9aa4b2; }
 
   /* ---------- 연습 문제 ---------- */
   .q { padding: 4px 20px 18px; }
@@ -333,6 +337,15 @@
   .code-output { font-family: ui-monospace, Consolas, monospace; font-size: 13.5px; white-space: pre-wrap; margin-bottom: 8px; background: rgba(127,127,127,.08); padding: 8px 10px; border-radius: 6px; }
   .code-output b { display: block; font-size: 11px; letter-spacing: .06em; margin-bottom: 4px; opacity: .7; }
   .code-error { color: var(--bad); }
+  .diff-compare { margin-top: 8px; display: grid; gap: 6px; }
+  .diff-row { display: flex; flex-direction: column; gap: 3px; }
+  .diff-label { font-size: 11px; letter-spacing: .06em; opacity: .7; }
+  .diff-code {
+    font-family: ui-monospace, Consolas, "D2Coding", monospace; font-size: 13.5px; white-space: pre-wrap;
+    margin: 0; padding: 8px 10px; border-radius: 6px; background: rgba(127,127,127,.08); line-height: 1.6;
+  }
+  .diff-del { background: var(--bad-soft); color: var(--bad); text-decoration: line-through; border-radius: 3px; }
+  .diff-add { background: var(--ok-soft); color: var(--ok); font-weight: 700; border-radius: 3px; }
   .code-preview { padding: 0 20px 16px; }
   .playground-editor { margin: 14px 0; }
   .playground-editor textarea {

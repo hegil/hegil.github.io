@@ -11,6 +11,36 @@ function shuffle(arr) {
   }
   return a;
 }
+/* 두 문자열을 글자 단위로 비교해서 어디가 다른지 찾아줌(최장 공통 부분수열 기반).
+   결과는 {type: 'same'|'del'|'add', value} 배열이에요.
+   'same'은 둘 다에 있는 부분, 'del'은 a에만(빠져야 할 부분), 'add'는 b에만(더해야 할 부분) 있는 부분이에요. */
+function diffChars(a, b) {
+  const n = a.length, m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const raw = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { raw.push({ type: 'same', value: a[i] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { raw.push({ type: 'del', value: a[i] }); i++; }
+    else { raw.push({ type: 'add', value: b[j] }); j++; }
+  }
+  while (i < n) { raw.push({ type: 'del', value: a[i] }); i++; }
+  while (j < m) { raw.push({ type: 'add', value: b[j] }); j++; }
+  /* 같은 타입이 연달아 나오면 하나로 뭉쳐서, 화면에 표시할 조각 수를 줄여요 */
+  const grouped = [];
+  for (const d of raw) {
+    const last = grouped[grouped.length - 1];
+    if (last && last.type === d.type) last.value += d.value;
+    else grouped.push({ type: d.type, value: d.value });
+  }
+  return grouped;
+}
+
 /* 객관식 문제 하나를 만들어 줌: 정답과 오답들을 무작위 순서로 섞음 */
 function makeChoice(q, correct, distractors, why, hint) {
   const opts = shuffle([correct, ...distractors]);
@@ -56,17 +86,17 @@ function tierOfIndex(index, totalReady) {
   return TIER_ORDER[2];
 }
 
-const STREAK_GOAL = 5; // 이만큼 연속 정답을 맞히면 그 단원이 "완료"로 표시됨
+const STREAK_GOAL = 10; // 이만큼 연속 정답을 맞히면 그 단원이 "완료"로 표시됨
 
 /* 곳곳에 무작위로 보여줄 짧은 팁 모음 */
 const TIPS = [
   '막히면 힌트 버튼을 먼저 눌러보세요. 정답을 바로 알려주지 않고 방향만 살짝 알려줘요.',
-  '한 단원에서 연속 5문제를 맞히면 그 단원이 완료로 표시돼요.',
+  '한 단원에서 연속 10문제를 맞히면 그 단원이 완료로 표시돼요. 틀리면 그 자리에서 다시 풀어야 해요.',
   '단원을 완료하면 그 단원의 개념을 모아 묻는 "최종 도전" 문제가 열려요.',
   '한 티어(초급·중급·고급)의 단원을 모두 완료하면, 그 티어 전체를 총정리하는 도전 과제가 열려요.',
-  '오답이어도 괜찮아요 — 설명을 읽고 바로 다음 문제로 넘어가면 돼요.',
+  '오답이어도 괜찮아요 — 단원 학습에서는 맞을 때까지 같은 문제를 다시 풀고, 복습·오답노트에서는 설명만 읽고 바로 다음 문제로 넘어가도 돼요.',
   '복습 모드에서는 여러 언어의 문제가 섞여서 나와요. 배운 걸 뒤섞어 풀면 기억에 더 오래 남아요.',
-  '코드 예제 위의 "복사" 버튼을 누르면 다른 곳에 붙여넣어 직접 실행해볼 수 있어요.',
+  '치트시트의 코드 예제는 "복사" 버튼으로 붙여넣을 수 있어요. 단원 학습의 예제는 직접 타이핑 연습을 위해 복사가 안 돼요.',
   '자바스크립트는 브라우저 콘솔(F12)에 코드를 바로 붙여넣어 실행할 수 있어요.',
   '변수 이름은 그 값이 무엇인지 알 수 있게 짓는 습관을 들이면 나중에 코드를 다시 볼 때 편해요.',
   '같은 실수를 반복하고 있다면, 조급해하지 말고 강의 부분을 한 번 더 읽어보세요.',
