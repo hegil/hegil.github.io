@@ -1355,11 +1355,19 @@ function quizItem(q) {
   </div>`;
 }
 
+/* 그 단원의 예제(코드 블록)가 있는 자리마다 "따라 써보기"를 한 번이라도 맞혔는지 확인해요.
+   예제가 아예 없는 블록은 검사 대상에서 빠져요. */
+function allFollowAlongsDone(u, key) {
+  return u.blocks.every((b, i) => !b.code || progress[`${key}.fa${i}`]);
+}
+
 function renderUnit() {
   const course = COURSES[langKey];
   const u = course.units[unitIdx];
   const key = `${langKey}.${u.id}`;
-  const bossHTML = (u.boss && progress[key]?.done) ? `
+  const streakDone = !!progress[key]?.done;
+  const followAlongDone = allFollowAlongsDone(u, key);
+  const bossHTML = u.boss && streakDone ? (followAlongDone ? `
     <section class="block card boss-cta">
       <div class="body">
         <div>
@@ -1369,7 +1377,15 @@ function renderUnit() {
         <button class="btn" type="button" id="startBoss">${progress[key]?.bossCleared ? '다시 도전하기' : '도전하기'}</button>
         ${progress[key]?.bossCleared ? '<span class="stat done">클리어!</span>' : ''}
       </div>
-    </section>` : '';
+    </section>` : `
+    <section class="block card boss-cta">
+      <div class="body">
+        <div>
+          <h3>이 단원 최종 도전 <span class="muted" style="font-weight:400">· 잠김</span></h3>
+          <p class="muted">위에 있는 "따라 써보기" 예제를 모두 맞혀야 최종 도전이 열려요.</p>
+        </div>
+      </div>
+    </section>`) : '';
   el('main').innerHTML = `
     <div class="hero">
       <div class="eyebrow">${course.name} · ${unitIdx + 1}단원</div>
@@ -1584,12 +1600,19 @@ function checkFollowAlong(idx) {
     : '위 예제와 비교해서 다른 부분을 찾아 고쳐보세요.';
   if (ok) {
     const progressKey = `${langKey}.${u.id}.fa${idx}`;
-    if (!progress[progressKey]) {
+    const wasAlreadyDone = !!progress[progressKey];
+    if (!wasAlreadyDone) {
       progress[progressKey] = true;
       saveProgress(progress);
     }
     const badge = document.querySelector(`.follow-along-badge[data-follow-idx="${idx}"]`);
     if (badge) badge.hidden = false;
+    /* 방금 그 완료로 이 단원의 예제를 전부 다 맞혔고, 연속 정답 스트릭도 이미 달성한 상태라면
+       "최종 도전"이 새로 열린 거라 화면을 다시 그려서 잠금 해제된 걸 바로 보여줘요. */
+    const key = `${langKey}.${u.id}`;
+    if (!wasAlreadyDone && progress[key]?.done && allFollowAlongsDone(u, key)) {
+      renderUnit();
+    }
   }
 }
 
