@@ -3306,6 +3306,1536 @@ System.out.println(name + " " + age);`,
         '텍스트 블록은 줄바꿈이 그대로 유지되는 여러 줄 문자열을 가장 간결하게 표현해줘요.',
         '예전 방식(\\n + 이어붙이기)과 텍스트 블록 중 어느 쪽이 더 간결할지 생각해보세요.'
       )
+    },
+    {
+      id: 'abstractClass',
+      title: '추상 클래스(abstract class)',
+      ready: true,
+      summary: '직접 객체로 만들 수는 없지만, 공통 코드와 "이건 꼭 구현해라"는 규칙을 함께 물려주는 추상 클래스를 배워요.',
+      goals: ['abstract 클래스와 abstract 메서드', '일반 메서드도 함께 가질 수 있다는 것', 'interface와의 차이'],
+      blocks: [
+        {
+          h: '직접 만들 수 없는 클래스: abstract',
+          html: `<p><code>abstract class</code>는 <code>new</code>로 직접 객체를 만들 수 없는 클래스예요. 몸통(구현)이 없는 <code>abstract</code> 메서드와, 몸통이 있는 일반 메서드를 함께 가질 수 있어요. 자식 클래스는 abstract 메서드를 반드시 구현해야 해요.</p>`,
+          code: {
+            label: 'AbstractBasic.java',
+            src: `abstract class Shape {
+    String name;
+    Shape(String name) { this.name = name; }
+
+    abstract double area();
+
+    void describe() {
+        System.out.println(name + "의 넓이: " + area());
+    }
+}
+
+class Circle extends Shape {
+    double radius;
+    Circle(double radius) {
+        super("원");
+        this.radius = radius;
+    }
+    double area() {
+        return 3.14 * radius * radius;
+    }
+}
+
+Circle c = new Circle(2);
+c.describe();`,
+            out: `원의 넓이: 12.56`
+          }
+        },
+        {
+          h: '왜 abstract 메서드가 필요할까요',
+          html: `<p><code>area()</code>는 도형마다 계산 방법이 다르니 <code>Shape</code>에서는 몸통 없이 규칙만 정하고, <code>Circle</code>, <code>Rectangle</code> 같은 자식 클래스가 각자 구현하게 해요. 반면 <code>describe()</code>는 모든 도형이 똑같이 쓸 수 있는 코드라서 부모에 미리 완성해뒀어요. <code>new Shape("모양")</code>처럼 추상 클래스를 직접 만들려고 하면 컴파일 오류가 나요.</p>`
+        },
+        {
+          h: 'interface와 무엇이 다를까요',
+          html: `<p><code>interface</code>는 필드에 상태(값)를 담기 어렵고 생성자도 없지만, <code>abstract class</code>는 일반 클래스처럼 필드와 생성자, 완성된 메서드를 자유롭게 가질 수 있어요. "이 자식들은 확실히 같은 부모(같은 종류)다"라고 표현하고 싶을 때 abstract class를, "이 메서드들만 구현하면 된다"는 약속만 필요할 때 interface를 주로 써요.</p>`,
+          after: `<div class="note"><b>비유</b> — abstract class는 "미완성 설계도"예요. 일부는 이미 그려져 있고(일반 메서드), 일부는 빈칸으로 남겨둬서(abstract 메서드) 자식이 채우게 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `몸통 없이 "이 메서드는 자식이 반드시 구현해야 한다"는 규칙만 정의하는 메서드 앞에 붙이는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' double area();', accept: ['abstract'], placeholder: '키워드',
+          why: '<code>abstract</code> 메서드는 몸통(구현)이 없이 선언만 있고, 자식 클래스가 반드시 구현해야 해요.',
+          hint: '"추상적인"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>abstract class Shape { ... }</code>일 때, <code>new Shape("모양")</code>을 직접 실행하면?',
+          '컴파일 오류가 난다(추상 클래스는 직접 객체로 만들 수 없어서)',
+          ['정상적으로 객체가 만들어진다', 'area()가 자동으로 0을 반환하는 객체가 만들어진다', '경고만 뜨고 실행은 된다'],
+          '추상 클래스는 미완성 설계도라서 <code>new</code>로 직접 인스턴스를 만들 수 없어요. 반드시 자식 클래스를 통해서만 객체를 만들 수 있어요.',
+          '완성되지 않은 메서드(abstract 메서드)가 있는 클래스를 직접 실행 가능한 형태로 만들 수 있을지 생각해보세요.'
+        ),
+        () => {
+          const r = randInt(2, 5);
+          const area = (3.14 * r * r).toFixed(2).replace(/\.?0+$/, '');
+          return {
+            type: 'blank',
+            q: `위 <code>Shape</code>/<code>Circle</code> 코드에서 <code>Circle c = new Circle(${r}); c.describe();</code>를 실행하면 무엇이 출력될까요? (그대로 입력, 3.14 기준)`,
+            prefix: '', suffix: '', accept: [`원의 넓이: ${(3.14 * r * r)}`], placeholder: '출력될 문장',
+            why: `area()는 3.14 × ${r} × ${r} = ${3.14 * r * r}을 반환하고, describe()가 "원의 넓이: " 뒤에 그 값을 이어붙여요.`,
+            hint: '3.14에 반지름을 두 번 곱한 값을 "원의 넓이: " 뒤에 붙여보세요.'
+          };
+        },
+        () => makeChoice(
+          'abstract class와 interface의 차이로 가장 알맞은 것은?',
+          'abstract class는 필드(상태)와 생성자, 완성된 일반 메서드를 가질 수 있지만 interface는 그런 용도로 쓰기 어렵다',
+          ['interface는 자식이 여러 개일 수 없다', 'abstract class는 메서드를 하나도 가질 수 없다', 'abstract class는 상속이 안 된다'],
+          'abstract class는 일반 클래스처럼 생성자와 필드, 이미 구현된 메서드를 가질 수 있어서 "공통 상태 + 공통 동작"을 함께 물려줄 때 유리해요.',
+          '생성자와 필드를 자유롭게 쓸 수 있는 쪽이 어느 것인지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '위 <code>Shape</code> 클래스를 상속받아, 필드 <code>double side;</code>를 가지고 생성자에서 <code>super("사각형")</code>을 호출하며, <code>area()</code>를 <code>side * side</code>를 반환하도록 구현하는 <code>Square</code> 클래스를 작성하세요.',
+          starter: '',
+          rows: 8,
+          placeholder: 'class Square extends Shape {\n    double side;\n    Square(double side) {\n        super("사각형");\n        this.side = side;\n    }\n    double area() {\n        return side * side;\n    }\n}',
+          accept: ['class Square extends Shape {double side;Square(double side) {super("사각형");this.side = side;}double area() {return side * side;}}'],
+          why: 'Shape을 상속받아 super("사각형")으로 이름을 넘기고, abstract 메서드였던 area()를 side * side로 구현하면 describe()도 그대로 재사용할 수 있어요.',
+          hint: 'extends Shape 뒤에 super("사각형")을 호출하는 생성자와, side * side를 반환하는 area()를 작성하세요.'
+        }),
+      ],
+      boss: () => {
+        const r = randInt(2, 6);
+        const area = 3.14 * r * r;
+        return {
+          type: 'blank',
+          q: `<code>abstract class Shape { String name; Shape(String name) { this.name = name; } abstract double area(); void describe() { System.out.println(name + "의 넓이: " + area()); } }</code>이고 <code>Circle</code>이 <code>area()</code>를 <code>3.14 * radius * radius</code>로 구현할 때, <code>new Circle(${r}).describe();</code>를 실행하면 무엇이 출력될까요? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`원의 넓이: ${area}`], placeholder: '출력될 문장',
+          why: `Circle의 area()가 3.14 × ${r} × ${r} = ${area}를 반환하고, 부모의 describe()가 그 값을 이름 뒤에 이어붙여 출력해요.`,
+          hint: '부모의 describe()가 자식이 구현한 area()를 그대로 불러 쓴다는 점을 기억하세요.'
+        };
+      }
+    },
+    {
+      id: 'interfaceDefaultMethod',
+      title: '인터페이스의 default/static 메서드',
+      ready: true,
+      summary: '인터페이스에도 이미 구현된 메서드를 담을 수 있는 default 메서드와 static 메서드를 배워요.',
+      goals: ['default 메서드로 기본 구현 제공하기', 'static 메서드로 유틸 기능 담기', '여러 인터페이스를 구현할 때 충돌 해결'],
+      blocks: [
+        {
+          h: '인터페이스에도 몸통이 있는 메서드: default',
+          html: `<p>예전 인터페이스는 몸통 없는 메서드만 가질 수 있었지만, 자바 8부터는 <code>default</code> 키워드로 <b>이미 구현된 메서드</b>를 인터페이스 안에 넣을 수 있어요. 구현 클래스는 이 메서드를 오버라이드하지 않아도 그대로 물려받아 쓸 수 있어요.</p>`,
+          code: {
+            label: 'DefaultMethod.java',
+            src: `interface Greetable {
+    String name();
+
+    default void greet() {
+        System.out.println("안녕, " + name() + "!");
+    }
+}
+
+class Person implements Greetable {
+    public String name() { return "지수"; }
+}
+
+Person p = new Person();
+p.greet();`,
+            out: `안녕, 지수!`
+          }
+        },
+        {
+          h: '인터페이스에 속한 도구 메서드: static',
+          html: `<p><code>static</code> 메서드는 객체 없이 <code>인터페이스이름.메서드()</code> 형태로 바로 호출하는, 그 인터페이스와 관련된 유틸리티 기능이에요. 구현 클래스와는 상관없이 인터페이스 자체에 속해요.</p>`,
+          code: {
+            label: 'StaticInInterface.java',
+            src: `interface MathUtil {
+    static int square(int n) {
+        return n * n;
+    }
+}
+
+System.out.println(MathUtil.square(5));`,
+            out: `25`
+          }
+        },
+        {
+          h: '여러 인터페이스의 default 메서드가 겹치면',
+          html: `<p>한 클래스가 두 인터페이스를 동시에 구현하는데 같은 이름의 <code>default</code> 메서드가 있으면, 컴파일 오류가 나요. 이때는 클래스 안에서 그 메서드를 직접 오버라이드해서 어떤 것을 쓸지(또는 새로 만들지) 명시해야 해요.</p>`,
+          after: `<div class="note"><b>왜 생겼을까</b> — default 메서드 덕분에, 기존 인터페이스에 새 메서드를 추가해도 이미 그 인터페이스를 구현하고 있던 클래스들이 깨지지 않아요. 자바 8의 Stream API 같은 큰 기능이 컬렉션 인터페이스에 추가될 수 있었던 이유예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `인터페이스 안에서 몸통(구현)을 가진 메서드를 정의할 때 앞에 붙이는 키워드를 쓰세요.`,
+          prefix: 'interface Greetable { String name(); ', suffix: ' void greet() { System.out.println("안녕, " + name() + "!"); } }', accept: ['default'], placeholder: '키워드',
+          why: '<code>default</code> 키워드를 붙이면 인터페이스 메서드도 몸통(구현)을 가질 수 있어요.',
+          hint: '"기본값, 기본 동작"이라는 뜻의 영어 단어예요.'
+        }),
+        () => {
+          const n = randInt(2, 12);
+          return {
+            type: 'blank',
+            q: `<code>interface MathUtil { static int square(int n) { return n * n; } }</code>일 때, <code>MathUtil.square(${n})</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n * n)], placeholder: '숫자',
+            why: `static 메서드는 <code>MathUtil.square(${n})</code>처럼 인터페이스 이름으로 바로 호출하고, ${n} × ${n} = ${n * n}을 반환해요.`,
+            hint: 'static 메서드는 객체 없이 인터페이스 이름으로 바로 호출한다는 걸 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          'default 메서드가 자바 8에서 도입된 가장 큰 이유는?',
+          '기존 인터페이스에 새 메서드를 추가해도, 이미 그 인터페이스를 구현하던 클래스들이 깨지지 않게 하려고',
+          ['인터페이스에 필드를 넣을 수 있게 하려고', 'static 메서드를 없애려고', '클래스 상속을 완전히 대체하려고'],
+          'default 메서드 덕분에 인터페이스에 새 기능을 추가해도 기존 구현 클래스들이 컴파일 오류 없이 그대로 동작할 수 있어요.',
+          '기존에 그 인터페이스를 구현하고 있던 수많은 클래스들이 갑자기 깨지지 않으려면 어떻게 해야 할지 생각해보세요.'
+        ),
+        () => makeChoice(
+          '한 클래스가 구현하는 두 인터페이스에 이름이 같은 default 메서드가 있으면 어떻게 될까요?',
+          '컴파일 오류가 나고, 클래스에서 그 메서드를 직접 오버라이드해야 한다',
+          ['먼저 구현한 인터페이스의 것이 자동으로 선택된다', '두 메서드가 순서대로 모두 실행된다', '아무 문제 없이 무작위로 하나가 선택된다'],
+          '자바는 어떤 default 메서드를 써야 할지 스스로 판단하지 않고, 개발자가 클래스 안에서 직접 오버라이드해서 명확히 정하도록 컴파일 오류를 내요.',
+          '자바가 애매한 상황을 그냥 넘어가지 않고 컴파일 오류로 알려준다는 걸 기억하세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Greetable</code> 인터페이스(<code>String name();</code>과 <code>default void greet() { System.out.println("안녕, " + name() + "!"); }</code>)를 구현하는 <code>Person</code> 클래스를 만들어 <code>name()</code>이 <code>"민준"</code>을 반환하게 하고, <code>new Person().greet();</code>을 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 6,
+          placeholder: 'class Person implements Greetable {\n    public String name() {\n        return "민준";\n    }\n}\n\nnew Person().greet();',
+          accept: ['class Person implements Greetable {public String name() {return "민준";}}new Person().greet();'],
+          why: 'Person이 name()만 구현하면, 인터페이스의 default 메서드 greet()는 그대로 물려받아 쓸 수 있어요.',
+          hint: 'implements Greetable 뒤에 name()만 구현하고, greet()는 따로 만들지 않아도 돼요.'
+        }),
+      ],
+      boss: () => {
+        const n = pick(['하늘', '서연', '도윤']);
+        return {
+          type: 'blank',
+          q: `<code>interface Greetable { String name(); default void greet() { System.out.println("안녕, " + name() + "!"); } }</code>이고, <code>class Person implements Greetable { public String name() { return "${n}"; } }</code>일 때, <code>new Person().greet();</code>를 실행하면 무엇이 출력될까요? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`안녕, ${n}!`], placeholder: '출력될 문장',
+          why: `Person은 name()만 구현했고, greet()는 인터페이스의 default 구현을 그대로 써서 "안녕, ${n}!"을 출력해요.`,
+          hint: 'greet()의 구현은 인터페이스에 이미 정해져 있고, name()의 반환값만 바뀐다는 걸 생각해보세요.'
+        };
+      }
+    },
+    {
+      id: 'methodReference',
+      title: '메서드 참조(Method Reference)',
+      ready: true,
+      summary: '이미 있는 메서드를 람다 대신 그대로 가리켜서 쓰는, 더 간결한 메서드 참조 문법을 배워요.',
+      goals: ['클래스::static메서드', '객체::인스턴스메서드', '생성자 참조(클래스::new)'],
+      blocks: [
+        {
+          h: '람다가 그냥 기존 메서드를 부르기만 한다면',
+          html: `<p><code>n -> Math.abs(n)</code>처럼 람다가 하는 일이 그냥 이미 있는 메서드 하나를 호출하는 것뿐이라면, <code>::</code>를 써서 <b>메서드 참조</b>로 더 짧게 쓸 수 있어요. 의미는 완전히 똑같아요.</p>`,
+          code: {
+            label: 'MethodRefStatic.java',
+            src: `List<Integer> nums = List.of(-3, 1, -5, 2);
+List<Integer> abs = nums.stream()
+    .map(Math::abs)
+    .collect(Collectors.toList());
+System.out.println(abs);`,
+            out: `[3, 1, 5, 2]`
+          }
+        },
+        {
+          h: '특정 객체의 메서드를 참조하기',
+          html: `<p>이미 만들어둔 객체의 메서드를 참조할 땐 <code>객체::메서드이름</code> 형태로 써요. 예를 들어 <code>System.out::println</code>은 <code>x -> System.out.println(x)</code>와 똑같이 동작해요.</p>`,
+          code: {
+            label: 'MethodRefInstance.java',
+            src: `List<String> names = List.of("지수", "민준", "서연");
+names.forEach(System.out::println);`,
+            out: `지수
+민준
+서연`
+          }
+        },
+        {
+          h: '생성자를 참조하기: 클래스::new',
+          html: `<p><code>클래스이름::new</code>는 <code>s -> new 클래스이름(s)</code>처럼 생성자를 호출하는 람다를 대신해요. 스트림의 각 값을 새 객체로 감쌀 때 자주 쓰여요.</p>`,
+          code: {
+            label: 'ConstructorRef.java',
+            src: `List<String> names = List.of("초코", "보리");
+List<StringBuilder> builders = names.stream()
+    .map(StringBuilder::new)
+    .collect(Collectors.toList());
+System.out.println(builders.get(0).toString());`,
+            out: `초코`
+          },
+          after: `<div class="note"><b>정리</b> — <code>클래스::static메서드</code>, <code>객체::인스턴스메서드</code>, <code>클래스::인스턴스메서드</code>(첫 인자가 대상이 됨), <code>클래스::new</code> 네 가지 형태가 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '<code>n -> Math.abs(n)</code>과 완전히 같은 의미의 메서드 참조는?',
+          '<code>Math::abs</code>', ['<code>Math.abs()</code>', '<code>abs::Math</code>', '<code>Math::new</code>'],
+          '기존 static 메서드를 그대로 호출만 하는 람다는 <code>클래스::메서드</code>로 줄여 쓸 수 있어요.',
+          '클래스 이름과 메서드 이름을 콜론 두 개(::)로 이어써요.'
+        ),
+        () => makeChoice(
+          '<code>x -> System.out.println(x)</code>와 같은 의미의 메서드 참조는?',
+          '<code>System.out::println</code>', ['<code>println::System.out</code>', '<code>System::out</code>', '<code>out.println::System</code>'],
+          '이미 만들어진 <code>System.out</code> 객체의 <code>println</code> 메서드를 참조하는 형태예요.',
+          '"객체::인스턴스메서드" 형태를 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '<code>s -> new StringBuilder(s)</code>와 같은 의미의 메서드 참조는?',
+          '<code>StringBuilder::new</code>', ['<code>new::StringBuilder</code>', '<code>StringBuilder::create</code>', '<code>StringBuilder.new()</code>'],
+          '생성자를 참조할 땐 <code>클래스이름::new</code> 형태를 써요.',
+          '생성자를 가리킬 때 메서드 이름 자리에 무엇을 쓰는지 생각해보세요.'
+        ),
+        () => {
+          const nums = shuffle([-8, -3, -1, 2, 5, -9, 7]).slice(0, randInt(3, 5));
+          const abs = nums.map(n => Math.abs(n));
+          return {
+            type: 'blank',
+            q: `<code>List.of(${nums.join(', ')})</code>에 <code>.stream().map(Math::abs).collect(Collectors.toList())</code>를 적용한 결과를 대괄호 포함해서 쓰세요.`,
+            prefix: '', suffix: '', accept: [`[${abs.join(', ')}]`], placeholder: '[숫자, ...]',
+            why: `<code>Math::abs</code>는 각 값에 <code>Math.abs()</code>를 적용하는 것과 같아서 절댓값들의 리스트 [${abs.join(', ')}]이 나와요.`,
+            hint: '각 숫자의 절댓값을 순서대로 나열해보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>List&lt;String&gt; names = List.of("지수", "민준");</code>의 각 이름을 메서드 참조 <code>System.out::println</code>을 이용해 <code>forEach</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'List<String> names = List.of("지수", "민준");\nnames.forEach(System.out::println);',
+          accept: ['List<String> names = List.of("지수", "민준");names.forEach(System.out::println);'],
+          why: '<code>names.forEach(System.out::println)</code>은 각 이름에 대해 <code>System.out.println(이름)</code>을 호출하는 것과 같아요.',
+          hint: 'forEach의 인자로 람다 대신 System.out::println을 그대로 넘기세요.'
+        }),
+      ],
+      boss: () => {
+        const nums = Array.from({ length: randInt(3, 5) }, () => randInt(-9, 9)).filter(n => n !== 0);
+        const abs = nums.map(n => Math.abs(n));
+        return {
+          type: 'blank',
+          q: `<code>List.of(${nums.join(', ')})</code>에 <code>.stream().map(Math::abs).collect(Collectors.toList())</code>를 적용하면 결과는? 대괄호 포함해서 쓰세요.`,
+          prefix: '', suffix: '', accept: [`[${abs.join(', ')}]`], placeholder: '[숫자, ...]',
+          why: `<code>Math::abs</code>는 <code>n -> Math.abs(n)</code>과 같아서, 각 값을 절댓값으로 바꾼 [${abs.join(', ')}]이 결과예요.`,
+          hint: '메서드 참조도 람다와 똑같은 결과를 만든다는 걸 기억하고 절댓값을 계산해보세요.'
+        };
+      }
+    },
+    {
+      id: 'streamCollectors',
+      title: 'Stream 고급: groupingBy와 joining',
+      ready: true,
+      summary: '스트림 결과를 그룹으로 묶거나 문자열로 이어붙이는 등, Collectors의 다양한 활용법을 배워요.',
+      goals: ['Collectors.groupingBy로 그룹 짓기', 'Collectors.joining으로 문자열 합치기', 'Collectors.counting / toMap 살짝 맛보기'],
+      blocks: [
+        {
+          h: '기준별로 묶기: groupingBy',
+          html: `<p><code>Collectors.groupingBy(기준함수)</code>는 스트림의 값들을 기준에 따라 <code>Map</code>으로 그룹 지어줘요. 같은 기준값을 가진 요소들은 하나의 리스트로 모여요.</p>`,
+          code: {
+            label: 'GroupingBy.java',
+            src: `List<String> words = List.of("apple", "ant", "banana", "bear", "cat");
+Map<Character, List<String>> byFirst = words.stream()
+    .collect(Collectors.groupingBy(w -> w.charAt(0)));
+System.out.println(byFirst.get('a'));`,
+            out: `[apple, ant]`
+          }
+        },
+        {
+          h: '문자열로 이어붙이기: joining',
+          html: `<p><code>Collectors.joining(구분자)</code>는 스트림의 문자열들을 구분자로 이어붙여 하나의 문자열로 만들어줘요.</p>`,
+          code: {
+            label: 'Joining.java',
+            src: `List<String> names = List.of("지수", "민준", "서연");
+String result = names.stream()
+    .collect(Collectors.joining(", "));
+System.out.println(result);`,
+            out: `지수, 민준, 서연`
+          }
+        },
+        {
+          h: '개수 세기와 Map 만들기: counting과 toMap',
+          html: `<p><code>Collectors.groupingBy(기준, Collectors.counting())</code>은 그룹별 <b>개수</b>를 세줘요. <code>Collectors.toMap(키함수, 값함수)</code>는 스트림을 원하는 키-값 <code>Map</code>으로 바로 모아줘요.</p>`,
+          code: {
+            label: 'CountingToMap.java',
+            src: `Map<Character, Long> countByFirst = words.stream()
+    .collect(Collectors.groupingBy(w -> w.charAt(0), Collectors.counting()));
+System.out.println(countByFirst.get('b'));`,
+            out: `2`
+          },
+          after: `<div class="note"><b>기억할 점</b> — 단순 filter/map/reduce로는 "그룹별로 나누기" 같은 작업이 번거로운데, Collectors의 다양한 조합으로 훨씬 짧게 쓸 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '스트림 값들을 어떤 기준에 따라 여러 그룹(Map)으로 나누고 싶을 때 쓰는 것은?',
+          '<code>Collectors.groupingBy(기준함수)</code>', ['<code>Collectors.toList()</code>', '<code>Collectors.joining()</code>', '<code>Collectors.counting()</code>'],
+          '<code>groupingBy</code>는 기준함수가 반환하는 값별로 그룹을 지어 <code>Map</code>으로 모아줘요.',
+          '"그룹 짓다"라는 뜻의 영어 단어가 들어있어요.'
+        ),
+        () => {
+          const words = ['apple', 'ant', 'banana', 'bear', 'cat', 'car'];
+          const first = pick(['a', 'b', 'c']);
+          const matched = words.filter(w => w[0] === first);
+          return {
+            type: 'blank',
+            q: `<code>List.of(${words.join(', ')})</code>에서 첫 글자로 <code>groupingBy</code>했을 때, <code>'${first}'</code> 그룹에 속한 단어들을 대괄호 포함해서 쓰세요.`,
+            prefix: '', suffix: '', accept: [`[${matched.join(', ')}]`], placeholder: '[단어, ...]',
+            why: `첫 글자가 '${first}'인 단어들만 모으면 [${matched.join(', ')}]이 돼요.`,
+            hint: `첫 글자가 '${first}'인 단어들만 순서대로 골라보세요.`
+          };
+        },
+        () => {
+          const names = shuffle(['지수', '민준', '서연', '하늘', '도윤']).slice(0, randInt(3, 4));
+          return {
+            type: 'blank',
+            q: `<code>List.of("${names.join('", "')}")</code>에 <code>.stream().collect(Collectors.joining(", "))</code>를 적용한 결과를 쓰세요.`,
+            prefix: '', suffix: '', accept: [names.join(', ')], placeholder: '이어붙인 문자열',
+            why: `<code>joining(", ")</code>은 각 문자열 사이에 ", "를 넣어 이어붙여서 "${names.join(', ')}"가 돼요.`,
+            hint: '각 이름 사이에 쉼표와 띄어쓰기를 넣어 이어붙여보세요.'
+          };
+        },
+        () => makeChoice(
+          '그룹별로 "개수"까지 함께 세고 싶을 때, groupingBy와 함께 쓰는 것은?',
+          '<code>Collectors.groupingBy(기준, Collectors.counting())</code>', ['<code>Collectors.groupingBy(기준, Collectors.toList())</code>만 가능하다', '<code>Collectors.joining()</code>', '<code>Collectors.counting()</code>만 단독으로 쓴다'],
+          '<code>groupingBy</code>의 두 번째 인자로 <code>Collectors.counting()</code>을 넘기면 그룹별 개수를 Map으로 얻을 수 있어요.',
+          'groupingBy는 두 번째 인자로 "그룹 안에서 무엇을 할지"를 더 지정할 수 있어요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>List&lt;String&gt; names = List.of("지수", "민준", "서연");</code>의 이름들을 <code>Collectors.joining(" / ")</code>으로 이어붙여 <code>String result</code>에 담고 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'List<String> names = List.of("지수", "민준", "서연");\nString result = names.stream().collect(Collectors.joining(" / "));\nSystem.out.println(result);',
+          accept: ['List<String> names = List.of("지수", "민준", "서연");String result = names.stream().collect(Collectors.joining(" / "));System.out.println(result);'],
+          why: 'Collectors.joining(" / ")은 각 이름 사이에 " / "를 넣어 하나의 문자열로 이어붙여요.',
+          hint: '.stream().collect(Collectors.joining(" / "))를 이어 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const words = ['apple', 'ant', 'banana', 'bean', 'cat', 'cup', 'dog'];
+        const first = pick(['a', 'b', 'c']);
+        const count = words.filter(w => w[0] === first).length;
+        return {
+          type: 'blank',
+          q: `<code>List.of(${words.join(', ')})</code>에 <code>.stream().collect(Collectors.groupingBy(w -&gt; w.charAt(0), Collectors.counting()))</code>를 적용했을 때, <code>'${first}'</code> 키의 값(개수)은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(count)], placeholder: '숫자',
+          why: `첫 글자가 '${first}'인 단어는 ${count}개라서, groupingBy + counting의 결과에서 '${first}' 키의 값은 ${count}예요.`,
+          hint: `첫 글자가 '${first}'인 단어가 몇 개인지 세어보세요.`
+        };
+      }
+    },
+    {
+      id: 'annotationsBasics',
+      title: '어노테이션(Annotation) 기초',
+      ready: true,
+      summary: '@Override처럼 코드에 붙이는 메타데이터, 어노테이션의 의미와 자주 쓰는 것들을 배워요.',
+      goals: ['@Override / @Deprecated / @SuppressWarnings', '@FunctionalInterface의 역할', '커스텀 어노테이션 살짝 맛보기'],
+      blocks: [
+        {
+          h: '코드에 붙이는 꼬리표: 어노테이션',
+          html: `<p><code>@어노테이션이름</code>은 클래스, 메서드, 필드 등에 붙이는 "표시(메타데이터)"예요. 실행 흐름을 직접 바꾸진 않지만, 컴파일러나 도구가 이 표시를 보고 검사하거나 특별하게 처리해요.</p>`,
+          code: {
+            label: 'OverrideAnnotation.java',
+            src: `class Animal {
+    String sound() { return "..."; }
+}
+
+class Dog extends Animal {
+    @Override
+    String sound() {
+        return "멍멍!";
+    }
+}`
+          }
+        },
+        {
+          h: '@Override — 제대로 오버라이드했는지 검사',
+          html: `<p><code>@Override</code>는 "이 메서드는 부모의 메서드를 오버라이드한 것이다"라고 컴파일러에게 알려줘요. 메서드 이름을 오타 내거나 매개변수를 잘못 써서 실제로는 오버라이딩이 안 됐다면, 컴파일 오류로 바로 알려줘서 실수를 막아줘요.</p>`
+        },
+        {
+          h: '자주 쓰는 다른 어노테이션들',
+          html: `<p><code>@Deprecated</code>는 "이 코드는 더 이상 쓰지 않는 게 좋다"는 경고 표시예요. <code>@SuppressWarnings("unchecked")</code>는 특정 경고를 컴파일러가 표시하지 않게 눌러줘요. <code>@FunctionalInterface</code>는 "이 인터페이스는 추상 메서드가 딱 하나뿐인 함수형 인터페이스여야 한다"를 강제해서, 실수로 메서드를 더 추가하면 컴파일 오류로 알려줘요.</p>`,
+          code: {
+            label: 'MoreAnnotations.java',
+            src: `@FunctionalInterface
+interface Calculator {
+    int calc(int a, int b);
+}
+
+Calculator add = (a, b) -> a + b;
+System.out.println(add.calc(3, 4));`,
+            out: `7`
+          },
+          after: `<div class="note"><b>커스텀 어노테이션</b> — <code>@interface</code>로 직접 만들 수도 있는데, 이 부분은 리플렉션과 함께 쓰일 때 진짜 힘을 발휘해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `부모 클래스의 메서드를 제대로 오버라이드했는지 컴파일러가 검사하게 해주는 어노테이션을 @ 포함해서 쓰세요.`,
+          prefix: 'class Dog extends Animal { ', suffix: '\n    String sound() { return "멍멍!"; }\n}', accept: ['@Override'], placeholder: '@어노테이션',
+          why: '<code>@Override</code>는 이 메서드가 부모를 오버라이드한 것임을 컴파일러에게 알려서, 오타 등의 실수를 컴파일 오류로 잡아줘요.',
+          hint: '"재정의하다"라는 뜻의 영어 단어가 들어간 어노테이션이에요.'
+        }),
+        () => makeChoice(
+          '더 이상 사용을 권장하지 않는 오래된 메서드나 클래스에 붙이는 어노테이션은?',
+          '<code>@Deprecated</code>', ['<code>@Override</code>', '<code>@FunctionalInterface</code>', '<code>@SuppressWarnings</code>'],
+          '<code>@Deprecated</code>는 "더 이상 쓰지 않는 게 좋다"는 뜻의 경고 표시예요.',
+          '"더 이상 권장하지 않는"이라는 뜻의 영어 단어예요.'
+        ),
+        () => makeChoice(
+          '추상 메서드가 정확히 하나뿐인 인터페이스여야 함을 컴파일러가 강제하게 하는 어노테이션은?',
+          '<code>@FunctionalInterface</code>', ['<code>@Override</code>', '<code>@Deprecated</code>', '<code>@SuppressWarnings</code>'],
+          '<code>@FunctionalInterface</code>가 붙은 인터페이스에 추상 메서드를 두 개 이상 넣으면 컴파일 오류가 나요.',
+          '람다로 구현할 수 있는 인터페이스의 조건과 관련된 어노테이션이에요.'
+        ),
+        () => makeChoice(
+          '어노테이션이 하는 일에 대한 설명으로 가장 알맞은 것은?',
+          '코드에 붙는 메타데이터(표시)로, 컴파일러나 도구가 이를 보고 검사하거나 특별히 처리한다',
+          ['어노테이션이 붙은 코드는 실행 순서가 완전히 바뀐다', '어노테이션은 항상 실행 속도를 빠르게 만든다', '어노테이션 없이는 자바 코드가 컴파일되지 않는다'],
+          '어노테이션 자체는 로직을 바꾸지 않아요. 컴파일러나 프레임워크가 그 표시를 읽고 추가 검사나 처리를 해주는 거예요.',
+          '어노테이션이 코드를 직접 실행하는 게 아니라 "표시"라는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>@FunctionalInterface</code>가 붙은, <code>int calc(int a, int b);</code> 메서드 하나만 가진 <code>Calculator</code> 인터페이스를 만들고, <code>(a, b) -&gt; a * b</code> 람다로 구현한 뒤 <code>calc(3, 4)</code>를 호출해 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 6,
+          placeholder: '@FunctionalInterface\ninterface Calculator {\n    int calc(int a, int b);\n}\n\nCalculator multiply = (a, b) -> a * b;\nSystem.out.println(multiply.calc(3, 4));',
+          accept: ['@FunctionalInterface\ninterface Calculator {int calc(int a, int b);}Calculator multiply = (a, b) -> a * b;System.out.println(multiply.calc(3, 4));'],
+          why: '@FunctionalInterface로 표시된 인터페이스는 람다로 바로 구현할 수 있고, multiply.calc(3, 4)는 3 * 4 = 12를 출력해요.',
+          hint: '인터페이스 선언 위에 @FunctionalInterface를 붙이고, 람다로 구현한 뒤 calc(3, 4)를 호출하세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '팀원이 부모 클래스의 <code>sound()</code>를 오버라이드하려다가 실수로 메서드 이름을 <code>Sound()</code>로 잘못 썼어요. 이 실수를 컴파일 시점에 바로 잡아내려면 무엇을 붙여야 할까요?',
+        '<code>@Override</code>', ['<code>@Deprecated</code>', '<code>@FunctionalInterface</code>', '아무것도 붙이지 않아도 자동으로 잡힌다'],
+        '<code>@Override</code>를 붙였는데 실제로 부모의 메서드와 이름/매개변수가 일치하지 않으면, 컴파일러가 바로 오류를 내서 오타를 잡아줘요.',
+        '@Override 없이 메서드 이름만 잘못 쓰면, 자바는 그냥 새로운 메서드로 받아들이고 조용히 넘어가버려요.'
+      )
+    },
+    {
+      id: 'reflectionBasics',
+      title: '리플렉션(Reflection) 기초',
+      ready: true,
+      summary: '실행 중에 클래스의 필드, 메서드 정보를 들여다보는 리플렉션의 기본 개념을 배워요.',
+      goals: ['Class 객체 얻기', 'getDeclaredFields / getMethods로 정보 조회', '리플렉션을 언제 쓰는지'],
+      blocks: [
+        {
+          h: '클래스 자체를 나타내는 객체: Class',
+          html: `<p>자바에서는 클래스 정보 자체도 <code>Class</code>라는 객체로 다룰 수 있어요. <code>객체.getClass()</code> 또는 <code>클래스이름.class</code>로 얻을 수 있고, 이 <code>Class</code> 객체를 통해 실행 중에 그 클래스의 필드, 메서드 이름 등을 들여다볼 수 있어요. 이걸 <b>리플렉션</b>이라고 해요.</p>`,
+          code: {
+            label: 'ClassBasic.java',
+            src: `class Person {
+    String name;
+    int age;
+}
+
+Person p = new Person();
+Class<?> clazz = p.getClass();
+System.out.println(clazz.getSimpleName());`,
+            out: `Person`
+          }
+        },
+        {
+          h: '필드와 메서드 목록 들여다보기',
+          html: `<p><code>getDeclaredFields()</code>는 그 클래스에 선언된 필드들을 배열로 알려주고, <code>getMethods()</code>는 사용 가능한 메서드들을 알려줘요. 코드를 직접 쓰지 않고도, "이 객체가 어떤 필드를 가졌는지" 실행 중에 알아낼 수 있어요.</p>`,
+          code: {
+            label: 'FieldsMethods.java',
+            src: `Field[] fields = clazz.getDeclaredFields();
+for (Field f : fields) {
+    System.out.println(f.getName());
+}`,
+            out: `name
+age`
+          }
+        },
+        {
+          h: '리플렉션은 언제 쓸까요',
+          html: `<p>리플렉션은 강력하지만, 일반적인 필드 접근보다 느리고 코드가 복잡해져요. 보통 직접 쓰기보다는, JSON 라이브러리나 테스트 프레임워크(JUnit의 <code>@Test</code> 인식 등)처럼 "어떤 클래스든 범용적으로 다뤄야 하는" 프레임워크 내부에서 주로 쓰여요.</p>`,
+          after: `<div class="note"><b>기억할 점</b> — 평소 애플리케이션 코드에서는 리플렉션을 직접 쓸 일이 많지 않지만, "프레임워크가 내 코드를 어떻게 자동으로 인식하는지" 이해하는 데 리플렉션 개념이 큰 도움이 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `객체로부터 그 객체가 속한 클래스 정보를 담은 Class 객체를 얻어오는 메서드를 쓰세요.`,
+          prefix: 'Person p = new Person();\nClass<?> clazz = p.', suffix: '();', accept: ['getClass'], placeholder: '메서드이름',
+          why: '<code>객체.getClass()</code>는 그 객체가 속한 클래스의 <code>Class</code> 객체를 반환해요.',
+          hint: '"클래스를 가져오다"라는 뜻의 영어 표현이에요.'
+        }),
+        () => makeChoice(
+          '<code>Class</code> 객체에서 클래스에 선언된 필드 목록을 배열로 얻는 메서드는?',
+          '<code>getDeclaredFields()</code>', ['<code>getMethods()</code>', '<code>getClass()</code>', '<code>getName()</code>'],
+          '<code>getDeclaredFields()</code>는 그 클래스에 직접 선언된 필드들을 <code>Field[]</code>로 반환해요.',
+          '"필드"라는 단어가 메서드 이름에 그대로 들어있어요.'
+        ),
+        () => makeChoice(
+          '리플렉션의 대표적인 활용 예로 가장 알맞은 것은?',
+          'JSON 라이브러리가 어떤 클래스든 필드 이름을 읽어 자동으로 값을 채워 넣는 것',
+          ['for문으로 배열을 순회하는 것', 'try/catch로 예외를 처리하는 것', 'if/else로 조건을 분기하는 것'],
+          '리플렉션은 "어떤 클래스인지 미리 알 수 없는 상황"에서 실행 중에 필드/메서드 정보를 알아내야 할 때 주로 쓰여요.',
+          '컴파일 시점에 어떤 클래스가 올지 모르는 범용 라이브러리를 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '<code>clazz.getSimpleName()</code>이 하는 일은?',
+          '패키지 경로 없이 클래스의 짧은 이름만 문자열로 반환한다',
+          ['클래스의 모든 필드 값을 반환한다', '새 객체를 하나 생성해서 반환한다', '메서드 개수를 반환한다'],
+          '<code>getSimpleName()</code>은 <code>com.example.Person</code> 같은 전체 경로 없이 <code>Person</code>이라는 짧은 이름만 알려줘요.',
+          '"단순한 이름"이라는 뜻의 메서드 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Person</code>의 인스턴스 <code>p</code>로부터 <code>getClass()</code>로 <code>Class&lt;?&gt; clazz</code>를 얻고, <code>clazz.getSimpleName()</code>을 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'Person p = new Person();\nClass<?> clazz = p.getClass();\nSystem.out.println(clazz.getSimpleName());',
+          accept: ['Person p = new Person();Class<?> clazz = p.getClass();System.out.println(clazz.getSimpleName());'],
+          why: 'getClass()로 Class 객체를 얻고 getSimpleName()으로 클래스의 짧은 이름을 출력할 수 있어요.',
+          hint: 'p.getClass()의 결과를 clazz에 담고, clazz.getSimpleName()을 출력해보세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '실행 중에 어떤 객체가 정확히 무슨 필드들을 가지고 있는지, 코드가 컴파일될 때는 몰라도 나중에 알아내고 싶어요. 이때 필요한 기술은?',
+        '리플렉션(Reflection)', ['제네릭(Generics)', '람다(Lambda)', '스트림(Stream)'],
+        '리플렉션은 실행 중에 클래스의 구조(필드, 메서드 등)를 조사할 수 있게 해줘요.',
+        '"돌이켜보다, 반사하다"라는 뜻이 담긴 이름의 기술이에요.'
+      )
+    },
+    {
+      id: 'sealedClasses',
+      title: 'sealed 클래스로 상속 제한하기',
+      ready: true,
+      summary: '"이 클래스는 정해진 자식들만 가질 수 있다"고 제한하는 sealed 클래스를 배워요.',
+      goals: ['sealed와 permits로 자식 제한하기', 'final / non-sealed 자식 선택하기', '왜 상속을 제한하고 싶을 때가 있는지'],
+      blocks: [
+        {
+          h: '아무나 상속받지 못하게: sealed',
+          html: `<p><code>sealed class</code>는 <code>permits</code>로 나열한 클래스들만 상속(또는 구현)할 수 있게 제한해요. "이 타입의 자식은 딱 이것들뿐이다"라고 컴파일러에게 확실히 알려주는 거예요.</p>`,
+          code: {
+            label: 'SealedBasic.java',
+            src: `sealed interface Shape permits Circle, Square {}
+
+final class Circle implements Shape {
+    double radius;
+    Circle(double radius) { this.radius = radius; }
+}
+
+final class Square implements Shape {
+    double side;
+    Square(double side) { this.side = side; }
+}`
+          }
+        },
+        {
+          h: 'permits에 나열된 자식들의 세 가지 선택지',
+          html: `<p><code>permits</code>에 적힌 자식 클래스는 <code>final</code>(더 이상 상속 금지), <code>sealed</code>(또 다른 permits로 제한된 자식만 허용), <code>non-sealed</code>(다시 누구나 상속 가능하게 열어줌) 중 하나를 선택해야 해요.</p>`
+        },
+        {
+          h: '왜 상속을 제한하고 싶을까요',
+          html: `<p>자식이 딱 정해져 있다는 걸 컴파일러가 알면, <code>switch</code>로 <code>Shape</code>의 모든 경우를 처리할 때 "빠뜨린 경우가 없는지"까지 검사해줄 수 있어요. 또한 아무나 예상치 못한 자식 클래스를 몰래 추가해서 로직을 깨뜨리는 걸 막아줘요.</p>`,
+          after: `<div class="note"><b>비교</b> — 기존 interface/abstract class는 누구나 자유롭게 구현/상속할 수 있었지만, sealed는 "여기 나열된 것들만"이라고 문을 걸어 잠가요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `"이 타입은 정해진 자식들만 상속/구현할 수 있다"고 제한할 때 클래스나 인터페이스 앞에 붙이는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' interface Shape permits Circle, Square {}', accept: ['sealed'], placeholder: '키워드',
+          why: '<code>sealed</code>는 <code>permits</code>에 나열된 클래스들만 상속/구현을 허용해요.',
+          hint: '"봉인된, 밀봉된"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>sealed interface Shape permits Circle, Square {}</code>일 때, permits에 없는 <code>Triangle</code>이 <code>implements Shape</code>를 하면?',
+          '컴파일 오류가 난다', ['정상적으로 구현된다', '경고만 뜨고 실행된다', 'Triangle이 자동으로 permits에 추가된다'],
+          'sealed 타입은 permits에 나열되지 않은 클래스의 구현/상속을 컴파일 오류로 막아요.',
+          'sealed의 목적이 "정해진 것만 허용"이라는 걸 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'sealed 타입의 permits에 나열된 자식 클래스가 반드시 선택해야 하는 것이 아닌 것은?',
+          '<code>abstract</code>', ['<code>final</code>', '<code>sealed</code>', '<code>non-sealed</code>'],
+          'permits의 자식은 final(더 상속 금지), sealed(또 제한), non-sealed(다시 개방) 중 하나여야 해요. abstract는 이 셋 중 하나가 아니에요.',
+          'final / sealed / non-sealed 세 가지 중 어느 것이 빠졌는지 살펴보세요.'
+        ),
+        () => makeChoice(
+          'sealed 클래스를 쓰면 좋은 점으로 가장 알맞은 것은?',
+          '자식 타입이 확정돼 있어서, switch 등으로 모든 경우를 빠짐없이 처리했는지 컴파일러가 검사해줄 수 있다',
+          ['프로그램 실행 속도가 항상 빨라진다', '더 이상 인터페이스를 쓸 수 없게 된다', '자식 클래스를 무한히 늘릴 수 있다'],
+          '자식이 permits로 확정돼 있으면, "이 타입이 될 수 있는 경우"를 컴파일러가 정확히 알아서 빠짐없는 처리를 검사할 수 있어요.',
+          '"정해진 경우의 수"를 안다는 게 switch 처리에 어떤 도움이 될지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>sealed interface Shape permits Circle, Square {}</code>를 선언하고, <code>final class Circle implements Shape</code>와 <code>final class Square implements Shape</code>를 각각 빈 클래스로 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'sealed interface Shape permits Circle, Square {}\n\nfinal class Circle implements Shape {}\nfinal class Square implements Shape {}',
+          accept: ['sealed interface Shape permits Circle, Square {}final class Circle implements Shape {}final class Square implements Shape {}'],
+          why: 'sealed interface에 permits로 Circle, Square만 허용하고, 각각을 final class로 구현하면 더 이상 다른 자식은 추가될 수 없어요.',
+          hint: 'permits 뒤에 허용할 클래스 이름을 나열하고, 각 클래스는 final로 선언해보세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '결제 수단을 나타내는 타입을 만드는데, "카드, 계좌이체, 현금" 딱 세 가지만 있고 나중에 몰래 다른 결제 수단이 추가되지 않았으면 좋겠어요. 가장 적합한 설계는?',
+        'sealed interface Payment permits Card, BankTransfer, Cash {}',
+        ['interface Payment {}만 만들고 아무나 구현하게 둔다', 'abstract class Payment {}만 만들고 permits는 쓰지 않는다', 'enum 없이 String으로만 구분한다'],
+        'sealed와 permits로 자식을 확정 지으면, 나중에 다른 개발자가 몰래 새 결제 수단 클래스를 추가해도 permits에 없으면 컴파일 오류로 막을 수 있어요.',
+        '"정해진 것들만 허용하고 싶다"는 요구에 가장 정확히 맞는 키워드 조합을 떠올려보세요.'
+      )
+    },
+    {
+      id: 'instanceofPatternMatching',
+      title: 'instanceof 패턴 매칭',
+      ready: true,
+      summary: '타입을 확인하면서 동시에 그 타입으로 변환된 변수까지 바로 얻는 instanceof 패턴 매칭을 배워요.',
+      goals: ['기존 instanceof + 캐스팅의 번거로움', 'instanceof 패턴 매칭 문법', '조건 안에서 변수 활용하기'],
+      blocks: [
+        {
+          h: '예전 방식: instanceof 확인 후 캐스팅',
+          html: `<p>예전에는 <code>obj instanceof String</code>으로 타입을 확인한 뒤, 다시 <code>(String) obj</code>로 <b>캐스팅</b>해서 새 변수에 담아야 했어요. 같은 정보를 두 번 쓰는 셈이라 번거로워요.</p>`,
+          code: {
+            label: 'OldInstanceof.java',
+            src: `Object obj = "hello";
+if (obj instanceof String) {
+    String s = (String) obj;
+    System.out.println(s.length());
+}`,
+            out: `5`
+          }
+        },
+        {
+          h: '새 방식: instanceof 패턴 매칭',
+          html: `<p>자바 16부터는 <code>obj instanceof String s</code>처럼 쓰면, 타입 확인과 동시에 <code>s</code>라는 변수에 캐스팅된 값이 바로 담겨요. <code>if</code> 블록 안에서 <code>s</code>를 바로 쓸 수 있어요.</p>`,
+          code: {
+            label: 'PatternMatching.java',
+            src: `Object obj = "hello";
+if (obj instanceof String s) {
+    System.out.println(s.length());
+}`,
+            out: `5`
+          }
+        },
+        {
+          h: '조건과 결합하기',
+          html: `<p>패턴 매칭으로 얻은 변수는 <code>&&</code>로 이어진 추가 조건에서도 바로 쓸 수 있어요. 타입 확인, 캐스팅, 조건 검사를 한 줄에 자연스럽게 표현할 수 있어요.</p>`,
+          code: {
+            label: 'PatternWithCondition.java',
+            src: `if (obj instanceof String s && s.length() > 3) {
+    System.out.println(s + "는 4글자 이상");
+}`,
+            out: `hello는 4글자 이상`
+          },
+          after: `<div class="note"><b>기억할 점</b> — instanceof가 false면 그 변수(예: s)는 아예 존재하지 않는 것으로 취급돼요. 오직 true인 분기 안에서만 안전하게 쓸 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>Object obj = "hi";</code>일 때, 타입 확인과 동시에 <code>s</code> 변수에 String으로 캐스팅된 값을 담는 instanceof 패턴 매칭 조건을 완성하세요.`,
+          prefix: 'if (obj instanceof ', suffix: ') { System.out.println(s.length()); }', accept: ['String s'], placeholder: '타입 변수명',
+          why: '<code>obj instanceof String s</code>는 타입 확인과 동시에 <code>s</code>에 캐스팅된 값을 담아줘요.',
+          hint: '타입 이름 뒤에 새로 쓸 변수 이름을 그냥 이어서 쓰면 돼요.'
+        }),
+        () => makeChoice(
+          '<code>if (obj instanceof String s)</code> 방식이 예전 방식보다 나은 점은?',
+          '타입 확인과 캐스팅을 한 번에 처리해서 코드가 더 간결하고 안전하다',
+          ['실행 속도가 훨씬 빨라진다', 'String이 아닌 타입도 검사 없이 받아들인다', 'Object 타입을 아예 없앤다'],
+          'instanceof 패턴 매칭은 타입 확인과 캐스팅이라는 두 단계를 한 줄로 합쳐서 코드가 더 간결하고 오타 실수도 줄여줘요.',
+          '예전 방식에서 몇 줄이 걸렸는지, 새 방식은 몇 줄인지 비교해보세요.'
+        ),
+        () => makeChoice(
+          '<code>if (obj instanceof String s && s.length() > 3)</code>에서 <code>obj</code>가 <code>String</code>이 아니면 어떻게 될까요?',
+          '조건이 false가 되어 s를 만드는 부분과 s.length() 검사가 실행되지 않는다',
+          ['s가 null로 만들어져 length()에서 예외가 난다', '컴파일 오류가 난다', 's가 Object 타입으로 취급되어 실행된다'],
+          '<code>&&</code>는 왼쪽이 false면 오른쪽을 아예 검사하지 않아서, obj가 String이 아니면 s.length() 부분은 실행되지 않아요.',
+          '&&는 왼쪽 조건이 거짓이면 오른쪽을 확인하지 않는다는 걸 떠올려보세요.'
+        ),
+        () => {
+          const s = pick(['hello', 'java', 'code', 'workshop']);
+          return {
+            type: 'blank',
+            q: `<code>Object obj = "${s}"; if (obj instanceof String s2) { System.out.println(s2.length()); }</code>를 실행하면 무엇이 출력될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(s.length)], placeholder: '숫자',
+            why: `obj는 String이라서 패턴 매칭이 성공하고, "${s}"의 길이 ${s.length}가 출력돼요.`,
+            hint: `"${s}"의 글자 수를 세어보세요.`
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Object obj = "java";</code>일 때, instanceof 패턴 매칭으로 <code>obj</code>가 <code>String</code>이면 <code>s</code>라는 이름으로 받아 <code>s.toUpperCase()</code>를 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'Object obj = "java";\nif (obj instanceof String s) {\n    System.out.println(s.toUpperCase());\n}',
+          accept: ['Object obj = "java";if (obj instanceof String s) {System.out.println(s.toUpperCase());}'],
+          why: 'instanceof String s로 타입을 확인하는 동시에 s에 캐스팅된 값을 담아 바로 toUpperCase()를 쓸 수 있어요.',
+          hint: 'if (obj instanceof String s) { ... } 안에서 s.toUpperCase()를 호출하세요.'
+        }),
+      ],
+      boss: () => {
+        const s = pick(['hi', 'workshop', 'lambda', 'ok']);
+        return {
+          type: 'blank',
+          q: `<code>Object obj = "${s}"; if (obj instanceof String s && s.length() > 3) { System.out.println(s + "는 4글자 이상"); } else { System.out.println("4글자 미만"); }</code>을 실행하면 무엇이 출력될까요? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [s.length > 3 ? `${s}는 4글자 이상` : '4글자 미만'], placeholder: '출력될 문장',
+          why: s.length > 3
+            ? `"${s}"의 길이는 ${s.length}로 3보다 커서 "${s}는 4글자 이상"이 출력돼요.`
+            : `"${s}"의 길이는 ${s.length}로 3보다 크지 않아서 else의 "4글자 미만"이 출력돼요.`,
+          hint: '문자열의 길이가 3보다 큰지 먼저 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'staticNestedVsInner',
+      title: '정적 중첩 클래스 vs 이너 클래스',
+      ready: true,
+      summary: '클래스 안에 정의하는 두 방식, static 중첩 클래스와 이너(인스턴스) 클래스의 차이를 배워요.',
+      goals: ['static 중첩 클래스는 바깥 인스턴스가 필요 없다는 것', '이너 클래스는 바깥 인스턴스에 묶인다는 것', '언제 어느 걸 쓸지'],
+      blocks: [
+        {
+          h: '바깥 객체 없이도 되는: static 중첩 클래스',
+          html: `<p><code>static class</code>로 선언한 중첩 클래스는 바깥 클래스의 객체 없이도 <code>바깥클래스.중첩클래스</code> 형태로 바로 만들 수 있어요. 바깥 클래스의 인스턴스 필드에 직접 접근할 수 없어요.</p>`,
+          code: {
+            label: 'StaticNested.java',
+            src: `class Outer {
+    static class Nested {
+        void hello() {
+            System.out.println("정적 중첩 클래스");
+        }
+    }
+}
+
+Outer.Nested n = new Outer.Nested();
+n.hello();`,
+            out: `정적 중첩 클래스`
+          }
+        },
+        {
+          h: '바깥 객체에 묶이는: 이너(인스턴스) 클래스',
+          html: `<p><code>static</code>이 없는 이너 클래스는 반드시 바깥 클래스의 <b>객체가 있어야만</b> 만들 수 있어요. 대신 바깥 객체의 인스턴스 필드에 자유롭게 접근할 수 있어요.</p>`,
+          code: {
+            label: 'InnerClass.java',
+            src: `class Outer2 {
+    int value = 10;
+    class Inner {
+        void show() {
+            System.out.println("바깥의 value: " + value);
+        }
+    }
+}
+
+Outer2 outer = new Outer2();
+Outer2.Inner inner = outer.new Inner();
+inner.show();`,
+            out: `바깥의 value: 10`
+          }
+        },
+        {
+          h: '어느 걸 선택해야 할까요',
+          html: `<p>바깥 클래스의 상태(필드)와 상관없이 독립적으로 동작한다면 <b>static 중첩 클래스</b>가 더 명확하고 가벼워요. 바깥 객체의 값을 계속 참조해야 한다면 <b>이너 클래스</b>가 자연스러워요.</p>`,
+          after: `<div class="note"><b>기억할 점</b> — <code>outer.new Inner()</code>라는 독특한 문법이, 이너 클래스가 바깥 객체 없이는 존재할 수 없다는 걸 보여줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `바깥 클래스의 객체 없이도 <code>바깥클래스.중첩클래스</code> 형태로 바로 만들 수 있는 중첩 클래스 앞에 붙이는 키워드를 쓰세요.`,
+          prefix: 'class Outer { ', suffix: ' class Nested { } }', accept: ['static'], placeholder: '키워드',
+          why: '<code>static</code>이 붙은 중첩 클래스는 바깥 클래스의 객체 없이 독립적으로 만들 수 있어요.',
+          hint: '"정적인"이라는 뜻의, 인스턴스에 속하지 않음을 나타내는 키워드예요.'
+        }),
+        () => makeChoice(
+          '<code>static</code>이 없는 이너 클래스의 객체를 만들 때 필요한 것은?',
+          '바깥 클래스의 객체(인스턴스)', ['static 필드', '아무것도 필요 없다', 'abstract 키워드'],
+          '이너 클래스는 <code>outer.new Inner()</code>처럼 반드시 바깥 클래스의 객체를 통해서만 만들 수 있어요.',
+          '이너 클래스가 바깥 객체와 어떻게 연결돼있는지 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'static 중첩 클래스와 이너 클래스의 차이로 가장 알맞은 것은?',
+          'static 중첩 클래스는 바깥 인스턴스 필드에 접근할 수 없지만, 이너 클래스는 접근할 수 있다',
+          ['둘 다 완전히 똑같이 동작한다', 'static 중첩 클래스만 메서드를 가질 수 있다', '이너 클래스는 항상 static이어야 한다'],
+          '이너 클래스는 바깥 객체에 묶여있어서 바깥의 인스턴스 필드에 자유롭게 접근할 수 있지만, static 중첩 클래스는 바깥 객체 없이 존재하므로 바깥 인스턴스 필드에 접근할 수 없어요.',
+          '어느 쪽이 바깥 객체와 연결되어 있는지 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '바깥 클래스의 상태와 상관없이 독립적으로 쓰일 도우미 클래스를 만들 때 더 적합한 것은?',
+          'static 중첩 클래스', ['이너 클래스', 'abstract 클래스만 가능', 'sealed 클래스만 가능'],
+          '바깥 객체의 값이 필요 없다면, 바깥 객체 없이도 만들 수 있는 static 중첩 클래스가 더 가볍고 명확해요.',
+          '바깥 필드를 참조할 필요가 없다면 어느 쪽이 더 간단할지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Outer</code> 클래스 안에 <code>static class Nested</code>를 만들고, 그 안에 <code>hello()</code> 메서드가 <code>"안녕"</code>을 출력하게 한 뒤, <code>Outer.Nested n = new Outer.Nested(); n.hello();</code>를 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 8,
+          placeholder: 'class Outer {\n    static class Nested {\n        void hello() {\n            System.out.println("안녕");\n        }\n    }\n}\n\nOuter.Nested n = new Outer.Nested();\nn.hello();',
+          accept: ['class Outer {static class Nested {void hello() {System.out.println("안녕");}}}Outer.Nested n = new Outer.Nested();n.hello();'],
+          why: 'static 중첩 클래스는 Outer 객체 없이 Outer.Nested 형태로 바로 만들 수 있어요.',
+          hint: 'static class Nested { } 안에 hello() 메서드를 넣고, new Outer.Nested()로 객체를 만드세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '<code>class Outer3 { int value = 5; class Inner { void show() { System.out.println(value); } } }</code>일 때, <code>Inner</code> 객체를 바깥 클래스 객체 없이 <code>new Inner()</code>로 바로 만들려고 하면?',
+        '컴파일 오류가 난다(이너 클래스는 바깥 객체가 반드시 있어야 해서)',
+        ['정상적으로 만들어진다', 'value가 자동으로 0이 되어 만들어진다', '경고만 뜨고 실행은 된다'],
+        '이너 클래스는 바깥 인스턴스에 묶여 있어서, <code>outer.new Inner()</code> 형태로만 만들 수 있어요. 바깥 객체 없이 <code>new Inner()</code>만 쓰면 컴파일 오류가 나요.',
+        '이너 클래스가 어떻게 바깥 객체와 연결되는 문법을 썼는지 떠올려보세요.'
+      )
+    },
+    {
+      id: 'builderPattern',
+      title: '빌더 패턴(Builder Pattern)',
+      ready: true,
+      summary: '매개변수가 많은 객체를 순서 걱정 없이, 읽기 좋게 만들어주는 빌더 패턴을 배워요.',
+      goals: ['생성자 매개변수가 많을 때의 문제', '빌더로 단계별로 값 채우기', '메서드 체이닝으로 이어 쓰기'],
+      blocks: [
+        {
+          h: '생성자 매개변수가 너무 많으면',
+          html: `<p>생성자에 매개변수가 5~6개씩 있으면, <code>new Person("지수", 17, "서울", "010-1234", null)</code>처럼 어떤 값이 무엇인지 코드만 보고 알기 어려워져요. 순서를 착각해 잘못된 값을 넣기도 쉬워요.</p>`,
+          code: {
+            label: 'TooManyParams.java',
+            src: `class Person {
+    Person(String name, int age, String city, String phone) {
+        // ...
+    }
+}
+// new Person("지수", 17, "서울", "010-1234") — 값들이 무엇인지 한눈에 안 보여요`
+          }
+        },
+        {
+          h: '단계별로 값을 채우는 빌더',
+          html: `<p>빌더는 <code>이름(값)</code> 형태의 메서드들을 이어 붙여(<b>메서드 체이닝</b>) 필요한 값만 채우고, 마지막에 <code>build()</code>로 완성된 객체를 만들어요. 각 값이 무엇인지 메서드 이름으로 바로 알 수 있어요.</p>`,
+          code: {
+            label: 'Builder.java',
+            src: `class Person {
+    String name;
+    int age;
+
+    static class Builder {
+        Person person = new Person();
+        Builder name(String name) {
+            person.name = name;
+            return this;
+        }
+        Builder age(int age) {
+            person.age = age;
+            return this;
+        }
+        Person build() {
+            return person;
+        }
+    }
+}
+
+Person p = new Person.Builder()
+    .name("지수")
+    .age(17)
+    .build();
+System.out.println(p.name + " " + p.age);`,
+            out: `지수 17`
+          }
+        },
+        {
+          h: '왜 각 메서드가 this를 반환할까요',
+          html: `<p>빌더의 각 메서드가 <code>return this;</code>로 자기 자신(빌더 객체)을 반환하기 때문에, <code>.name(...).age(...)</code>처럼 점을 이어서 계속 호출할 수 있어요. 이 방식을 <b>메서드 체이닝</b>이라고 해요.</p>`,
+          after: `<div class="note"><b>실전 팁</b> — StringBuilder의 <code>append().append()</code>도 같은 원리예요. 자바 표준 라이브러리 곳곳에서 이 패턴을 볼 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `빌더의 메서드가 <code>.name(...).age(...)</code>처럼 이어서 호출될 수 있게 하려면, 각 메서드는 마지막에 무엇을 반환해야 할까요?`,
+          prefix: 'Builder name(String name) { person.name = name; return ', suffix: '; }', accept: ['this'], placeholder: '반환값',
+          why: '<code>return this;</code>로 빌더 객체 자신을 반환해야 다음 메서드를 계속 이어서 호출(체이닝)할 수 있어요.',
+          hint: '"자기 자신"을 가리키는 키워드예요.'
+        }),
+        () => makeChoice(
+          '빌더 패턴이 해결하려는 문제는?',
+          '생성자 매개변수가 많을 때, 각 값이 무엇인지 알아보기 어렵고 순서를 착각하기 쉬운 문제',
+          ['클래스가 상속을 지원하지 않는 문제', '스트림을 만들 수 없는 문제', '람다를 쓸 수 없는 문제'],
+          '빌더는 <code>.name("지수").age(17)</code>처럼 각 값에 이름을 붙여서 넣을 수 있어 가독성과 실수 방지에 좋아요.',
+          '<code>new Person("지수", 17, "서울")</code>처럼 숫자와 문자열만 나열된 코드를 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '빌더의 각 메서드가 자기 자신(this)을 반환하며 이어 붙이는 방식을 무엇이라고 부르나요?',
+          '메서드 체이닝', ['오버로딩', '캡슐화', '다형성'],
+          '메서드 호출 결과에 점을 찍어 다음 메서드를 계속 이어 부르는 방식을 메서드 체이닝이라고 해요.',
+          '"사슬처럼 잇다"라는 뜻의 영어 단어가 들어있어요.'
+        ),
+        () => {
+          const name = pick(['민준', '서연', '하늘']);
+          const age = randInt(10, 20);
+          return {
+            type: 'blank',
+            q: `위 <code>Person.Builder</code> 코드로 <code>new Person.Builder().name("${name}").age(${age}).build();</code>를 만들어 <code>p.name + " " + p.age</code>를 출력하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${name} ${age}`], placeholder: '출력될 문장',
+            why: `빌더가 name과 age를 순서대로 채워서, 완성된 Person의 name은 "${name}", age는 ${age}예요.`,
+            hint: '빌더에 넣은 값이 그대로 완성된 객체의 필드가 된다는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Person</code> 클래스 안에 <code>static class Builder</code>를 만들어, <code>name(String)</code>과 <code>age(int)</code> 메서드가 각각 값을 채우고 <code>this</code>를 반환하며, <code>build()</code>가 완성된 <code>Person</code>을 반환하도록 작성하세요. (필드는 <code>String name; int age;</code>)',
+          starter: '',
+          rows: 16,
+          placeholder: 'class Person {\n    String name;\n    int age;\n\n    static class Builder {\n        Person person = new Person();\n        Builder name(String name) {\n            person.name = name;\n            return this;\n        }\n        Builder age(int age) {\n            person.age = age;\n            return this;\n        }\n        Person build() {\n            return person;\n        }\n    }\n}',
+          accept: ['class Person {String name;int age;static class Builder {Person person = new Person();Builder name(String name) {person.name = name;return this;}Builder age(int age) {person.age = age;return this;}Person build() {return person;}}}'],
+          why: '각 메서드가 값을 채우고 this를 반환해서 체이닝이 가능해지고, build()가 마지막에 완성된 Person을 돌려줘요.',
+          hint: 'Builder 안에 person 필드를 두고, name/age 메서드가 그 필드를 채운 뒤 this를 반환하게 하세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['지수', '도윤', '서연', '하늘']);
+        const age = randInt(15, 25);
+        return {
+          type: 'blank',
+          q: `<code>Person.Builder</code>의 <code>name(String)</code>, <code>age(int)</code> 메서드가 각각 <code>this</code>를 반환하고 <code>build()</code>가 완성된 <code>Person</code>을 반환할 때, <code>Person p = new Person.Builder().name("${name}").age(${age}).build(); System.out.println(p.name + "(" + p.age + ")");</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`${name}(${age})`], placeholder: '출력될 문장',
+          why: `빌더 체이닝으로 name은 "${name}", age는 ${age}로 채워진 뒤 build()로 완성되어 "${name}(${age})"가 출력돼요.`,
+          hint: '체이닝된 순서대로 name과 age가 채워진다는 걸 생각해보세요.'
+        };
+      }
+    },
+    {
+      id: 'singletonPattern',
+      title: '싱글턴 패턴(Singleton Pattern)',
+      ready: true,
+      summary: '앱 전체에서 인스턴스를 딱 하나만 유지하고 싶을 때 쓰는 싱글턴 패턴을 배워요.',
+      goals: ['인스턴스가 여러 개일 때 생기는 문제', 'private 생성자와 static getInstance()', 'enum으로 만드는 안전한 싱글턴'],
+      blocks: [
+        {
+          h: '인스턴스가 여러 개면 생기는 문제',
+          html: `<p>설정값을 담는 <code>Config</code>를 <code>new</code>로 여러 번 만들면, 각 인스턴스가 따로따로 존재해서 한쪽에서 값을 바꿔도 다른 쪽에는 반영되지 않아요. 앱 전체가 하나의 설정을 공유해야 하는 상황엔 맞지 않죠.</p>`,
+          code: {
+            label: 'ManyInstances.java',
+            src: `class Config {
+    String env = "dev";
+}
+
+Config c1 = new Config();
+Config c2 = new Config();
+c1.env = "prod";
+System.out.println(c2.env);`,
+            out: `dev`
+          }
+        },
+        {
+          h: 'private 생성자로 잠그고 static으로 하나만 공유하기',
+          html: `<p>생성자를 <code>private</code>으로 감추면 외부에서 <code>new Config()</code>를 할 수 없어요. 대신 <code>static</code> 메서드 <code>getInstance()</code>가 처음 호출될 때만 인스턴스를 만들고, 그다음부터는 이미 만든 그 인스턴스를 계속 돌려줘요.</p>`,
+          code: {
+            label: 'Singleton.java',
+            src: `class Config {
+    private static Config instance;
+    String env = "dev";
+
+    private Config() {}
+
+    static Config getInstance() {
+        if (instance == null) {
+            instance = new Config();
+        }
+        return instance;
+    }
+}
+
+Config c1 = Config.getInstance();
+Config c2 = Config.getInstance();
+c1.env = "prod";
+System.out.println(c2.env);`,
+            out: `prod`
+          }
+        },
+        {
+          h: 'enum으로 만드는 더 안전한 싱글턴',
+          html: `<p>enum 상수는 애초에 JVM이 딱 하나만 만들어지는 걸 보장해줘요. 그래서 <code>enum</code>에 상수 하나(<code>INSTANCE</code>)만 두면, 리플렉션이나 직렬화로도 깨지지 않는 안전한 싱글턴을 아주 간단히 만들 수 있어요.</p>`,
+          code: {
+            label: 'EnumSingleton.java',
+            src: `enum ConfigHolder {
+    INSTANCE;
+    String env = "dev";
+}
+
+ConfigHolder.INSTANCE.env = "prod";
+System.out.println(ConfigHolder.INSTANCE.env);`,
+            out: `prod`
+          },
+          after: `<div class="note"><b>비교</b> — private 생성자 방식은 코드가 눈에 잘 보이고, enum 방식은 짧고 더 안전해요(자바 진영에서 실무적으로 자주 추천되는 방식이에요).</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `싱글턴 패턴에서 외부에서 <code>new Config()</code>로 직접 생성하지 못하게 생성자 앞에 붙이는 접근 제어자를 쓰세요.`,
+          prefix: 'class Config {\n    private static Config instance;\n    ', suffix: ' Config() {}\n}', accept: ['private'], placeholder: '접근 제어자',
+          why: '생성자를 <code>private</code>으로 감추면 클래스 밖에서는 <code>new</code>로 만들 수 없고, 오직 <code>getInstance()</code>를 통해서만 인스턴스를 얻을 수 있어요.',
+          hint: '가장 좁은 범위의 접근 제어자예요.'
+        }),
+        () => makeChoice(
+          '싱글턴 패턴이 해결하려는 문제로 가장 알맞은 것은?',
+          '애플리케이션 전체에서 특정 클래스의 인스턴스를 딱 하나만 유지하며 상태를 공유하고 싶은 것',
+          ['클래스가 여러 자식을 갖지 못하게 막는 것', '메서드를 여러 개 오버로딩하는 것', '제네릭 타입 매개변수를 여러 개 지정하는 것'],
+          '싱글턴은 "이 클래스의 인스턴스는 앱 전체에서 하나만 존재한다"를 보장해서 공유 상태를 유지하려는 패턴이에요.',
+          'Config, Logger처럼 앱 전체가 공유해야 하는 대상을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '위 <code>Singleton.java</code>에서 <code>Config c1 = Config.getInstance();</code>, <code>Config c2 = Config.getInstance();</code>를 실행했을 때 <code>c1 == c2</code>의 값은?',
+          'true', ['false', '컴파일 오류', 'NullPointerException 발생'],
+          '<code>instance</code>가 이미 만들어져 있으면 <code>getInstance()</code>는 새로 만들지 않고 그 인스턴스를 그대로 반환하므로, c1과 c2는 같은 객체를 가리켜요.',
+          'if (instance == null) 조건이 두 번째 호출 때는 어떻게 되는지 생각해보세요.'
+        ),
+        () => {
+          const env = pick(['prod', 'stage', 'test', 'release']);
+          return {
+            type: 'blank',
+            q: `위 싱글턴 <code>Config</code> 클래스에서 <code>Config c1 = Config.getInstance(); c1.env = "${env}"; Config c2 = Config.getInstance(); System.out.println(c2.env);</code>를 실행하면?`,
+            prefix: '', suffix: '', accept: [env], placeholder: '출력 결과',
+            why: `c1과 c2는 <code>getInstance()</code>로 얻은 같은 인스턴스이므로, c1.env를 "${env}"로 바꾸면 c2.env도 그대로 "${env}"예요.`,
+            hint: '싱글턴은 인스턴스가 하나뿐이라 한쪽에서 바꾼 값이 다른 쪽에서도 보여요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Config</code> 클래스에 <code>private static Config instance;</code> 필드, <code>private</code> 생성자, 그리고 <code>instance</code>가 없을 때만 새로 만들어 반환하는 <code>static Config getInstance()</code> 메서드를 작성하세요. (필드 <code>String env = "dev";</code> 포함)',
+          starter: '',
+          rows: 12,
+          placeholder: 'class Config {\n    private static Config instance;\n    String env = "dev";\n\n    private Config() {}\n\n    static Config getInstance() {\n        if (instance == null) {\n            instance = new Config();\n        }\n        return instance;\n    }\n}',
+          accept: ['class Config {private static Config instance;String env = "dev";private Config() {}static Config getInstance() {if (instance == null) {instance = new Config();}return instance;}}'],
+          why: 'instance가 null일 때만 새로 만들고, 그 뒤로는 이미 만든 instance를 그대로 반환해야 인스턴스가 하나로 유지돼요.',
+          hint: 'if (instance == null) 안에서만 new Config()를 하고, 마지막엔 항상 instance를 return하세요.'
+        }),
+      ],
+      boss: () => {
+        const env = pick(['운영', '개발', '테스트', '스테이징']);
+        return {
+          type: 'blank',
+          q: `싱글턴 <code>Config</code>에서 <code>Config.getInstance().env = "${env}";</code>를 실행한 뒤, 전혀 다른 코드에서 <code>System.out.println(Config.getInstance().env);</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [env], placeholder: '출력 결과',
+          why: `싱글턴은 인스턴스가 앱 전체에서 하나뿐이라, 어디서 <code>getInstance()</code>를 호출하든 같은 객체를 가리켜 "${env}"가 그대로 보여요.`,
+          hint: '싱글턴의 핵심은 "어디서 불러도 같은 하나의 인스턴스"라는 점이에요.'
+        };
+      }
+    },
+    {
+      id: 'factoryPattern',
+      title: '팩토리 패턴(Factory Pattern)',
+      ready: true,
+      summary: '조건에 따라 어떤 객체를 만들지 결정하는 로직을 한곳에 모으는 팩토리 패턴을 배워요.',
+      goals: ['new가 여기저기 흩어질 때의 문제', '정적 팩토리 메서드로 생성 로직 모으기', '조건에 따라 다른 구현체 반환하기'],
+      blocks: [
+        {
+          h: 'new가 여기저기 흩어지면 생기는 문제',
+          html: `<p>어떤 종류의 동물을 만들지 결정하는 코드가 여러 곳에 <code>if (kind.equals("dog")) new Dog(); else new Cat();</code>처럼 흩어져 있으면, 나중에 <code>Bird</code>를 추가할 때 그 모든 곳을 찾아 고쳐야 해요.</p>`,
+          code: {
+            label: 'ScatteredNew.java',
+            src: `interface Animal {
+    String sound();
+}
+class Dog implements Animal {
+    public String sound() { return "멍멍"; }
+}
+class Cat implements Animal {
+    public String sound() { return "야옹"; }
+}
+
+// 여러 곳에서 이런 코드가 반복돼요
+String kind = "dog";
+Animal a = kind.equals("dog") ? new Dog() : new Cat();
+System.out.println(a.sound());`,
+            out: `멍멍`
+          }
+        },
+        {
+          h: '정적 팩토리 메서드로 생성 로직 모으기',
+          html: `<p>객체를 만드는 조건문을 <code>static</code> 메서드 하나로 모아두면, 사용하는 쪽은 그냥 <code>AnimalFactory.create("dog")</code>만 호출하면 돼요. 어떻게 만들지는 팩토리 안에서만 알면 되니까 코드가 훨씬 깔끔해져요.</p>`,
+          code: {
+            label: 'AnimalFactory.java',
+            src: `class AnimalFactory {
+    static Animal create(String kind) {
+        if (kind.equals("dog")) {
+            return new Dog();
+        } else if (kind.equals("cat")) {
+            return new Cat();
+        }
+        throw new IllegalArgumentException("알 수 없는 종류: " + kind);
+    }
+}
+
+Animal a = AnimalFactory.create("cat");
+System.out.println(a.sound());`,
+            out: `야옹`
+          }
+        },
+        {
+          h: '새 종류를 추가할 때 달라지는 점',
+          html: `<p><code>Bird</code>를 새로 추가하고 싶다면, <code>AnimalFactory.create</code> 안의 조건 하나만 늘리면 돼요. <code>create</code>를 호출해서 쓰던 다른 코드는 전혀 손댈 필요가 없어요.</p>`,
+          after: `<div class="note"><b>실전 팁</b> — <code>LocalDate.now()</code>, <code>List.of(...)</code>처럼 자바 표준 라이브러리에도 <code>new</code> 대신 정적 팩토리 메서드로 객체를 만들게 하는 곳이 많아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `조건에 따라 다른 객체를 만들어 반환하는 <code>static</code> 메서드를 클래스 안에 모아두는 패턴을 무엇이라고 부를까요? (영어로)`,
+          prefix: '', suffix: ' 패턴', accept: ['Factory', 'factory'], placeholder: '패턴 이름',
+          why: '생성 로직을 한곳에 모아 조건에 따라 알맞은 객체를 만들어주는 정적 메서드를 두는 패턴을 팩토리(Factory) 패턴이라고 해요.',
+          hint: '"공장"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '팩토리 패턴을 쓰는 가장 큰 이유는?',
+          '객체 생성 로직을 한곳에 모아, 사용하는 쪽 코드가 구체적인 클래스 이름을 몰라도 되게 하는 것',
+          ['클래스가 상속을 받지 못하게 막는 것', '메서드 이름을 겹치게 만드는 것', '반복문의 실행 속도를 높이는 것'],
+          '팩토리는 "무엇을, 어떻게 만들지"를 한곳에 모아서, 사용하는 쪽은 그냥 팩토리를 호출하기만 하면 되도록 해줘요.',
+          '새로운 종류가 추가될 때 코드를 몇 군데 고쳐야 하는지 비교해보세요.'
+        ),
+        () => makeChoice(
+          '위 <code>AnimalFactory.create("cat")</code>를 호출하면 반환되는 것은?',
+          '<code>Cat</code> 인스턴스', ['<code>Dog</code> 인스턴스', 'null', '컴파일 오류'],
+          '<code>create</code> 메서드의 조건문에서 kind가 "cat"이면 <code>new Cat()</code>을 반환해요.',
+          'if-else if 조건을 kind 값과 비교하며 따라가 보세요.'
+        ),
+        () => {
+          const kind = pick(['dog', 'cat']);
+          const sound = kind === 'dog' ? '멍멍' : '야옹';
+          return {
+            type: 'blank',
+            q: `위 <code>AnimalFactory</code>로 <code>Animal a = AnimalFactory.create("${kind}"); System.out.println(a.sound());</code>를 실행하면?`,
+            prefix: '', suffix: '', accept: [sound], placeholder: '출력 결과',
+            why: `kind가 "${kind}"이므로 팩토리는 ${kind === 'dog' ? 'Dog' : 'Cat'} 인스턴스를 만들고, sound()는 "${sound}"를 반환해요.`,
+            hint: 'kind 값에 따라 어떤 클래스의 sound()가 호출되는지 조건문을 따라가 보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>AnimalFactory</code> 클래스에 <code>static Animal create(String kind)</code> 메서드를 작성하세요. kind가 "dog"이면 <code>new Dog()</code>, "cat"이면 <code>new Cat()</code>을 반환하고, 둘 다 아니면 <code>throw new IllegalArgumentException("알 수 없는 종류: " + kind);</code>를 실행하세요.',
+          starter: '',
+          rows: 10,
+          placeholder: 'class AnimalFactory {\n    static Animal create(String kind) {\n        if (kind.equals("dog")) {\n            return new Dog();\n        } else if (kind.equals("cat")) {\n            return new Cat();\n        }\n        throw new IllegalArgumentException("알 수 없는 종류: " + kind);\n    }\n}',
+          accept: ['class AnimalFactory {static Animal create(String kind) {if (kind.equals("dog")) {return new Dog();} else if (kind.equals("cat")) {return new Cat();}throw new IllegalArgumentException("알 수 없는 종류: " + kind);}}'],
+          why: 'kind 값에 따라 알맞은 구현체를 반환하고, 어느 것도 아니면 예외를 던져 잘못된 입력을 알려줘요.',
+          hint: 'if / else if로 kind를 검사한 뒤, 마지막엔 throw로 예외를 던지세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '결제 수단 이름(문자열)을 받아 <code>CardPayment</code>, <code>CashPayment</code> 중 알맞은 객체를 만들어 반환하는 로직을 여러 화면에서 각자 작성하지 않고 한곳에 모으고 싶어요. 가장 적합한 방법은?',
+        'static 메서드로 조건에 따라 알맞은 객체를 만들어 반환하는 팩토리 클래스를 만든다',
+        ['모든 화면에 new CardPayment()와 new CashPayment()를 각각 복사해서 쓴다', 'CardPayment와 CashPayment를 하나의 클래스로 합쳐버린다', '결제 수단마다 별도의 프로그램을 만든다'],
+        '팩토리 메서드로 생성 로직을 한곳에 모으면, 화면 쪽 코드는 팩토리만 호출하면 되고 나중에 결제 수단이 추가돼도 팩토리만 고치면 돼요.',
+        '"생성 로직을 한곳에 모은다"는 팩토리 패턴의 핵심을 떠올려보세요.'
+      )
+    },
+    {
+      id: 'varargsMethod',
+      title: '가변 인자(Varargs)',
+      ready: true,
+      summary: '개수가 정해지지 않은 인자를 하나의 매개변수로 받는 가변 인자(varargs)를 배워요.',
+      goals: ['인자 개수가 매번 다를 때의 문제', '...으로 가변 인자 받기', '가변 인자를 배열처럼 다루기'],
+      blocks: [
+        {
+          h: '인자 개수가 매번 다르면',
+          html: `<p>숫자를 몇 개 더할지 미리 알 수 없다면, <code>sum(int a, int b)</code>, <code>sum(int a, int b, int c)</code>처럼 개수별로 메서드를 계속 오버로딩해야 할까요? 그건 너무 번거로워요.</p>`,
+          code: {
+            label: 'Overloaded.java',
+            src: `static int sum(int a, int b) {
+    return a + b;
+}
+static int sum(int a, int b, int c) {
+    return a + b + c;
+}
+// 인자가 4개, 5개... 늘어날 때마다 메서드를 또 만들어야 해요`
+          }
+        },
+        {
+          h: '...으로 개수 제한 없이 받기',
+          html: `<p>매개변수 타입 뒤에 <code>...</code>을 붙이면, 그 매개변수는 개수와 상관없이 값을 몇 개든 받을 수 있는 <b>가변 인자(varargs)</b>가 돼요. 메서드 안에서는 배열(<code>int[]</code>)처럼 다뤄요.</p>`,
+          code: {
+            label: 'Varargs.java',
+            src: `static int sum(int... nums) {
+    int total = 0;
+    for (int n : nums) {
+        total += n;
+    }
+    return total;
+}
+
+System.out.println(sum(1, 2));
+System.out.println(sum(1, 2, 3, 4));
+System.out.println(sum());`,
+            out: `3
+10
+0`
+          }
+        },
+        {
+          h: '다른 매개변수와 함께 쓰기',
+          html: `<p>가변 인자는 반드시 매개변수 목록의 <b>맨 마지막</b>에만 올 수 있어요. 예를 들어 <code>void log(String tag, String... messages)</code>처럼 고정 매개변수 뒤에 가변 인자를 하나 둘 수 있어요.</p>`,
+          after: `<div class="note"><b>실전 팁</b> — <code>String.format("%s-%s", a, b)</code>나 <code>List.of(1, 2, 3)</code>도 모두 가변 인자로 만들어진 메서드예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `매개변수 개수를 정하지 않고 여러 개 받을 수 있게 하려면 타입 뒤에 무엇을 붙일까요? <code>static int sum(int</code> ??? <code>nums)</code>`,
+          prefix: 'static int sum(int', suffix: ' nums) { }', accept: ['...'], placeholder: '문자 세 개',
+          why: '타입 뒤에 <code>...</code>을 붙이면 가변 인자가 되어 인자를 0개 이상 몇 개든 받을 수 있어요.',
+          hint: '마침표 세 개예요.'
+        }),
+        () => makeChoice(
+          '가변 인자 <code>int... nums</code>를 메서드 몸체 안에서 다룰 때 가장 알맞은 설명은?',
+          '<code>int[]</code> 배열처럼 for-each 등으로 순회하며 다룰 수 있다',
+          ['하나의 int 값으로만 취급된다', 'String으로 자동 변환된다', '항상 정확히 3개의 값만 들어온다'],
+          '가변 인자는 메서드 내부에서 배열로 취급되어, <code>for (int n : nums)</code>처럼 순회할 수 있어요.',
+          '메서드 안에서 nums.length를 쓸 수 있다는 걸 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '가변 인자를 다른 매개변수와 함께 쓸 때의 규칙으로 옳은 것은?',
+          '가변 인자는 매개변수 목록의 맨 마지막에만 올 수 있다',
+          ['가변 인자는 항상 첫 번째 매개변수여야 한다', '가변 인자는 한 메서드에 여러 개 있어도 된다', '가변 인자 앞에는 다른 매개변수가 올 수 없다'],
+          '<code>void log(String tag, String... messages)</code>처럼 가변 인자는 반드시 마지막 자리에 하나만 올 수 있어요.',
+          '가변 인자 뒤에 또 다른 매개변수가 있으면 어디까지가 가변 인자인지 알 수 없다는 걸 생각해보세요.'
+        ),
+        () => {
+          const nums = Array.from({ length: randInt(2, 4) }, () => randInt(1, 9));
+          const total = nums.reduce((a, b) => a + b, 0);
+          return {
+            type: 'blank',
+            q: `위 <code>sum(int... nums)</code>로 <code>sum(${nums.join(', ')})</code>를 호출하면 반환값은?`,
+            prefix: '', suffix: '', accept: [String(total)], placeholder: '반환값',
+            why: `가변 인자로 들어온 ${nums.join(', ')}을 모두 더하면 ${total}이에요.`,
+            hint: '가변 인자는 배열처럼 순회하며 하나씩 더해진다는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '가변 인자를 받아 모두 더한 값을 반환하는 <code>static int sum(int... nums)</code> 메서드를 작성하세요. (for-each로 순회하며 <code>total</code>에 누적)',
+          starter: '',
+          rows: 8,
+          placeholder: 'static int sum(int... nums) {\n    int total = 0;\n    for (int n : nums) {\n        total += n;\n    }\n    return total;\n}',
+          accept: ['static int sum(int... nums) {int total = 0;for (int n : nums) {total += n;}return total;}'],
+          why: 'int... nums로 가변 인자를 받고, for-each로 순회하며 total에 더한 뒤 반환하면 몇 개를 넣든 합을 구할 수 있어요.',
+          hint: 'nums를 배열처럼 for (int n : nums)로 순회하며 total에 더하세요.'
+        }),
+      ],
+      boss: () => {
+        const nums = Array.from({ length: randInt(3, 5) }, () => randInt(1, 20));
+        const total = nums.reduce((a, b) => a + b, 0);
+        return {
+          type: 'blank',
+          q: `<code>static int sum(int... nums)</code>가 nums를 순회하며 모두 더해 반환할 때, <code>System.out.println(sum(${nums.join(', ')}));</code>를 실행하면? (숫자만 입력)`,
+          prefix: '', suffix: '', accept: [String(total)], placeholder: '출력 결과',
+          why: `${nums.join(' + ')} = ${total}이 가변 인자로 전달된 값들의 합이에요.`,
+          hint: '가변 인자로 들어온 값들을 배열처럼 모두 더해보세요.'
+        };
+      }
+    },
+    {
+      id: 'autoboxingUnboxing',
+      title: '오토박싱과 언박싱',
+      ready: true,
+      summary: '기본 타입과 래퍼 클래스가 자동으로 서로 변환되는 오토박싱/언박싱과 그 함정을 배워요.',
+      goals: ['기본 타입과 래퍼 클래스의 관계', '오토박싱/언박싱이 자동으로 일어나는 상황', 'Integer를 == 로 비교할 때의 함정'],
+      blocks: [
+        {
+          h: '기본 타입과 래퍼 클래스',
+          html: `<p><code>int</code>, <code>double</code> 같은 기본 타입에는 각각 대응하는 <b>래퍼 클래스</b>(<code>Integer</code>, <code>Double</code>)가 있어요. <code>List&lt;Integer&gt;</code>처럼 제네릭은 기본 타입을 직접 담을 수 없어서, 이럴 때 래퍼 클래스가 필요해요.</p>`,
+          code: {
+            label: 'Wrapper.java',
+            src: `int primitive = 10;
+Integer wrapped = Integer.valueOf(primitive);
+System.out.println(wrapped);`,
+            out: `10`
+          }
+        },
+        {
+          h: '자동으로 변환되는 오토박싱과 언박싱',
+          html: `<p><code>Integer num = 10;</code>처럼 기본 타입 값을 래퍼 클래스 변수에 대입하면 자바가 자동으로 <code>Integer.valueOf(10)</code>을 호출해줘요(<b>오토박싱</b>). 반대로 <code>int n = num;</code>처럼 래퍼를 기본 타입에 대입하면 자동으로 <code>num.intValue()</code>가 호출돼요(<b>언박싱</b>).</p>`,
+          code: {
+            label: 'AutoBoxing.java',
+            src: `Integer boxed = 5;      // 오토박싱: int -> Integer
+int unboxed = boxed;    // 언박싱: Integer -> int
+System.out.println(boxed + unboxed);`,
+            out: `10`
+          }
+        },
+        {
+          h: 'Integer를 ==로 비교할 때의 함정',
+          html: `<p>자바는 -128~127 범위의 <code>Integer</code> 값을 캐시해서 재사용해요. 그래서 이 범위 안의 값은 <code>==</code>로 비교해도 우연히 true가 나오지만, 범위를 벗어나면 서로 다른 객체라 <code>==</code>가 false가 될 수 있어요. 그래서 <code>Integer</code>는 항상 <code>equals()</code>로 비교해야 해요.</p>`,
+          code: {
+            label: 'IntegerCache.java',
+            src: `Integer a = 100;
+Integer b = 100;
+Integer c = 200;
+Integer d = 200;
+System.out.println(a == b);
+System.out.println(c == d);
+System.out.println(c.equals(d));`,
+            out: `true
+false
+true`
+          },
+          after: `<div class="note"><b>실전 팁</b> — 값 비교는 타입과 상관없이 항상 <code>equals()</code>를 쓰는 습관을 들이면 이런 함정에서 안전해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>int</code> 값을 <code>Integer</code> 변수에 대입할 때 자동으로 일어나는 변환을 무엇이라고 부를까요? (한글로)`,
+          prefix: '', suffix: '', accept: ['오토박싱', '오토 박싱', '자동 박싱'], placeholder: '변환의 이름',
+          why: '<code>int</code>처럼 기본 타입 값이 자동으로 <code>Integer</code> 같은 래퍼 클래스로 변환되는 것을 오토박싱이라고 해요.',
+          hint: '"자동으로 상자에 담는다"는 뜻의 영어 단어를 한글로 표현했어요.'
+        }),
+        () => makeChoice(
+          '<code>Integer</code> 변수를 <code>int</code> 변수에 대입할 때 자동으로 일어나는 변환을 무엇이라고 부를까요?',
+          '언박싱(unboxing)', ['오토박싱(autoboxing)', '캐스팅(casting)', '직렬화(serialization)'],
+          '래퍼 클래스 값이 자동으로 기본 타입 값으로 풀리는 것을 언박싱이라고 해요.',
+          '"상자를 푼다"는 뜻의 영어 단어예요.'
+        ),
+        () => makeChoice(
+          '<code>Integer a = 200; Integer b = 200; System.out.println(a == b);</code>의 결과가 <code>false</code>인 이유로 가장 알맞은 것은?',
+          '200은 Integer 캐시 범위(-128~127)를 벗어나 a와 b가 서로 다른 객체로 만들어지기 때문에',
+          ['200이 int로 표현할 수 없는 값이기 때문에', 'Integer는 == 연산자를 지원하지 않기 때문에', 'a와 b의 자료형이 다르기 때문에'],
+          '자바는 -128~127 범위의 Integer만 캐시해서 재사용하고, 그 밖의 값은 매번 새 객체를 만들기 때문에 ==로 비교하면 false가 나올 수 있어요.',
+          '위 IntegerCache.java 예제에서 100과 200의 결과가 왜 다른지 비교해보세요.'
+        ),
+        () => {
+          const isCached = pick([true, false]);
+          const val = isCached ? randInt(-100, 100) : randInt(200, 500);
+          return {
+            type: 'blank',
+            q: `<code>Integer x = ${val}; Integer y = ${val}; System.out.println(x == y);</code>를 실행하면? (true 또는 false)`,
+            prefix: '', suffix: '', accept: [String(isCached)], placeholder: 'true 또는 false',
+            why: isCached
+              ? `${val}은 Integer 캐시 범위(-128~127) 안이라 x와 y가 같은 캐시된 객체를 가리켜 true예요.`
+              : `${val}은 Integer 캐시 범위(-128~127)를 벗어나 x와 y가 서로 다른 객체로 만들어져 false예요.`,
+            hint: '값이 -128~127 사이인지 아닌지를 먼저 확인해보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Integer a = 100;</code>와 <code>Integer b = 100;</code>을 선언하고, <code>a.equals(b)</code>의 결과를 <code>System.out.println</code>으로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'Integer a = 100;\nInteger b = 100;\nSystem.out.println(a.equals(b));',
+          accept: ['Integer a = 100;Integer b = 100;System.out.println(a.equals(b));'],
+          why: '값이 같은 Integer끼리는 항상 equals()로 비교해야 캐시 범위와 상관없이 안전하게 값을 비교할 수 있어요.',
+          hint: '두 Integer 변수를 선언하고 equals() 호출 결과를 출력하세요.'
+        }),
+      ],
+      boss: () => {
+        const val = pick([randInt(-128, 127), randInt(1000, 9999)]);
+        const cached = val >= -128 && val <= 127;
+        return {
+          type: 'blank',
+          q: `<code>Integer p = ${val}; Integer q = ${val}; System.out.println(p == q);</code>를 실행하면? (true 또는 false)`,
+          prefix: '', suffix: '', accept: [String(cached)], placeholder: 'true 또는 false',
+          why: cached
+            ? `${val}은 -128~127 캐시 범위 안이라 p와 q가 같은 객체를 가리켜 true예요.`
+            : `${val}은 -128~127 캐시 범위를 벗어나 p와 q가 서로 다른 객체가 되어 false예요.`,
+          hint: 'Integer 캐시 범위(-128~127) 안인지 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'staticInitBlock',
+      title: 'static 초기화 블록',
+      ready: true,
+      summary: '클래스가 처음 로딩될 때 딱 한 번만 실행되는 static 초기화 블록을 배워요.',
+      goals: ['static 초기화 블록의 문법과 실행 시점', '인스턴스 초기화 블록과의 차이', '초기화 순서(static → 인스턴스 → 생성자)'],
+      blocks: [
+        {
+          h: 'static { } 블록은 언제 실행될까요',
+          html: `<p><code>static { ... }</code> 블록은 클래스가 처음 메모리에 로딩될 때 <b>딱 한 번만</b> 실행돼요. 객체를 몇 개를 만들든 상관없이, 클래스당 한 번뿐이에요. 여러 static 필드를 한 번에 계산해서 초기화할 때 유용해요.</p>`,
+          code: {
+            label: 'StaticBlock.java',
+            src: `class Config {
+    static String env;
+    static {
+        env = "dev";
+        System.out.println("Config 클래스 로딩!");
+    }
+}
+
+System.out.println(Config.env);
+System.out.println(Config.env);`,
+            out: `Config 클래스 로딩!
+dev
+dev`
+          }
+        },
+        {
+          h: '인스턴스 초기화 블록과의 차이',
+          html: `<p><code>static</code>이 붙지 않은 <code>{ ... }</code> 블록은 <b>인스턴스 초기화 블록</b>으로, 객체를 <code>new</code>로 만들 때마다(생성자보다 먼저) 매번 실행돼요. static 블록은 클래스당 한 번, 인스턴스 블록은 객체를 만들 때마다 실행된다는 게 큰 차이예요.</p>`,
+          code: {
+            label: 'InstanceBlock.java',
+            src: `class Counter {
+    int id;
+    {
+        System.out.println("인스턴스 블록 실행");
+    }
+    Counter() {
+        System.out.println("생성자 실행");
+    }
+}
+
+new Counter();
+new Counter();`,
+            out: `인스턴스 블록 실행
+생성자 실행
+인스턴스 블록 실행
+생성자 실행`
+          }
+        },
+        {
+          h: '실행 순서: static → 인스턴스 블록 → 생성자',
+          html: `<p>클래스를 처음 쓸 때 static 블록이 한 번 실행되고, 그 뒤 <code>new</code>로 객체를 만들 때마다 인스턴스 초기화 블록이 먼저, 그다음 생성자가 실행돼요.</p>`,
+          after: `<div class="note"><b>실전 팁</b> — static 블록은 상수 테이블처럼 복잡한 계산이 필요한 static 필드를 초기화할 때, 또는 JDBC 드라이버 로딩처럼 클래스 로딩 시 한 번만 할 일이 있을 때 자주 쓰여요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `클래스가 처음 로딩될 때 딱 한 번만 실행되는 블록을 선언하려면 <code>{ }</code> 앞에 어떤 키워드를 붙일까요?`,
+          prefix: '', suffix: ' {\n    env = "dev";\n}', accept: ['static'], placeholder: '키워드',
+          why: '<code>static { }</code> 블록은 클래스 로딩 시 딱 한 번만 실행돼요.',
+          hint: '클래스 자체에 속한다는 걸 나타내는 키워드예요.'
+        }),
+        () => makeChoice(
+          'static 초기화 블록과 인스턴스 초기화 블록의 가장 큰 차이는?',
+          'static 블록은 클래스 로딩 시 한 번만, 인스턴스 블록은 객체를 만들 때마다 실행된다',
+          ['static 블록은 실행되지 않고 인스턴스 블록만 실행된다', '인스턴스 블록은 클래스당 한 번만 실행된다', '둘 다 실행 시점이 완전히 같다'],
+          'static 블록은 클래스가 처음 쓰일 때 딱 한 번, 인스턴스 블록은 new로 객체를 만들 때마다 매번 실행돼요.',
+          '위 Counter 예제에서 new를 두 번 했을 때 "인스턴스 블록 실행"이 몇 번 출력되는지 세어보세요.'
+        ),
+        () => makeChoice(
+          '객체를 하나 만들 때 실행되는 순서로 올바른 것은? (static 블록, 인스턴스 블록, 생성자)',
+          'static 블록(클래스당 한 번) → 인스턴스 블록 → 생성자',
+          ['생성자 → 인스턴스 블록 → static 블록', '인스턴스 블록 → static 블록 → 생성자', '세 가지가 동시에 실행된다'],
+          '클래스가 처음 로딩될 때 static 블록이 먼저 한 번 실행되고, 이후 객체를 만들 때마다 인스턴스 블록이 생성자보다 먼저 실행돼요.',
+          'static은 "클래스 준비", 인스턴스 블록/생성자는 "객체 준비"라고 생각해보세요.'
+        ),
+        () => {
+          const n = randInt(2, 4);
+          return {
+            type: 'blank',
+            q: `<code>static</code> 블록에서 "Config 클래스 로딩!"을 한 번 출력하고, 인스턴스 블록에서 "인스턴스 블록 실행"을 출력하는 클래스가 있을 때, <code>new Config()</code>를 ${n}번 호출하면 총 몇 줄이 출력될까요? (숫자만)`,
+            prefix: '', suffix: '', accept: [String(n + 1)], placeholder: '줄 수',
+            why: `static 블록은 클래스 로딩 시 1번, 인스턴스 블록은 new할 때마다 실행되어 ${n}번, 합쳐서 ${n + 1}줄이 출력돼요.`,
+            hint: 'static 블록 1번 + new한 횟수만큼의 인스턴스 블록을 더해보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Config</code> 클래스에 <code>static String env;</code> 필드를 선언하고, <code>static { env = "dev"; }</code> 블록으로 초기화한 뒤, <code>System.out.println(Config.env);</code>를 실행하는 전체 코드를 작성하세요.',
+          starter: '',
+          rows: 6,
+          placeholder: 'class Config {\n    static String env;\n    static {\n        env = "dev";\n    }\n}\n\nSystem.out.println(Config.env);',
+          accept: ['class Config {static String env;static {env = "dev";}}System.out.println(Config.env);'],
+          why: 'static 블록이 클래스 로딩 시 env를 "dev"로 초기화하기 때문에, Config.env를 출력하면 "dev"가 나와요.',
+          hint: 'static 필드 선언 뒤에 static { } 블록으로 값을 대입하세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(2, 5);
+        return {
+          type: 'blank',
+          q: `클래스에 <code>static</code> 블록(로딩 시 "START" 한 번 출력)과 인스턴스 블록("NEW" 출력, 생성자보다 먼저 실행)이 있을 때, <code>new</code>로 객체를 ${n}번 만들면 "NEW"는 총 몇 번 출력될까요? (숫자만)`,
+          prefix: '', suffix: '', accept: [String(n)], placeholder: '출력 횟수',
+          why: `인스턴스 블록은 객체를 만들 때마다 실행되므로, ${n}번 new했다면 "NEW"도 ${n}번 출력돼요. (static 블록의 "START"는 별개로 딱 1번뿐이에요.)`,
+          hint: 'static 블록과 인스턴스 블록 중 어느 것이 new할 때마다 실행되는지 떠올려보세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({

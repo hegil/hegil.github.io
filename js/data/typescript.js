@@ -2293,6 +2293,2467 @@ type ReadonlyUser = {
         '.d.ts 선언 파일(직접 작성하거나 @types 패키지)을 추가하면, 기존 JS 코드를 그대로 두고도 타입 지원을 받을 수 있어요.',
         '기존 구현은 그대로 두고 "타입 정보만" 추가하는 방법을 생각해보세요.'
       )
+    },
+    {
+      id: 'discriminatedUnions',
+      title: '판별 유니언(Discriminated Union)',
+      ready: true,
+      summary: '공통된 "종류" 속성으로 유니언 타입의 각 경우를 구분해서, 안전하게 분기하는 실무 패턴을 배워요.',
+      goals: ['공통 kind 속성으로 유니언 구분하기', 'if/switch로 안전하게 분기하기', '실무에서 자주 쓰이는 이유'],
+      blocks: [
+        {
+          h: '여러 모양의 객체를 하나의 타입으로 묶기',
+          html: `<p>서로 다른 모양의 객체 타입들을 유니언으로 묶고, 공통 속성(흔히 <code>kind</code>라는 이름을 써요)으로 "지금 이게 어떤 경우인지" 구분하는 패턴을 <b>판별 유니언</b>이라고 해요.</p>`,
+          code: {
+            label: 'discriminated_basic.ts',
+            lang: 'typescript',
+            src: `type Circle = { kind: "circle"; radius: number };
+type Square = { kind: "square"; side: number };
+type Shape = Circle | Square;
+
+function area(shape: Shape): number {
+  if (shape.kind === "circle") {
+    return 3.14 * shape.radius * shape.radius;
+  }
+  return shape.side * shape.side;
+}
+
+console.log(area({ kind: "square", side: 4 }));`,
+            out: `16`
+          }
+        },
+        {
+          h: 'kind로 안전하게 좁혀져요',
+          html: `<p><code>shape.kind === "circle"</code>이 참으로 확인된 블록 안에서는, TypeScript가 <code>shape</code>를 자동으로 <code>Circle</code> 타입으로 좁혀서 <code>radius</code>에 안전하게 접근할 수 있게 해줘요. Square 쪽 블록에서는 반대로 <code>side</code>에 접근할 수 있어요.</p>`,
+          after: `<div class="note"><b>실무에서 왜 자주 쓰일까요</b> — API 응답이나 화면의 상태(state)처럼 "여러 경우의 수 중 하나"를 다뤄야 할 때, 판별 유니언과 kind 분기를 쓰면 있을 수 없는 조합을 컴파일 시점에 막을 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const side = randInt(2, 9);
+          return {
+            type: 'blank',
+            q: `위 area 함수에서, <code>area({ kind: "square", side: ${side} })</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(side * side)], placeholder: '숫자',
+            why: `kind가 "square"이니 shape.side * shape.side가 계산되어 ${side * side}가 나와요.`,
+            hint: 'square일 때는 side * side를 계산해서 반환해요.'
+          };
+        },
+        () => makeChoice(
+          '판별 유니언에서, 유니언에 속한 각 타입을 구분하기 위해 공통으로 넣어두는 속성(예: kind)을 무엇이라고 부르나요?',
+          '판별자(discriminant) 속성', ['private 속성', 'readonly 속성', 'static 속성'],
+          '보통 kind나 type처럼, 각 타입마다 다른 리터럴 값을 갖는 공통 속성을 판별자 속성이라고 해요.',
+          '"구분해주는 열쇠가 되는 속성"이라는 뜻이에요.'
+        ),
+        () => makeChoice(
+          'Shape 유니언에서 <code>shape.kind === "circle"</code>이 참으로 확인된 블록 안에서는, TypeScript가 shape를 어떤 타입으로 이해할까요?',
+          'Circle 타입 (radius에 안전하게 접근 가능)', ['Square 타입', 'Shape 타입 그대로(둘 다 가능)', 'never 타입'],
+          'kind로 조건을 확인하고 나면, TypeScript는 그 블록 안에서 shape를 Circle로 좁혀서 radius에 안전하게 접근하게 해줘요.',
+          '판별자 속성으로 조건을 걸면, 그 안에서는 정확히 어떤 타입인지 TypeScript도 알게 돼요.'
+        ),
+        () => makeChoice(
+          '판별 유니언 패턴이 실무에서 자주 쓰이는 이유는?',
+          'API 응답이나 상태(state)처럼 "여러 경우의 수" 중 하나를 안전하게 구분해서 처리할 수 있어서',
+          ['실행 속도가 항상 빨라져서', '타입을 하나도 안 써도 되게 해줘서', '변수 이름을 자동으로 지어줘서'],
+          '판별 유니언은 여러 경우(성공/실패, 원/사각형 등)를 하나의 타입으로 묶고, kind로 안전하게 구분해서 처리할 수 있게 해줘요.',
+          '여러 "경우의 수"를 안전하게 다뤄야 하는 상황을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Shape</code>(Circle | Square, kind로 구분)를 받아, kind가 "square"이면 <code>"정사각형"</code>을, 아니면 <code>"원"</code>을 반환하는 함수 <code>shapeName(shape: Shape): string</code>을 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'function shapeName(shape: Shape): string {\n  if (shape.kind === "square") {\n    return "정사각형";\n  }\n  return "원";\n}',
+          accept: ['function shapeName(shape: Shape): string {\n  if (shape.kind === "square") {\n    return "정사각형";\n  }\n  return "원";\n}'],
+          why: 'kind가 "square"인지 확인해서 각각 다른 문자열을 반환해요.',
+          hint: 'if (shape.kind === "square") { ... } 다음에 return "원";으로 끝내면 나머지 경우를 다 처리할 수 있어요.'
+        }),
+      ],
+      boss: () => {
+        const side = randInt(2, 12);
+        return {
+          type: 'blank',
+          q: `위 area 함수에서, <code>area({ kind: "square", side: ${side} })</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(side * side)], placeholder: '숫자',
+          why: `kind가 "square"이니 side * side가 계산되어 ${side * side}가 나와요.`,
+          hint: 'square일 때는 side * side를 반환한다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'conditionalTypes',
+      title: '조건부 타입(Conditional Types)',
+      ready: true,
+      summary: '"이 타입이 저 타입에 속하면 A, 아니면 B"처럼 타입 레벨에서 조건 분기를 하는 조건부 타입을 배워요.',
+      goals: ['extends ? : 문법으로 타입 분기하기', '값의 삼항 연산자와 비교하기', '실제로 어디에 쓰이는지 감 잡기'],
+      blocks: [
+        {
+          h: '값이 아니라 타입에 조건을 걸기',
+          html: `<p>값에서 쓰는 삼항 연산자(<code>조건 ? A : B</code>)처럼, 타입에서도 <code>T extends U ? X : Y</code>로 "T가 U에 속하면 X, 아니면 Y"라는 조건부 타입을 만들 수 있어요.</p>`,
+          code: {
+            label: 'conditional_basic.ts',
+            lang: 'typescript',
+            src: `type IsString<T> = T extends string ? "yes" : "no";
+
+type A = IsString<string>;  // "yes"
+type B = IsString<number>;  // "no"
+
+let result: A = "yes";
+console.log(result);`,
+            out: `yes`
+          }
+        },
+        {
+          h: '실제로 어디에 쓰일까요',
+          html: `<p>조건부 타입은 라이브러리 내부에서 "이 값이 배열이면 요소 타입을, 아니면 그 타입 자체를 돌려줘" 같은 복잡한 타입 계산에 많이 쓰여요. 처음엔 직접 만들기보다, <b>남이 만든 조건부 타입을 이해하는 것</b>부터 시작해도 충분해요.</p>`,
+          after: `<div class="note"><b>비유</b> — 조건부 타입은 "이 재료가 채소면 이 칸에, 아니면 저 칸에 담아라"는 분류 규칙을 타입의 세계에 적용한 거예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const useString = Math.random() < 0.5;
+          const typeArg = useString ? 'string' : 'number';
+          return {
+            type: 'blank',
+            q: `<code>type IsString&lt;T&gt; = T extends string ? "yes" : "no";</code>일 때, <code>IsString&lt;${typeArg}&gt;</code>의 결과 타입은? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [useString ? 'yes' : 'no'], placeholder: '값',
+            why: useString ? `${typeArg}은 string에 속하니 "yes"예요.` : `${typeArg}은 string에 속하지 않으니 "no"예요.`,
+            hint: '타입 인자가 string인지 아닌지를 먼저 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          '조건부 타입 <code>T extends U ? X : Y</code>에서, 값의 세계에서 이와 가장 비슷한 문법은?',
+          '삼항 연산자(<code>조건 ? A : B</code>)', ['if문', 'for문', 'switch문'],
+          '둘 다 "조건에 따라 둘 중 하나를 고른다"는 점에서 똑같은 구조예요.',
+          '조건, 물음표, 콜론이 나란히 있는 문법을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `타입 조건 분기에서 "T가 U에 속하는지" 검사할 때 쓰는 키워드를 쓰세요.`,
+          prefix: 'type IsString<T> = T ', suffix: ' string ? "yes" : "no";', accept: ['extends'], placeholder: '키워드',
+          why: '<code>T extends U ? X : Y</code>에서 extends는 "T가 U에 속하면"이라는 조건을 나타내요.',
+          hint: '제네릭 제약에서도 봤던 그 키워드예요.'
+        }),
+        () => makeChoice(
+          '조건부 타입이 실무에서 주로 쓰이는 경우는?',
+          '라이브러리 내부에서 복잡한 타입 계산(예: 배열이면 요소 타입 추출)을 자동화할 때',
+          ['변수의 실행 시점 값을 바꿀 때', '함수 실행 속도를 높일 때', 'CSS 스타일을 지정할 때'],
+          '조건부 타입은 실제 값이 아니라 타입 레벨의 계산이라서, 라이브러리 내부의 복잡한 타입 추론을 자동화하는 데 주로 쓰여요.',
+          '"타입 레벨의 계산"이라는 표현이 힌트예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>T</code>가 <code>number</code>에 속하면 <code>"yes"</code>, 아니면 <code>"no"</code>가 되는 조건부 타입 <code>IsNumber&lt;T&gt;</code>를 작성하세요.',
+          starter: '',
+          placeholder: 'type IsNumber<T> = T extends number ? "yes" : "no";',
+          accept: ['type IsNumber<T> = T extends number ? "yes" : "no";'],
+          why: 'T extends number ? "yes" : "no" 형태로 조건부 타입을 만들어요.',
+          hint: 'IsString<T>와 똑같은 구조에서 string 자리만 number로 바꾸면 돼요.'
+        }),
+      ],
+      boss: () => {
+        const useString = Math.random() < 0.5;
+        const typeArg = useString ? '"안녕"' : '42';
+        const typeArgType = useString ? 'string' : 'number';
+        return {
+          type: 'blank',
+          q: `<code>type IsString&lt;T&gt; = T extends string ? "yes" : "no";</code>이고, <code>check(value)</code>가 <code>IsString&lt;typeof value&gt;</code>를 반환한다고 할 때, <code>value</code>가 <code>${typeArg}</code>이면 <code>check(value)</code>의 결과는? (따옴표 없이)`,
+          prefix: '', suffix: '', accept: [useString ? 'yes' : 'no'], placeholder: '값',
+          why: `${typeArg}은 ${typeArgType} 타입이라서, ${useString ? '"yes"' : '"no"'}가 반환돼요.`,
+          hint: '값의 타입이 string인지 아닌지를 먼저 판단해보세요.'
+        };
+      }
+    },
+    {
+      id: 'asyncAwaitTypes',
+      title: 'async/await와 Promise 타입',
+      ready: true,
+      summary: '비동기 함수의 반환 타입을 Promise<T>로 표기하고, await로 그 안의 값을 안전하게 꺼내는 법을 배워요.',
+      goals: ['Promise<T> 타입 표기', 'async 함수와 await', '비동기 코드에서 타입이 주는 안전함'],
+      blocks: [
+        {
+          h: '비동기 함수의 반환 타입: Promise<T>',
+          html: `<p><code>async</code> 함수는 항상 Promise를 반환해요. 그 Promise가 나중에 어떤 타입의 값을 담아 줄지는 <code>Promise&lt;T&gt;</code>로 표기해요.</p>`,
+          code: {
+            label: 'async_basic.ts',
+            lang: 'typescript',
+            src: `async function fetchAge(): Promise<number> {
+  return 17;
+}
+
+fetchAge().then(age => console.log(age));`,
+            out: `17`
+          }
+        },
+        {
+          h: 'await로 Promise 안의 값 꺼내기',
+          html: `<p><code>await</code>를 쓰면 Promise가 끝날 때까지 기다렸다가, 그 안의 값을 <b>Promise가 아닌 원래 타입 그대로</b> 꺼내올 수 있어요.</p>`,
+          code: {
+            label: 'await_basic.ts',
+            lang: 'typescript',
+            src: `async function greetAsync(name: string): Promise<string> {
+  const age: number = await fetchAge();
+  return \`\${name}님은 \${age}살이에요\`;
+}
+
+greetAsync("지수").then(msg => console.log(msg));`,
+            out: `지수님은 17살이에요`
+          },
+          after: `<div class="note"><b>타입이 주는 안전함</b> — age의 타입을 number라고 미리 적어두면, await 뒤에 실수로 다른 타입을 기대하는 코드를 써도 컴파일 시점에 바로 잡아줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const name = pick(['지수', '민준', '서연']);
+          return {
+            type: 'blank',
+            q: `fetchAge()는 17을 반환하는 비동기 함수이고, greetAsync(name)은 그 값을 await로 꺼내 "이름님은 나이살이에요" 형태의 문장을 반환해요. <code>greetAsync("${name}")</code>이 반환하는 Promise가 담게 될 값은?`,
+            prefix: '', suffix: '', accept: [`${name}님은 17살이에요`], placeholder: '값',
+            why: `await fetchAge()는 17을 꺼내주고, "${name}님은 17살이에요"가 만들어져요.`,
+            hint: 'await는 Promise 안의 값을 꺼내주는 것뿐, 계산 자체는 평소와 같아요.'
+          };
+        },
+        () => makeChoice(
+          'async 함수를 선언하면 그 함수의 반환 타입은 항상 어떤 형태가 되나요?',
+          '<code>Promise&lt;T&gt;</code> (실제로 반환하는 값의 타입을 T 자리에 감싼 형태)',
+          ['항상 <code>void</code>', '항상 <code>any</code>', '반환 타입을 표기할 수 없다'],
+          'async 함수는 항상 Promise를 반환해서, 반환 타입은 Promise<T> 형태로 표기해요.',
+          '함수 안에서 return하는 값의 타입을 Promise로 감싼다고 생각하면 돼요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `Promise를 반환하는 함수를 호출한 결과에서, 그 안의 값을 곧바로 꺼내 쓰고 싶을 때 앞에 붙이는 키워드를 쓰세요.`,
+          prefix: 'const age = ', suffix: ' fetchAge();', accept: ['await'], placeholder: '키워드',
+          why: '<code>await</code>는 Promise가 끝날 때까지 기다렸다가 그 안의 값을 꺼내줘요.',
+          hint: 'async와 짝을 이루는 그 키워드예요.'
+        }),
+        () => makeChoice(
+          'await를 함수 안에서 쓰려면, 그 함수 앞에 반드시 붙여야 하는 키워드는?',
+          '<code>async</code>', ['<code>static</code>', '<code>public</code>', '<code>readonly</code>'],
+          'await는 async 함수 안에서만 쓸 수 있어요.',
+          'Promise와 짝을 이루는 그 함수 선언 키워드예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '점수(number) 90을 반환하는 비동기 함수 <code>fetchScore</code>를 작성하세요. 반환 타입은 <code>Promise&lt;number&gt;</code>로 표기하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'async function fetchScore(): Promise<number> {\n  return 90;\n}',
+          accept: ['async function fetchScore(): Promise<number> {\n  return 90;\n}'],
+          why: 'async 함수는 반환 타입을 Promise<T>로 감싸서 표기해요.',
+          hint: 'async function fetchScore(): Promise<number> { return 90; }를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['지수', '민준', '서연']);
+        const age = randInt(14, 19);
+        return {
+          type: 'blank',
+          q: `fetchAge()가 이번엔 ${age}를 반환한다고 할 때, <code>greetAsync("${name}")</code>이 반환하는 Promise가 담게 될 값은?`,
+          prefix: '', suffix: '', accept: [`${name}님은 ${age}살이에요`], placeholder: '값',
+          why: `await fetchAge()는 ${age}를 꺼내줘서 "${name}님은 ${age}살이에요"가 돼요.`,
+          hint: '이번엔 fetchAge가 17이 아니라 다른 값을 반환한다는 점만 다르고, 원리는 똑같아요.'
+        };
+      }
+    },
+    {
+      id: 'classInheritanceAbstract',
+      title: '클래스 상속과 추상 클래스',
+      ready: true,
+      summary: 'extends로 클래스를 상속받고, abstract로 "직접 만들 수는 없지만 부모 역할만 하는" 추상 클래스를 만드는 법을 배워요.',
+      goals: ['extends로 클래스 상속하기', 'super()로 부모 생성자 호출하기', 'abstract 클래스와 추상 메서드'],
+      blocks: [
+        {
+          h: '클래스 상속하기: extends',
+          html: `<p><code>class 자식 extends 부모</code>로, 부모 클래스의 속성과 메서드를 그대로 물려받는 자식 클래스를 만들 수 있어요. 자식에서 같은 이름의 메서드를 다시 정의하면(오버라이드), 자식의 버전이 실행돼요.</p>`,
+          code: {
+            label: 'inheritance_basic.ts',
+            lang: 'typescript',
+            src: `class Animal {
+  name: string;
+  constructor(name: string) {
+    this.name = name;
+  }
+  speak(): string {
+    return \`\${this.name}가 소리를 내요\`;
+  }
+}
+
+class Dog extends Animal {
+  speak(): string {
+    return \`\${this.name}가 멍멍 짖어요\`;
+  }
+}
+
+const d = new Dog("초코");
+console.log(d.speak());`,
+            out: `초코가 멍멍 짖어요`
+          }
+        },
+        {
+          h: '부모의 생성자 호출하기: super()',
+          html: `<p>자식 클래스에서 생성자를 직접 만들 때는, 맨 처음에 <code>super(...)</code>로 부모 클래스의 생성자를 먼저 호출해줘야 해요.</p>`,
+          code: {
+            label: 'super_basic.ts',
+            lang: 'typescript',
+            src: `class Cat extends Animal {
+  color: string;
+  constructor(name: string, color: string) {
+    super(name);
+    this.color = color;
+  }
+}
+
+const c = new Cat("나비", "회색");
+console.log(c.name, c.color);`,
+            out: `나비 회색`
+          }
+        },
+        {
+          h: '직접 만들 수 없는 부모: abstract 클래스',
+          html: `<p><code>abstract class</code>는 <b>직접 new로 만들 수 없고</b>, 반드시 자식 클래스가 상속받아서 써야 하는 클래스예요. <code>abstract</code> 메서드는 "이 메서드는 자식이 반드시 구현해야 한다"는 뜻이에요.</p>`,
+          code: {
+            label: 'abstract_basic.ts',
+            lang: 'typescript',
+            src: `abstract class Shape {
+  abstract area(): number;
+  describe(): string {
+    return \`넓이는 \${this.area()}예요\`;
+  }
+}
+
+class Square extends Shape {
+  constructor(private side: number) {
+    super();
+  }
+  area(): number {
+    return this.side * this.side;
+  }
+}
+
+console.log(new Square(4).describe());`,
+            out: `넓이는 16이에요`
+          },
+          after: `<div class="note"><b>주의</b> — <code>new Shape()</code>처럼 abstract 클래스를 직접 만들려고 하면 컴파일 오류가 나요. 반드시 Square처럼 area()를 구현한 자식 클래스로만 만들 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const name = pick(['초코', '보리', '두부']);
+          return {
+            type: 'blank',
+            q: `Dog는 Animal을 상속받아 speak()를 새로 정의했고, "이름가 멍멍 짖어요" 형태의 문장을 반환해요. <code>const d = new Dog("${name}");</code>일 때, <code>d.speak()</code>의 결과는?`,
+            prefix: '', suffix: '', accept: [`${name}가 멍멍 짖어요`], placeholder: '값',
+            why: `Dog가 speak()를 오버라이드했으니 그 버전이 실행되어 "${name}가 멍멍 짖어요"가 돼요.`,
+            hint: '자식 클래스가 부모의 메서드를 다시 정의(오버라이드)하면, 자식의 버전이 실행돼요.'
+          };
+        },
+        () => makeChoice(
+          '자식 클래스의 생성자에서 부모 클래스의 생성자를 호출할 때 쓰는 것은?',
+          '<code>super(...)</code>', ['<code>parent(...)</code>', '<code>base(...)</code>', '<code>this.super(...)</code>'],
+          '<code>super(...)</code>로 부모 클래스의 생성자를 호출해요.',
+          '"위, 상위"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `Dog 클래스가 Animal 클래스를 상속받도록 만드는 키워드를 쓰세요.`,
+          prefix: 'class Dog ', suffix: ' Animal { ... }', accept: ['extends'], placeholder: '키워드',
+          why: '<code>class 자식 extends 부모</code>로 상속을 표현해요.',
+          hint: '"확장하다"라는 뜻의 그 키워드, 제네릭 제약에서도 봤어요.'
+        }),
+        () => makeChoice(
+          'abstract 클래스에 대한 설명으로 옳은 것은?',
+          '직접 new로 인스턴스를 만들 수 없고, 자식 클래스가 상속받아야 한다',
+          ['일반 클래스와 완전히 똑같이 동작한다', 'abstract 클래스는 메서드를 하나도 가질 수 없다', 'abstract 클래스는 상속받을 수 없다'],
+          'abstract 클래스는 직접 만들 수 없는 "부모 전용" 클래스로, 자식 클래스가 상속받아서만 쓸 수 있어요.',
+          '"추상적인, 실체가 없는"이라는 뜻의 abstract를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>abstract class Shape { abstract area(): number; }</code>를 상속받아, <code>radius</code>(number)를 받는 생성자와 <code>area()</code>(반지름 × 반지름 × 3을 반환)를 구현하는 <code>Circle</code> 클래스를 작성하세요.',
+          starter: '',
+          rows: 6,
+          placeholder: 'class Circle extends Shape {\n  constructor(private radius: number) {\n    super();\n  }\n  area(): number {\n    return this.radius * this.radius * 3;\n  }\n}',
+          accept: ['class Circle extends Shape {\n  constructor(private radius: number) {\n    super();\n  }\n  area(): number {\n    return this.radius * this.radius * 3;\n  }\n}'],
+          why: 'extends로 Shape를 상속받고, super()로 부모 생성자를 호출한 뒤, area()를 실제로 구현해요.',
+          hint: 'constructor 맨 처음에 super();를 꼭 넣어야 해요.'
+        }),
+      ],
+      boss: () => {
+        const side = randInt(2, 9);
+        return {
+          type: 'blank',
+          q: `Square는 Shape를 상속받아 area()를 side * side로 구현했고, describe()는 "넓이는 (결과)예요" 형태의 문장을 반환해요. <code>const s = new Square(${side});</code>일 때, <code>s.describe()</code>의 결과는?`,
+          prefix: '', suffix: '', accept: [`넓이는 ${side * side}예요`], placeholder: '값',
+          why: `area()는 ${side} * ${side} = ${side * side}를 반환하고, describe()는 그 값을 문장에 넣어 "넓이는 ${side * side}예요"가 돼요.`,
+          hint: 'area()의 결과를 먼저 계산한 뒤, describe()의 문장 형태에 넣어보세요.'
+        };
+      }
+    },
+    {
+      id: 'moreUtilityTypes',
+      title: '더 많은 유틸리티 타입 (Readonly, Required, ReturnType)',
+      ready: true,
+      summary: 'Partial/Pick/Omit에 이어, 값을 못 바꾸게 하거나(Readonly) 모든 속성을 필수로 만들거나(Required), 함수의 반환 타입을 뽑아내는(ReturnType) 유틸리티 타입을 배워요.',
+      goals: ['Readonly<T>로 전체를 읽기전용으로', 'Required<T>로 전체를 필수로', 'ReturnType<T>로 함수의 반환 타입 뽑기'],
+      blocks: [
+        {
+          h: '모든 속성을 읽기전용으로: Readonly<T>',
+          html: `<p><code>Readonly&lt;T&gt;</code>는 T의 모든 속성 앞에 <code>readonly</code>를 붙인 것과 같은 효과를 줘요. 객체를 만든 뒤에는 어떤 속성도 바꿀 수 없게 돼요.</p>`,
+          code: {
+            label: 'readonly_utility.ts',
+            lang: 'typescript',
+            src: `type User = { name: string; age: number };
+type ReadonlyUser = Readonly<User>;
+
+const u: ReadonlyUser = { name: "지수", age: 17 };
+// u.age = 18; // 오류! 읽기전용이라 바꿀 수 없어요
+console.log(u.age);`,
+            out: `17`
+          }
+        },
+        {
+          h: '모든 속성을 필수로: Required<T>',
+          html: `<p>속성에 <code>?</code>가 붙어 선택적이던 타입을 <code>Required&lt;T&gt;</code>로 감싸면 <b>모든 속성이 필수</b>가 돼요. Partial과 정반대 역할이에요.</p>`,
+          code: {
+            label: 'required_utility.ts',
+            lang: 'typescript',
+            src: `type Profile = { name: string; nickname?: string };
+type FullProfile = Required<Profile>;
+
+const p: FullProfile = { name: "민준", nickname: "민민" };
+console.log(p.nickname);`,
+            out: `민민`
+          }
+        },
+        {
+          h: '함수의 반환 타입 뽑아내기: ReturnType<T>',
+          html: `<p><code>ReturnType&lt;typeof 함수&gt;</code>는 그 함수가 <b>반환하는 값의 타입</b>을 뽑아줘요. 함수 반환 타입이 바뀌면 자동으로 함께 바뀌어서 편리해요.</p>`,
+          code: {
+            label: 'returntype_utility.ts',
+            lang: 'typescript',
+            src: `function makeUser(name: string) {
+  return { name, age: 0 };
+}
+
+type MadeUser = ReturnType<typeof makeUser>;
+const u2: MadeUser = { name: "서연", age: 18 };
+console.log(u2.age);`,
+            out: `18`
+          },
+          after: `<div class="note"><b>정리</b> — Partial(모두 선택적), Required(모두 필수), Readonly(모두 읽기전용), ReturnType(함수의 반환 타입 추출) 넷 다 "기존 타입을 가공해서 새 타입을 만든다"는 공통점이 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const age = randInt(14, 19);
+          return {
+            type: 'blank',
+            q: `<code>type User = { name: string; age: number }; type ReadonlyUser = Readonly&lt;User&gt;; const u: ReadonlyUser = { name: "지수", age: ${age} };</code>일 때, <code>u.age</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(age)], placeholder: '숫자',
+            why: `Readonly는 값을 못 바꾸게 할 뿐, 처음 만들 때 넣은 값(${age})은 그대로 읽을 수 있어요.`,
+            hint: 'Readonly는 "바꾸는 것"만 막지, 값을 읽는 건 평소와 똑같아요.'
+          };
+        },
+        () => makeChoice(
+          'Readonly<User> 타입의 객체를 만든 뒤, <code>u.age = 20;</code>처럼 값을 바꾸려고 하면?',
+          '컴파일 오류가 난다', ['정상적으로 바뀐다', 'age가 자동으로 0이 된다', '아무 일도 안 일어나고 그대로 유지된다(오류 없이)'],
+          'Readonly로 감싼 속성은 처음 만들 때만 값을 정할 수 있고, 그 뒤에 바꾸려고 하면 컴파일 오류가 나요.',
+          '"읽기 전용"이라는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>type Profile = { name: string; nickname?: string };</code>에서, nickname처럼 선택적인 속성들까지 전부 필수로 만드는 유틸리티 타입을 쓰세요.`,
+          prefix: 'type FullProfile = ', suffix: '<Profile>;', accept: ['Required'], placeholder: '유틸리티 타입',
+          why: '<code>Required&lt;T&gt;</code>는 T의 모든 속성을 필수로 만들어요.',
+          hint: 'Partial의 정반대 역할을 하는 유틸리티 타입이에요.'
+        }),
+        () => makeChoice(
+          '<code>ReturnType&lt;typeof 함수&gt;</code>가 뽑아내는 것은?',
+          '그 함수가 반환하는 값의 타입', ['그 함수의 매개변수 타입들', '그 함수의 이름', '그 함수가 비동기인지 여부'],
+          'ReturnType은 함수의 반환값 타입만 뽑아내요. 매개변수 타입을 뽑으려면 Parameters를 써요.',
+          '이름 그대로 "반환(Return) 타입(Type)"을 뽑아내요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>function makeScore(value: number) { return { value, passed: value >= 60 }; }</code>가 반환하는 값의 타입을 뽑아내는 타입 별칭 <code>ScoreResult</code>를 ReturnType으로 만드세요.',
+          starter: '',
+          placeholder: 'type ScoreResult = ReturnType<typeof makeScore>;',
+          accept: ['type ScoreResult = ReturnType<typeof makeScore>;'],
+          why: 'ReturnType<typeof 함수>로 함수의 반환 타입을 뽑아내요.',
+          hint: 'type ScoreResult = ReturnType<typeof makeScore>;를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['지수', '민준', '서연']);
+        const nickname = pick(['수수', '민민', '서서']);
+        return {
+          type: 'blank',
+          q: `<code>type Profile = { name: string; nickname?: string }; type FullProfile = Required&lt;Profile&gt;; const p: FullProfile = { name: "${name}", nickname: "${nickname}" };</code>일 때, <code>p.nickname</code>의 값은? (따옴표 없이)`,
+          prefix: '', suffix: '', accept: [nickname], placeholder: '값',
+          why: `Required로 감싸도 실제 값은 그대로라서, nickname은 "${nickname}"이에요.`,
+          hint: 'Required는 "선택적이었던 속성도 필수로 만든다"는 뜻일 뿐, 넣은 값은 그대로예요.'
+        };
+      }
+    },
+    {
+      id: 'narrowingInstanceofIn',
+      title: 'instanceof와 in으로 타입 좁히기',
+      ready: true,
+      summary: 'typeof에 이어, 클래스 인스턴스를 구분하는 instanceof와 객체에 특정 속성이 있는지 확인하는 in 연산자로 타입을 좁히는 법을 배워요.',
+      goals: ['instanceof로 클래스 인스턴스 구분하기', 'in 연산자로 속성 존재 확인하기', '어떤 상황에 어떤 걸 쓸지'],
+      blocks: [
+        {
+          h: '클래스 인스턴스 구분하기: instanceof',
+          html: `<p><code>값 instanceof 클래스</code>는 "그 값이 이 클래스로 만들어졌는지"를 확인해줘요. 참이면 그 블록 안에서 TypeScript가 값을 그 클래스 타입으로 좁혀줘요.</p>`,
+          code: {
+            label: 'instanceof_basic.ts',
+            lang: 'typescript',
+            src: `class Dog {
+  bark(): string { return "멍멍"; }
+}
+class Cat {
+  meow(): string { return "야옹"; }
+}
+
+function makeSound(animal: Dog | Cat): string {
+  if (animal instanceof Dog) {
+    return animal.bark();
+  }
+  return animal.meow();
+}
+
+console.log(makeSound(new Dog()));`,
+            out: `멍멍`
+          }
+        },
+        {
+          h: '객체에 속성이 있는지 확인하기: in',
+          html: `<p>클래스가 아니라 일반 객체 타입의 유니언이라면, <code>"속성이름" in 객체</code>로 그 속성이 있는지 확인해서 타입을 좁힐 수 있어요.</p>`,
+          code: {
+            label: 'in_operator.ts',
+            lang: 'typescript',
+            src: `type Fish = { swim: () => string };
+type Bird = { fly: () => string };
+
+function move(animal: Fish | Bird): string {
+  if ("swim" in animal) {
+    return animal.swim();
+  }
+  return animal.fly();
+}
+
+console.log(move({ swim: () => "헤엄쳐요" }));`,
+            out: `헤엄쳐요`
+          },
+          after: `<div class="note"><b>언제 어떤 걸 쓸까요</b> — 클래스로 만든 값은 instanceof, 클래스가 아닌 객체 타입(interface/type)의 유니언은 in을 주로 써요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const useDog = Math.random() < 0.5;
+          return {
+            type: 'blank',
+            q: `makeSound는 <code>animal instanceof Dog</code>이면 bark()("멍멍")를, 아니면 meow()("야옹")를 반환해요. <code>makeSound(new ${useDog ? 'Dog' : 'Cat'}())</code>의 결과는? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [useDog ? '멍멍' : '야옹'], placeholder: '값',
+            why: useDog ? 'Dog 인스턴스라서 bark()가 실행되어 "멍멍"이에요.' : 'Cat 인스턴스라서 meow()가 실행되어 "야옹"이에요.',
+            hint: 'instanceof로 어떤 클래스인지 확인한 뒤, 그에 맞는 메서드가 실행돼요.'
+          };
+        },
+        () => makeChoice(
+          'instanceof로 타입을 좁히는 건 주로 어떤 값에 쓰나요?',
+          '클래스로 만든(new로 생성한) 인스턴스', ['모든 객체 리터럴', '숫자와 문자열', '함수의 매개변수 이름'],
+          'instanceof는 그 값이 특정 클래스로 만들어졌는지를 확인하는 연산자라서, 클래스 인스턴스에 주로 써요.',
+          '"이것은 ~의 인스턴스인가?"라는 뜻을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `객체에 특정 속성이 있는지 확인해서 타입을 좁힐 때 쓰는 연산자를 쓰세요. (예: "swim" ___ animal)`,
+          prefix: '"swim" ', suffix: ' animal', accept: ['in'], placeholder: '연산자',
+          why: '<code>"속성" in 객체</code>는 그 객체가 해당 속성을 가지고 있는지 확인해요.',
+          hint: '"~안에"라는 뜻의 짧은 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'move 함수에서 "swim" in animal이 거짓일 때, TypeScript는 animal을 어떤 타입으로 좁혀서 이해할까요?',
+          'Bird 타입', ['Fish 타입', 'Fish | Bird 그대로', 'never 타입'],
+          'swim 속성이 없다고 확인됐으니, 남은 가능성인 Bird로 좁혀져요.',
+          'Fish와 Bird 중 swim이 없는 쪽이 뭔지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Dog</code>(bark(): string)와 <code>Cat</code>(meow(): string) 클래스의 유니언을 받아, instanceof로 구분해서 알맞은 메서드를 호출하고 그 결과를 반환하는 함수 <code>makeSound(animal: Dog | Cat): string</code>을 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'function makeSound(animal: Dog | Cat): string {\n  if (animal instanceof Dog) {\n    return animal.bark();\n  }\n  return animal.meow();\n}',
+          accept: ['function makeSound(animal: Dog | Cat): string {\n  if (animal instanceof Dog) {\n    return animal.bark();\n  }\n  return animal.meow();\n}'],
+          why: 'instanceof로 Dog인지 확인해서, 맞으면 bark(), 아니면 meow()를 호출해요.',
+          hint: 'if (animal instanceof Dog) { ... } 다음에 나머지 경우를 처리하면 돼요.'
+        }),
+      ],
+      boss: () => {
+        const isFish = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `move 함수는 "swim" in animal이면 animal.swim()을("헤엄쳐요"), 아니면 animal.fly()를("날아가요") 반환해요. animal이 ${isFish ? '{ swim: () => "헤엄쳐요" }' : '{ fly: () => "날아가요" }'}일 때, move(animal)의 결과는? (따옴표 없이)`,
+          prefix: '', suffix: '', accept: [isFish ? '헤엄쳐요' : '날아가요'], placeholder: '값',
+          why: isFish ? 'swim 속성이 있으니 "헤엄쳐요"가 반환돼요.' : 'swim 속성이 없고 fly만 있으니 "날아가요"가 반환돼요.',
+          hint: '"swim" in animal이 참인지 거짓인지 먼저 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'nonNullAssertion',
+      title: '옵셔널 체이닝, 널 병합, 비-null 단언',
+      ready: true,
+      summary: '값이 null/undefined일 수도 있는 상황을 안전하게 다루는 ?.와 ??, 그리고 "이건 절대 null이 아니야"라고 알려주는 ! 연산자를 배워요.',
+      goals: ['?.(옵셔널 체이닝)로 안전하게 접근하기', '??(널 병합)로 기본값 정하기', '!(비-null 단언)를 신중하게 쓰기'],
+      blocks: [
+        {
+          h: '있을 수도, 없을 수도 있는 값에 안전하게 접근하기: ?.',
+          html: `<p><code>객체?.속성</code>은 객체가 null이나 undefined이면 오류 없이 그냥 undefined를 돌려주고, 값이 있으면 평소처럼 속성에 접근해요.</p>`,
+          code: {
+            label: 'optional_chaining.ts',
+            lang: 'typescript',
+            src: `type User = { profile?: { nickname: string } };
+
+const u1: User = {};
+const u2: User = { profile: { nickname: "민민" } };
+
+console.log(u1.profile?.nickname);
+console.log(u2.profile?.nickname);`,
+            out: `undefined\n민민`
+          }
+        },
+        {
+          h: '값이 없을 때 기본값 정하기: ??',
+          html: `<p><code>값 ?? 기본값</code>은 왼쪽 값이 null이나 undefined일 때만 오른쪽 기본값을 써요. (숫자 0이나 빈 문자열은 "값이 있다"고 보고 그대로 써요 — <code>||</code>와의 차이예요.)</p>`,
+          code: {
+            label: 'nullish_coalescing.ts',
+            lang: 'typescript',
+            src: `const nickname: string | undefined = undefined;
+console.log(nickname ?? "닉네임 없음");
+
+const score: number | undefined = 0;
+console.log(score ?? 100);`,
+            out: `닉네임 없음\n0`
+          },
+          after: `<div class="note"><b>|| 와의 차이</b> — score || 100이었다면 0은 "거짓 같은 값"으로 취급되어 100이 나왔을 거예요. ??는 정말 null/undefined일 때만 기본값을 써서 이런 실수를 막아줘요.</div>`
+        },
+        {
+          h: '"이건 절대 null이 아니야": 비-null 단언(!)',
+          html: `<p>값 뒤에 <code>!</code>를 붙이면 "나는 이 값이 null이나 undefined가 아니라는 걸 확신한다"고 TypeScript에게 알려주는 거예요. 컴파일러는 그 확신을 믿고 오류를 내지 않지만, <b>확신이 틀리면 실행 중 진짜 오류</b>가 나니 신중하게 써야 해요.</p>`,
+          code: {
+            label: 'non_null_assertion.ts',
+            lang: 'typescript',
+            src: `function getNickname(u: User): string {
+  return u.profile!.nickname;
+}
+
+console.log(getNickname(u2));`,
+            out: `민민`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const has = Math.random() < 0.5;
+          const nick = pick(['민민', '수수']);
+          return {
+            type: 'blank',
+            q: `<code>type User = { profile?: { nickname: string } }; const u: User = ${has ? `{ profile: { nickname: "${nick}" } }` : '{}'};</code>일 때, <code>u.profile?.nickname</code>의 값은? (없으면 undefined)`,
+            prefix: '', suffix: '', accept: [has ? nick : 'undefined'], placeholder: '값',
+            why: has ? `profile이 있으니 그 안의 nickname인 "${nick}"이 나와요.` : 'profile 자체가 없으니 ?.가 안전하게 undefined를 돌려줘요.',
+            hint: '?.는 객체가 없으면 오류 대신 undefined를 돌려줘요.'
+          };
+        },
+        () => makeChoice(
+          '<code>score ?? 100</code>에서 score가 0일 때 결과는?',
+          '0 (0은 null/undefined가 아니라서 그대로 써요)', ['100', 'undefined', '오류가 난다'],
+          '??는 정말 null이나 undefined일 때만 오른쪽 기본값을 써요. 0은 그 자체로 유효한 값이라 그대로 나와요.',
+          '?? 는 "값이 없을 때"만 기본값을 쓰지, "값이 0이나 빈 문자열일 때"는 신경 쓰지 않아요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `왼쪽 값이 null이나 undefined일 때만 오른쪽 기본값을 쓰는 연산자를 쓰세요.`,
+          prefix: 'const nickname = value ', suffix: ' "기본값";', accept: ['??'], placeholder: '연산자',
+          why: '<code>??</code>(널 병합 연산자)는 정말 null/undefined일 때만 오른쪽 값을 써요.',
+          hint: '물음표 두 개를 나란히 쓰는 연산자예요.'
+        }),
+        () => makeChoice(
+          '! (비-null 단언)를 쓸 때 주의할 점은?',
+          '확신이 틀리면 실행 중에 진짜 오류가 날 수 있다', ['항상 100% 안전하다', '컴파일 속도가 느려진다', '값의 타입을 자동으로 바꿔준다'],
+          '!는 컴파일러에게 "이건 null이 아니다"라고 약속하는 것뿐이라, 실제로 null이면 실행 중 오류가 나요.',
+          '컴파일러의 타입 검사를 "우회"하는 것에 가깝다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>type User = { profile?: { nickname: string } };</code>일 때, profile이 반드시 있다고 확신하고 <code>u.profile.nickname</code>을 비-null 단언(!)으로 바로 꺼내 반환하는 함수 <code>getNickname(u: User): string</code>을 작성하세요.',
+          starter: '',
+          placeholder: 'function getNickname(u: User): string {\n  return u.profile!.nickname;\n}',
+          accept: ['function getNickname(u: User): string {\n  return u.profile!.nickname;\n}'],
+          why: 'profile 뒤에 !를 붙여서 "이건 null이 아니다"라고 TypeScript에게 알려줘요.',
+          hint: 'u.profile 뒤에 !를 붙이고 .nickname을 이어 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const has = Math.random() < 0.5;
+        const nick = pick(['민민', '수수', '지지']);
+        return {
+          type: 'blank',
+          q: `<code>const nickname = u.profile?.nickname ?? "닉네임 없음";</code>이고 <code>u.profile</code>이 ${has ? `{ nickname: "${nick}" }` : '없음(undefined)'}일 때, nickname의 값은?`,
+          prefix: '', suffix: '', accept: [has ? nick : '닉네임 없음'], placeholder: '값',
+          why: has ? `profile.nickname이 있으니 "${nick}"이 그대로 쓰여요.` : `profile이 없어서 ?.가 undefined를 주고, ??가 기본값 "닉네임 없음"을 대신 써요.`,
+          hint: '?.가 먼저 안전하게 값을 꺼내려 시도하고, 그 결과가 null/undefined면 ??가 기본값을 대신 써요.'
+        };
+      }
+    },
+    {
+      id: 'templateLiteralTypes',
+      title: '템플릿 리터럴 타입',
+      ready: true,
+      summary: '문자열 템플릿 리터럴처럼, 문자열 타입 조각들을 이어붙여 새로운 문자열 타입을 만드는 법을 배워요.',
+      goals: ['백틱 템플릿 문법으로 문자열 타입 만들기', '유니언과 함께 여러 조합 만들기', '실무 활용 예 감 잡기'],
+      blocks: [
+        {
+          h: '문자열 값처럼, 문자열 타입도 조립할 수 있어요',
+          html: `<p>값에서 쓰는 템플릿 리터럴처럼, 타입에서도 백틱과 <code>\${...}</code>로 문자열 타입 조각들을 이어붙일 수 있어요.</p>`,
+          code: {
+            label: 'template_literal_basic.ts',
+            lang: 'typescript',
+            src: `type Greeting = \`안녕, \${string}님\`;
+
+let g1: Greeting = "안녕, 지수님";
+console.log(g1);`,
+            out: `안녕, 지수님`
+          }
+        },
+        {
+          h: '유니언과 함께 쓰면 여러 조합이 한 번에 만들어져요',
+          html: `<p>템플릿 리터럴 타입 안에 유니언을 넣으면, 가능한 모든 조합이 자동으로 만들어져요.</p>`,
+          code: {
+            label: 'template_literal_union.ts',
+            lang: 'typescript',
+            src: `type Size = "small" | "medium" | "large";
+type ButtonClass = \`btn-\${Size}\`;
+// "btn-small" | "btn-medium" | "btn-large"
+
+let cls: ButtonClass = "btn-medium";
+console.log(cls);`,
+            out: `btn-medium`
+          },
+          after: `<div class="note"><b>실무 활용</b> — 이벤트 이름이나 CSS 클래스 이름처럼, 정해진 규칙을 따르는 문자열들을 다룰 때 자주 쓰여요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const size = pick(['small', 'medium', 'large']);
+          return {
+            type: 'blank',
+            q: `Size는 "small" | "medium" | "large" 유니언이고, ButtonClass는 그 앞에 "btn-"을 붙인 템플릿 리터럴 타입이에요. <code>let cls: ButtonClass = "btn-${size}";</code>는 오류 없이 허용될까요? ("예" 또는 "아니오")`,
+            prefix: '', suffix: '', accept: ['예'], placeholder: '예/아니오',
+            why: `"btn-${size}"는 ButtonClass가 허용하는 조합 중 하나라서 오류 없이 허용돼요.`,
+            hint: 'Size에 속한 값 뒤에 btn- 접두사를 붙인 형태라면 모두 ButtonClass에 포함돼요.'
+          };
+        },
+        () => makeChoice(
+          '템플릿 리터럴 타입에 유니언을 넣으면 어떤 일이 생기나요?',
+          '가능한 모든 조합이 자동으로 합쳐진 유니언 타입이 만들어진다',
+          ['첫 번째 값만 사용된다', '유니언은 템플릿 리터럴 타입 안에 넣을 수 없다', '컴파일 오류가 난다'],
+          'Size의 각 값마다 btn- 접두사가 붙은 조합이 전부 만들어져서, 그 자체로 유니언 타입이 돼요.',
+          '유니언의 각 값에 대해 접두사가 하나씩 붙는다고 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: '문자열 타입 조각들을 백틱과 ${...}로 이어붙여 새로운 문자열 타입을 만드는 문법을 템플릿 리터럴 타입이라고 해요. Size 유니언 앞에 "btn-"을 붙인 타입을 완성하세요.',
+          prefix: 'type ButtonClass = `btn-${', suffix: '}`;', accept: ['Size'], placeholder: '타입',
+          why: '`btn-${Size}`처럼 Size 유니언을 템플릿 리터럴 타입 안에 넣으면 모든 조합이 만들어져요.',
+          hint: '앞에서 만든 유니언 타입 이름을 그대로 넣으면 돼요.'
+        }),
+        () => makeChoice(
+          '템플릿 리터럴 타입이 실무에서 활용되는 예로 알맞은 것은?',
+          'CSS 클래스 이름이나 이벤트 이름처럼, 정해진 규칙을 따르는 문자열들을 타입으로 안전하게 표현할 때',
+          ['배열의 길이를 계산할 때', '숫자 연산을 더 빠르게 할 때', '클래스 상속 관계를 표현할 때'],
+          '템플릿 리터럴 타입은 문자열 "패턴"을 타입으로 표현해서, 정해진 규칙을 따르는 문자열들을 안전하게 다룰 수 있게 해줘요.',
+          '문자열의 "형태"를 다루는 기능이라는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'Size(유니언 "small" | "medium" | "large") 앞에 "icon-"을 붙인 템플릿 리터럴 타입 IconClass를 만드세요.',
+          starter: '',
+          placeholder: 'type IconClass = `icon-${Size}`;',
+          accept: ['type IconClass = `icon-${Size}`;'],
+          why: '템플릿 리터럴 타입 문법으로 접두사를 붙인 문자열 타입을 만들어요.',
+          hint: 'type IconClass = `icon-${Size}`;를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const size = pick(['small', 'medium', 'large']);
+        return {
+          type: 'blank',
+          q: `ButtonClass가 "btn-" + Size 조합이라고 할 때, <code>"btn-${size}"</code>가 ButtonClass 타입에 속하는지 "예"/"아니오"로 답하세요.`,
+          prefix: '', suffix: '', accept: ['예'], placeholder: '예/아니오',
+          why: `"btn-${size}"는 Size에 속한 값 뒤에 btn- 접두사를 붙인 형태라서 ButtonClass에 포함돼요.`,
+          hint: 'Size에 속하는 값이라면 항상 예예요.'
+        };
+      }
+    },
+    {
+      id: 'genericClasses',
+      title: '제네릭 클래스',
+      ready: true,
+      summary: '제네릭 함수처럼, 클래스도 타입 매개변수를 받아 여러 자료형에 재사용할 수 있게 만드는 법을 배워요.',
+      goals: ['class 이름<T> 문법', '제네릭 클래스의 프로퍼티/메서드에서 T 쓰기', '여러 타입으로 인스턴스 만들기'],
+      blocks: [
+        {
+          h: '클래스도 타입 매개변수를 받을 수 있어요',
+          html: `<p><code>class 이름&lt;T&gt;</code>처럼 클래스 이름 뒤에 타입 매개변수를 붙이면, 그 클래스 안에서 T를 자료형처럼 쓸 수 있어요. 인스턴스를 만들 때 T가 무엇이 될지 정해줘요.</p>`,
+          code: {
+            label: 'generic_class_basic.ts',
+            lang: 'typescript',
+            src: `class Box<T> {
+  constructor(private value: T) {}
+  getValue(): T {
+    return this.value;
+  }
+}
+
+const numberBox = new Box<number>(42);
+const stringBox = new Box<string>("안녕");
+
+console.log(numberBox.getValue(), stringBox.getValue());`,
+            out: `42 안녕`
+          }
+        },
+        {
+          h: '스택(Stack) 같은 자료구조에 특히 유용해요',
+          html: `<p>제네릭 클래스는 "숫자만 담는 스택", "문자열만 담는 스택"을 각각 만들 필요 없이, 하나의 <code>Stack&lt;T&gt;</code>로 어떤 자료형이든 안전하게 담을 수 있게 해줘요.</p>`,
+          code: {
+            label: 'generic_stack.ts',
+            lang: 'typescript',
+            src: `class Stack<T> {
+  private items: T[] = [];
+  push(item: T): void {
+    this.items.push(item);
+  }
+  pop(): T | undefined {
+    return this.items.pop();
+  }
+}
+
+const numbers = new Stack<number>();
+numbers.push(1);
+numbers.push(2);
+console.log(numbers.pop());`,
+            out: `2`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const val = randInt(1, 100);
+          return {
+            type: 'blank',
+            q: `<code>class Box&lt;T&gt; { constructor(private value: T) {} getValue(): T { return this.value; } }</code>이고 <code>const b = new Box&lt;number&gt;(${val});</code>일 때, <code>b.getValue()</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(val)], placeholder: '숫자',
+            why: `getValue()는 생성자에서 받은 값을 그대로 반환해서 ${val}이에요.`,
+            hint: 'Box는 넘긴 값을 그대로 담았다가 그대로 돌려주는 상자예요.'
+          };
+        },
+        () => makeChoice(
+          '제네릭 클래스를 쓰는 이유로 알맞은 것은?',
+          '숫자용, 문자열용 클래스를 각각 만들지 않고 하나의 클래스로 여러 자료형을 안전하게 다룰 수 있어서',
+          ['클래스를 상속받을 수 없게 하려고', '실행 속도를 항상 높이려고', 'private 속성을 없애려고'],
+          '제네릭 클래스는 자료형이 다른 여러 경우를 하나의 클래스 정의로 재사용할 수 있게 해줘요.',
+          '제네릭 함수를 쓰는 이유와 똑같은 맥락이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `클래스가 타입 매개변수 T를 받도록 만드는 표기를 완성하세요.`,
+          prefix: 'class Box', suffix: ' { constructor(private value: T) {} }', accept: ['<T>'], placeholder: '<타입매개변수>',
+          why: '<code>class 이름&lt;T&gt;</code>처럼 클래스 이름 뒤에 꺾쇠괄호로 타입 매개변수를 선언해요.',
+          hint: '제네릭 함수에서 쓰던 것과 똑같은 표기예요.'
+        }),
+        () => makeChoice(
+          'Stack<T>의 pop() 메서드가 T | undefined를 반환하는 이유는?',
+          '스택이 비어있으면 꺼낼 값이 없어서 undefined가 될 수 있어서',
+          ['항상 undefined만 반환해서', '제네릭은 원래 undefined를 포함해야 해서', 'pop은 push의 반대말이라서'],
+          '빈 스택에서 pop()을 호출하면 꺼낼 값이 없으니 undefined가 나올 수 있어서, 반환 타입에 그 가능성을 포함해요.',
+          '스택이 비어있을 때 어떤 일이 생길지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '값 하나를 담고 <code>getValue(): T</code>로 꺼낼 수 있는 제네릭 클래스 <code>Box&lt;T&gt;</code>를 작성하세요. 생성자에서 <code>value: T</code>를 받아 저장해요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'class Box<T> {\n  constructor(private value: T) {}\n  getValue(): T {\n    return this.value;\n  }\n}',
+          accept: ['class Box<T> {\n  constructor(private value: T) {}\n  getValue(): T {\n    return this.value;\n  }\n}'],
+          why: 'class Box<T>로 타입 매개변수를 선언하고, private value: T로 값을 저장한 뒤 getValue()로 꺼내요.',
+          hint: 'class Box<T> { constructor(private value: T) {} getValue(): T { return this.value; } }를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const items = shuffle([10, 20, 30, 40, 50]).slice(0, randInt(2, 4));
+        const pushList = items.join(', ');
+        return {
+          type: 'blank',
+          q: `Stack&lt;T&gt;에 순서대로 ${pushList}를 push한 뒤 pop()을 호출하면 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(items[items.length - 1])], placeholder: '숫자',
+          why: `pop()은 가장 마지막에 push한 값을 꺼내서, ${items[items.length - 1]}이 나와요.`,
+          hint: '스택은 마지막에 넣은 값이 가장 먼저 나오는 구조예요(LIFO).'
+        };
+      }
+    },
+    {
+      id: 'moduleImportExport',
+      title: 'ES 모듈: import/export',
+      ready: true,
+      summary: '코드를 여러 파일로 나누고, export로 내보내고 import로 가져와 쓰는 ES 모듈 시스템의 타입 관련 문법을 배워요.',
+      goals: ['export로 내보내기(named/default)', 'import로 가져오기', 'import type으로 타입만 가져오기'],
+      blocks: [
+        {
+          h: '값을 내보내고 가져오기: export / import',
+          html: `<p>다른 파일에서 쓸 함수나 변수, 타입 앞에 <code>export</code>를 붙이면 그 파일 밖에서도 <code>import</code>로 가져와 쓸 수 있어요. 이렇게 이름을 그대로 내보내는 걸 <b>named export</b>라고 해요.</p>`,
+          code: {
+            label: 'named_export.ts',
+            lang: 'typescript',
+            src: `// math.ts
+export function add(a: number, b: number): number {
+  return a + b;
+}
+export const PI = 3.14;
+
+// main.ts
+import { add, PI } from "./math";
+console.log(add(2, 3), PI);`,
+            out: `5 3.14`
+          }
+        },
+        {
+          h: '파일마다 하나만 내보내는 대표 값: default export',
+          html: `<p><code>export default</code>는 그 파일에서 <b>딱 하나</b>만 내보낼 수 있는 대표 값을 정할 때 써요. 가져올 때는 중괄호 없이, 원하는 이름으로 가져올 수 있어요.</p>`,
+          code: {
+            label: 'default_export.ts',
+            lang: 'typescript',
+            src: `// user.ts
+export default class User {
+  constructor(public name: string) {}
+}
+
+// main.ts
+import User from "./user";
+const u = new User("지수");
+console.log(u.name);`,
+            out: `지수`
+          }
+        },
+        {
+          h: '타입만 가져오기: import type',
+          html: `<p>런타임에는 실제로 존재하지 않는 <b>타입만</b> 가져올 때는 <code>import type</code>을 쓰면, 빌드 결과물에서 그 import가 아예 사라져서 더 가벼워져요.</p>`,
+          code: {
+            label: 'import_type.ts',
+            lang: 'typescript',
+            src: `// types.ts
+export type User = { name: string; age: number };
+
+// main.ts
+import type { User } from "./types";
+const u: User = { name: "민준", age: 16 };`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const a = randInt(1, 20), b = randInt(1, 20);
+          return {
+            type: 'blank',
+            q: `math.ts에서 <code>export function add(a: number, b: number): number { return a + b; }</code>를 내보내고, main.ts에서 <code>import { add } from "./math";</code>로 가져왔을 때, <code>add(${a}, ${b})</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(a + b)], placeholder: '숫자',
+            why: `${a} + ${b} = ${a + b}가 반환돼요. export/import는 어디서 쓸 수 있는지만 정할 뿐, 계산 자체는 똑같아요.`,
+            hint: 'export/import는 함수를 다른 파일에서도 쓸 수 있게 해줄 뿐, 함수 내용 자체는 그대로예요.'
+          };
+        },
+        () => makeChoice(
+          '한 파일에서 여러 개를 이름 그대로 내보낼 때 쓰는 방식은?',
+          'export (named export) — export function, export const 등',
+          ['export default만 여러 번 쓴다', 'import만 여러 번 쓴다', '파일을 여러 개로 쪼개면 자동으로 내보내진다'],
+          'named export는 export function, export const처럼 이름을 그대로 유지한 채 여러 개를 내보낼 수 있어요.',
+          '"이름이 그대로 붙어서 나간다"는 의미를 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `한 파일에서 "대표로 하나만" 내보낼 때 export 뒤에 붙이는 키워드를 쓰세요.`,
+          prefix: 'export ', suffix: ' class User { ... }', accept: ['default'], placeholder: '키워드',
+          why: '<code>export default</code>는 그 파일의 대표 값 하나를 내보내요.',
+          hint: '"기본값"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'import type을 쓰는 이유는?',
+          '타입만 가져와서, 빌드 결과물에서 그 import가 사라져 더 가벼워지도록 하려고',
+          ['타입을 실행 중에도 값처럼 쓰기 위해서', 'import 속도를 항상 느리게 하려고', 'default export만 가능하게 하려고'],
+          '타입은 런타임에 실제로 존재하지 않기 때문에, import type으로 명시하면 빌드 시 그 import가 완전히 제거돼요.',
+          '타입은 실행 중에는 사라진다는 TypeScript의 특징을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Score</code>라는 상수(number, 값 100)를 named export로 내보내는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'export const Score = 100;',
+          accept: ['export const Score = 100;'],
+          why: 'export const 이름 = 값; 형태로 값을 named export로 내보내요.',
+          hint: 'export const Score = 100;를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(1, 30), b = randInt(1, 30);
+        return {
+          type: 'blank',
+          q: `math.ts가 <code>export function add(a: number, b: number): number { return a + b; }</code>와 <code>export function subtract(a: number, b: number): number { return a - b; }</code>를 내보내고, main.ts에서 <code>import { add, subtract } from "./math";</code>로 가져왔을 때, <code>add(${a}, ${b}) - subtract(${a}, ${b})</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String((a + b) - (a - b))], placeholder: '숫자',
+          why: `add(${a}, ${b}) = ${a + b}, subtract(${a}, ${b}) = ${a - b}이고, ${a + b} - ${a - b} = ${(a + b) - (a - b)}예요.`,
+          hint: '두 함수를 각각 계산한 다음, 그 결과끼리 빼보세요.'
+        };
+      }
+    },
+    {
+      id: 'satisfiesOperator',
+      title: 'satisfies 연산자',
+      ready: true,
+      summary: '값의 타입을 바꾸지 않으면서, 그 값이 특정 타입의 조건을 만족하는지만 검사해주는 satisfies 연산자를 배워요.',
+      goals: ['satisfies로 타입 검사하기', 'as 단언과의 차이 이해하기', '리터럴 타입을 유지하면서 검사하는 이유'],
+      blocks: [
+        {
+          h: '타입은 그대로, 검사만 해주세요: satisfies',
+          html: `<p><code>값 satisfies 타입</code>이라고 쓰면, "이 값이 정말로 이 타입의 조건을 만족하는지" 검사만 해줘요. <code>as</code>와 달리 값의 <b>실제 추론된 타입은 바꾸지 않아요.</b></p>`,
+          code: {
+            label: 'satisfies_basic.ts',
+            lang: 'typescript',
+            src: `type Colors = "red" | "green" | "blue";
+
+const palette = {
+  primary: "red",
+  secondary: "green",
+} satisfies Record<string, Colors>;
+
+console.log(palette.primary);`,
+            out: `red`
+          }
+        },
+        {
+          h: '타입 표기와 뭐가 다를까요',
+          html: `<p>객체에 <code>: Record&lt;string, Colors&gt;</code>처럼 직접 타입을 붙이면, <code>palette.primary</code>의 타입이 <code>Colors</code>(넓은 유니언)로 바뀌어요. 반면 <code>satisfies</code>를 쓰면 조건을 만족하는지 검사만 하고, <code>palette.primary</code>는 여전히 <code>"red"</code>라는 좁은 리터럴 타입 그대로 남아요.</p>`,
+          code: {
+            label: 'satisfies_vs_annotation.ts',
+            lang: 'typescript',
+            src: `const wrongPalette = {
+  primary: "red",
+  secondary: "yellow",
+} satisfies Record<string, Colors>;
+// 오류! "yellow"는 Colors에 없는 값`,
+          },
+          after: `<div class="note"><b>비유</b> — satisfies는 "이 재료가 레시피 조건에 맞는지 검사만 하고, 재료 자체의 이름표는 그대로 둔다"는 느낌이에요. as는 이름표를 아예 새로 붙여버려요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'satisfies와 as 단언의 가장 큰 차이는?',
+          'satisfies는 값의 실제 타입은 그대로 두면서 조건만 검사하고, as는 타입 자체를 강제로 바꾼다',
+          ['satisfies는 실행 시점에 값을 검사한다', 'as는 컴파일 오류를 절대 내지 않는다', 'satisfies는 인터페이스에서만 쓸 수 있다'],
+          'satisfies는 검사만 하고 원래 추론된 좁은 타입을 유지하지만, as는 타입을 강제로 바꿔치기해요.',
+          '"검사만 한다"와 "바꿔버린다"의 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `객체 리터럴이 <code>Record&lt;string, Colors&gt;</code> 조건을 만족하는지 검사하면서도, 각 속성의 리터럴 타입은 그대로 유지하고 싶을 때 쓰는 연산자를 쓰세요.`,
+          prefix: '{ primary: "red" } ', suffix: ' Record<string, Colors>', accept: ['satisfies'], placeholder: '연산자',
+          why: '<code>satisfies</code>는 타입 조건을 검사하면서도 원래의 좁은 리터럴 타입을 그대로 남겨줘요.',
+          hint: '이 단원의 제목이기도 한 그 영단어예요.'
+        }),
+        () => makeChoice(
+          '<code>const wrongPalette = { primary: "red", secondary: "yellow" } satisfies Record&lt;string, Colors&gt;;</code>일 때(Colors는 "red"|"green"|"blue"), 결과는?',
+          '컴파일 오류가 난다 ("yellow"는 Colors에 없으므로)',
+          ['정상적으로 통과한다', 'secondary가 자동으로 "green"으로 바뀐다', '실행할 때만 오류가 난다'],
+          '"yellow"는 Colors 유니언에 없는 값이라서, satisfies가 검사할 때 바로 오류를 내요.',
+          'Colors에 어떤 값들이 허용되는지 다시 확인해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>satisfies</code>를 쓴 뒤에도 <code>palette.primary</code>의 타입이 넓은 <code>Colors</code>가 아니라 좁은 리터럴 <code>"red"</code> 그대로 남는 이유는 satisfies가 값의 실제 타입을 (무엇)하지 않기 때문일까요? 한 단어로 쓰세요.`,
+          prefix: '', suffix: '', accept: ['변경', '변경하지'], placeholder: '단어',
+          why: 'satisfies는 조건을 만족하는지 검사만 할 뿐, 값의 실제 추론된 타입을 바꾸지 않아요.',
+          hint: '타입 표기(: 타입)와 satisfies의 차이를 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>type Level = "low" | "mid" | "high";</code>일 때, <code>{ score: "high" }</code> 객체가 <code>Record&lt;string, Level&gt;</code> 조건을 만족하는지 satisfies로 검사하는 코드를 작성하세요. (const config = ... 형태)',
+          starter: '',
+          placeholder: 'const config = { score: "high" } satisfies Record<string, Level>;',
+          accept: ['const config = { score: "high" } satisfies Record<string, Level>;'],
+          why: '객체 리터럴 뒤에 satisfies와 검사할 타입을 적으면 돼요.',
+          hint: '{ score: "high" } satisfies Record<string, Level>; 형태로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const color = pick(['red', 'green', 'blue']);
+        return {
+          type: 'blank',
+          q: `<code>type Colors = "red" | "green" | "blue"; const palette = { primary: "${color}" } satisfies Record&lt;string, Colors&gt;;</code>일 때, <code>palette.primary</code>의 값은?`,
+          prefix: '', suffix: '', accept: [color], placeholder: '값',
+          why: `satisfies는 타입 검사만 하고 값은 그대로 두므로, palette.primary는 "${color}"예요.`,
+          hint: 'satisfies는 값 자체를 바꾸지 않는다는 점을 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'inferKeyword',
+      title: '조건부 타입 안의 infer',
+      ready: true,
+      summary: '조건부 타입 안에서 infer 키워드로 특정 위치의 타입을 변수처럼 붙잡아, 그 타입을 꺼내 쓰는 법을 배워요.',
+      goals: ['infer로 타입 캡처하기', '배열/함수에서 타입 추출하기', 'infer는 어디서만 쓸 수 있는지 알기'],
+      blocks: [
+        {
+          h: '배열 안의 요소 타입을 꺼내기',
+          html: `<p><code>T extends (infer U)[] ? U : T</code>처럼 쓰면, T가 배열이면 그 <b>요소의 타입</b>을 U라는 이름으로 붙잡아서 돌려줘요. infer는 "여기 들어갈 타입을 이 이름으로 잡아줘"라는 뜻이에요.</p>`,
+          code: {
+            label: 'infer_array.ts',
+            lang: 'typescript',
+            src: `type ElementType<T> = T extends (infer U)[] ? U : T;
+
+type A = ElementType<string[]>; // string
+type B = ElementType<number>;   // number
+
+let x: A = "hello";
+console.log(x);`,
+            out: `hello`
+          }
+        },
+        {
+          h: '함수의 반환 타입 직접 추출해보기',
+          html: `<p>TypeScript가 기본 제공하는 <code>ReturnType&lt;T&gt;</code>도 사실 내부에서 infer로 만들어져요. 함수 타입에서 반환 타입 자리를 infer로 붙잡으면 돼요.</p>`,
+          code: {
+            label: 'infer_function.ts',
+            lang: 'typescript',
+            src: `type MyReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
+
+function getName(): string {
+  return "지수";
+}
+
+type NameType = MyReturnType<typeof getName>; // string
+let result: NameType = "민준";
+console.log(result);`,
+            out: `민준`
+          },
+          after: `<div class="note"><b>주의</b> — infer는 반드시 <code>extends</code> 조건부 타입 안에서만 쓸 수 있어요. 조건 없이 <code>type X = infer U</code>처럼 단독으로는 쓸 수 없어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const kind = pick([
+            { arr: 'boolean[]', el: 'boolean' },
+            { arr: 'number[]', el: 'number' },
+            { arr: 'string[]', el: 'string' },
+          ]);
+          return {
+            type: 'blank',
+            q: `<code>type ElementType&lt;T&gt; = T extends (infer U)[] ? U : T;</code>일 때, <code>ElementType&lt;${kind.arr}&gt;</code>의 결과 타입은?`,
+            prefix: '', suffix: '', accept: [kind.el], placeholder: '타입',
+            why: `${kind.arr}는 ${kind.el} 배열이므로, infer U가 ${kind.el}을 붙잡아요.`,
+            hint: '배열 타입에서 대괄호 앞부분이 요소 타입이에요.'
+          };
+        },
+        () => makeChoice(
+          'infer 키워드가 하는 역할은?',
+          '조건부 타입 안에서 특정 위치의 타입을 이름을 붙여 붙잡아, 참/거짓 결과 쪽에서 그 타입을 쓸 수 있게 해준다',
+          ['런타임에 변수의 값을 추론해서 출력한다', '타입을 자동으로 number로 바꿔준다', 'as 단언을 대신하는 문법이다'],
+          'infer는 조건부 타입의 extends 오른쪽에서 특정 타입 조각을 캡처해서, 이후 X 자리에서 그 타입을 쓸 수 있게 해줘요.',
+          '"캡처해서 이름을 붙인다"는 표현이 핵심이에요.'
+        ),
+        () => makeChoice(
+          'infer 키워드는 어디에서만 쓸 수 있나요?',
+          'extends를 쓰는 조건부 타입 안에서만', ['어디서든 자유롭게 쓸 수 있다', 'interface 선언 안에서만', 'enum 선언 안에서만'],
+          'infer는 반드시 T extends ... ? ... : ... 형태의 조건부 타입 안에서만 등장할 수 있어요.',
+          '조건부 타입과 항상 짝을 이룬다는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>type MyReturnType&lt;T&gt; = T extends (...args: any[]) =&gt; infer R ? R : never;</code>에서, infer가 캡처하는 대상은 함수의 (무엇) 타입일까요? 한 단어로 쓰세요.`,
+          prefix: '', suffix: '', accept: ['반환', '반환값', '반환타입'], placeholder: '단어',
+          why: '<code>=&gt; infer R</code>은 화살표 뒤, 즉 함수의 반환 타입 자리를 R로 캡처해요.',
+          hint: '함수 타입에서 화살표 뒤에 오는 게 뭔지 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>Promise&lt;T&gt;</code>에서 안에 담긴 타입을 꺼내는 조건부 타입 <code>UnwrapPromise&lt;T&gt;</code>를 infer를 사용해 작성하세요. (Promise가 아니면 T 그대로)',
+          starter: '',
+          placeholder: 'type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;',
+          accept: ['type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;'],
+          why: 'Promise<infer U> 자리에서 U가 Promise 안의 타입을 캡처해요.',
+          hint: 'ElementType과 같은 구조에서, (infer U)[] 대신 Promise<infer U>를 쓰면 돼요.'
+        }),
+      ],
+      boss: () => {
+        const kind = pick([
+          { arr: 'string[]', el: 'string' },
+          { arr: 'boolean[]', el: 'boolean' },
+        ]);
+        return {
+          type: 'blank',
+          q: `<code>type ElementType&lt;T&gt; = T extends (infer U)[] ? U : T;</code>일 때, <code>ElementType&lt;${kind.arr}&gt;</code>의 결과 타입은?`,
+          prefix: '', suffix: '', accept: [kind.el], placeholder: '타입',
+          why: `${kind.arr}의 요소 타입은 ${kind.el}이라서, infer U가 ${kind.el}을 캡처해요.`,
+          hint: '배열 타입의 대괄호 앞부분을 보세요.'
+        };
+      }
+    },
+    {
+      id: 'variadicTuples',
+      title: '가변 개수 튜플(Variadic Tuple Types)',
+      ready: true,
+      summary: '튜플 안에서도 스프레드(...)를 써서, "고정된 부분 + 나머지"를 표현하는 가변 개수 튜플 타입을 배워요.',
+      goals: ['튜플 안에서 ... 스프레드 쓰기', '두 튜플을 이어붙이는 타입 만들기', '함수 매개변수 표현에 활용되는 이유'],
+      blocks: [
+        {
+          h: '튜플 안에 다른 튜플 펼쳐 넣기',
+          html: `<p>값의 스프레드(<code>...</code>)처럼, 튜플 타입 안에서도 <code>...다른튜플타입</code>으로 그 튜플의 항목들을 그대로 펼쳐 넣을 수 있어요.</p>`,
+          code: {
+            label: 'variadic_basic.ts',
+            lang: 'typescript',
+            src: `type Point = [number, number];
+type Labeled = [string, ...Point];
+
+const p: Labeled = ["원점", 0, 0];
+console.log(p[0], p[1], p[2]);`,
+            out: `원점 0 0`
+          }
+        },
+        {
+          h: '제네릭과 함께 쓰면: 두 튜플 이어붙이기',
+          html: `<p>제네릭 매개변수에 <code>...T</code>와 <code>...U</code>를 함께 펼치면, 어떤 튜플이 들어오든 그 둘을 이어붙인 튜플 타입을 만들 수 있어요.</p>`,
+          code: {
+            label: 'variadic_concat.ts',
+            lang: 'typescript',
+            src: `type Concat<T extends unknown[], U extends unknown[]> = [...T, ...U];
+
+type Result = Concat<[string, number], [boolean]>;
+// [string, number, boolean]
+
+const r: Result = ["나이", 17, true];
+console.log(r.length);`,
+            out: `3`
+          },
+          after: `<div class="note"><b>어디에 쓰일까요</b> — 함수의 매개변수 목록도 사실 튜플이에요. 그래서 variadic tuple은 "앞의 몇 개는 고정, 나머지는 자유"인 함수 타입(예: bind, 커링 함수)을 정확히 표현하는 데 자주 쓰여요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `튜플 타입 <code>[string, ...Point]</code>에서, 다른 튜플 타입을 그대로 펼쳐 넣을 때 쓰는 기호 세 글자를 쓰세요.`,
+          prefix: '[string, ', suffix: 'Point]', accept: ['...'], placeholder: '기호',
+          why: '<code>...</code>(스프레드)는 값뿐 아니라 튜플 타입 안에서도 다른 타입을 펼쳐 넣을 때 써요.',
+          hint: '값의 스프레드 문법과 똑같은 기호예요.'
+        }),
+        () => makeChoice(
+          'variadic tuple type(가변 개수 튜플)이 실무에서 유용한 경우는?',
+          '"앞의 몇 개는 고정, 나머지는 자유"인 함수 매개변수 목록을 정확한 타입으로 표현할 때',
+          ['배열의 실행 속도를 높일 때', 'CSS 애니메이션 길이를 정할 때', '항상 배열을 정렬할 때'],
+          '함수 매개변수도 결국 튜플이라서, 일부는 고정하고 나머지는 유연하게 받는 함수 타입을 정확히 표현하는 데 자주 쓰여요.',
+          '함수 매개변수 목록이 바로 튜플이라는 점을 떠올려보세요.'
+        ),
+        () => {
+          const t1len = randInt(1, 3), t2len = randInt(1, 3);
+          return {
+            type: 'blank',
+            q: `<code>type Concat&lt;T extends unknown[], U extends unknown[]&gt; = [...T, ...U];</code>일 때, 길이가 ${t1len}인 튜플과 길이가 ${t2len}인 튜플을 Concat하면 결과 튜플의 길이는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(t1len + t2len)], placeholder: '숫자',
+            why: `두 튜플을 이어붙이므로 ${t1len} + ${t2len} = ${t1len + t2len}이에요.`,
+            hint: '두 튜플의 길이를 그냥 더하면 돼요.'
+          };
+        },
+        () => makeChoice(
+          '<code>type Labeled = [string, ...Point];</code>에서 Point가 <code>[number, number]</code>라면, Labeled 튜플의 전체 길이는?',
+          '3', ['1', '2', '4'],
+          'string 하나 + Point의 요소 2개(number, number)를 합쳐 총 3개예요.',
+          'string 1개와 Point의 요소 개수를 더해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '문자열 하나와 그 뒤로 숫자를 몇 개든 받을 수 있는 튜플 타입 <code>Scored</code>를 작성하세요. (예: ["지수", 90, 85, 100]처럼 쓸 수 있어야 해요)',
+          starter: '',
+          placeholder: 'type Scored = [string, ...number[]];',
+          accept: ['type Scored = [string, ...number[]];'],
+          why: '<code>...number[]</code>는 "숫자를 0개 이상 자유롭게"라는 뜻이에요.',
+          hint: '[string, ...number[]] 형태로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const t1len = randInt(1, 4), t2len = randInt(1, 4);
+        return {
+          type: 'blank',
+          q: `<code>type Concat&lt;T extends unknown[], U extends unknown[]&gt; = [...T, ...U];</code>이고, 길이가 ${t1len}인 튜플과 길이가 ${t2len}인 튜플을 Concat한 결과 튜플의 길이는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(t1len + t2len)], placeholder: '숫자',
+          why: `${t1len} + ${t2len} = ${t1len + t2len}이에요.`,
+          hint: '두 튜플 길이를 더하면 돼요.'
+        };
+      }
+    },
+    {
+      id: 'moduleAugmentation',
+      title: '모듈 보강(Module Augmentation)',
+      ready: true,
+      summary: '이미 존재하는 인터페이스나 전역 타입에, 원본 코드를 고치지 않고 속성을 추가하는 모듈 보강을 배워요.',
+      goals: ['declare global로 전역 타입 확장하기', '선언 병합(declaration merging) 이해하기', '왜 원본을 고치지 않는지 알기'],
+      blocks: [
+        {
+          h: '이미 있는 타입에 속성 추가하기',
+          html: `<p>같은 이름의 <code>interface</code>를 여러 번 선언하면, TypeScript는 이걸 오류로 보지 않고 <b>하나로 합쳐줘요(선언 병합)</b>. 이 성질을 이용해서, 전역 타입이나 외부 라이브러리의 타입에 내가 필요한 속성을 "끼워 넣을" 수 있어요.</p>`,
+          code: {
+            label: 'augment_global.ts',
+            lang: 'typescript',
+            src: `declare global {
+  interface String {
+    shout(): string;
+  }
+}
+
+String.prototype.shout = function (this: string) {
+  return this.toUpperCase() + "!!!";
+};
+
+console.log("hello".shout());`,
+            out: `HELLO!!!`
+          }
+        },
+        {
+          h: '외부 모듈의 타입 보강하기',
+          html: `<p>내가 만들지 않은 라이브러리의 타입에 속성을 추가하고 싶을 때는, <code>declare module "모듈이름"</code> 블록 안에 추가할 속성을 적어요. 라이브러리의 원본 코드는 전혀 건드리지 않아요.</p>`,
+          code: {
+            label: 'augment_module.ts',
+            lang: 'typescript',
+            src: `// express-augment.d.ts 같은 파일에서
+declare module "express" {
+  interface Request {
+    userId?: string;
+  }
+}
+// 이후 어디서든 Request 타입에 userId 속성이 존재하는 것처럼 인식됨`,
+          },
+          after: `<div class="note"><b>왜 유용할까요</b> — 라이브러리의 node_modules 코드를 직접 고치면 업데이트할 때마다 사라져요. 모듈 보강은 원본은 그대로 두고, 내 프로젝트 쪽에서 타입만 안전하게 확장하는 방법이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `외부 모듈 "express"의 <code>Request</code> 인터페이스에 <code>userId</code> 속성을 추가하고 싶을 때, declare 뒤에 오는 키워드를 쓰세요. (예: declare ___ "express" { ... })`,
+          prefix: 'declare ', suffix: ' "express" { interface Request { userId?: string; } }', accept: ['module'], placeholder: '키워드',
+          why: '<code>declare module "모듈이름"</code>으로 이미 있는 모듈의 타입을 확장할 수 있어요.',
+          hint: '"모듈을 선언한다"는 뜻의 영단어예요.'
+        }),
+        () => makeChoice(
+          '같은 이름의 interface를 여러 파일에서 선언하면 TypeScript는 어떻게 처리하나요?',
+          '오류를 내지 않고, 두 선언의 속성을 하나로 합친다(선언 병합)',
+          ['나중에 선언한 쪽으로 완전히 덮어쓴다', '항상 컴파일 오류를 낸다', '먼저 선언한 쪽만 유효하다'],
+          'TypeScript는 같은 이름의 interface 선언들을 자동으로 합쳐주는 선언 병합(declaration merging) 기능이 있어요.',
+          '"병합"이라는 단어가 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `전역(global) 스코프의 타입(예: 내장 String)에 속성을 추가하고 싶을 때, declare 뒤에 쓰는 키워드를 쓰세요.`,
+          prefix: 'declare ', suffix: ' { interface String { shout(): string; } }', accept: ['global'], placeholder: '키워드',
+          why: '<code>declare global</code>은 전역 스코프의 타입을 확장할 때 써요.',
+          hint: '"전역"을 뜻하는 영단어예요.'
+        }),
+        () => makeChoice(
+          '모듈 보강(module augmentation)을 쓰는 가장 큰 이유는?',
+          '라이브러리의 원본 코드를 고치지 않고도, 필요한 타입 속성을 안전하게 추가할 수 있어서',
+          ['실행 속도를 더 빠르게 만들기 위해서', '타입 검사를 완전히 꺼버리기 위해서', 'JavaScript 코드를 자동 생성하기 위해서'],
+          'node_modules의 원본 코드를 직접 고치면 업데이트 시 사라지지만, 모듈 보강은 내 프로젝트에서 안전하게 타입만 확장해요.',
+          '원본을 "고치지 않는다"는 점이 핵심이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '전역 <code>Array</code> 인터페이스에 <code>number</code>를 반환하는 <code>sum()</code> 메서드를 추가하는 모듈 보강 코드를 <code>declare global</code>로 작성하세요.',
+          starter: '',
+          placeholder: 'declare global {\n  interface Array<T> {\n    sum(): number;\n  }\n}',
+          accept: ['declare global {\n  interface Array<T> {\n    sum(): number;\n  }\n}'],
+          why: 'declare global 블록 안에 interface Array<T>를 다시 선언하면서 sum() 메서드를 추가해요.',
+          hint: 'declare global { interface Array<T> { sum(): number; } }를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const word = pick(['hello', 'world', 'code']);
+        return {
+          type: 'blank',
+          q: `<code>declare global { interface String { shout(): string; } } String.prototype.shout = function (this: string) { return this.toUpperCase() + "!!!"; };</code>일 때, <code>"${word}".shout()</code>의 결과는?`,
+          prefix: '', suffix: '', accept: [`${word.toUpperCase()}!!!`], placeholder: '값',
+          why: `"${word}"를 대문자로 바꾸고 "!!!"를 붙이면 "${word.toUpperCase()}!!!"가 돼요.`,
+          hint: 'toUpperCase()로 대문자로 바꾼 뒤 "!!!"를 이어붙여보세요.'
+        };
+      }
+    },
+    {
+      id: 'enumVsUnion',
+      title: 'enum vs 유니언 타입, 무엇을 쓸까',
+      ready: true,
+      summary: '상태 값을 표현할 때 enum과 문자열 리터럴 유니언 중 무엇을 고를지, 각각의 장단점을 비교해요.',
+      goals: ['enum이 컴파일 후 남기는 것 이해하기', '리터럴 유니언의 가벼움 이해하기', '상황에 맞는 선택 기준 세우기'],
+      blocks: [
+        {
+          h: '같은 걸 표현하는 두 가지 방법',
+          html: `<p>"활성/비활성/대기중" 같은 상태는 <code>enum</code>으로도, 문자열 리터럴의 <code>유니언 타입</code>으로도 표현할 수 있어요. 둘 다 "정해진 값 중 하나"라는 점은 같아요.</p>`,
+          code: {
+            label: 'enum_vs_union.ts',
+            lang: 'typescript',
+            src: `enum StatusEnum {
+  Active,
+  Inactive,
+  Pending,
+}
+
+type StatusUnion = "active" | "inactive" | "pending";
+
+let s1: StatusEnum = StatusEnum.Active;
+let s2: StatusUnion = "active";
+
+console.log(s1, s2);`,
+            out: `0 active`
+          }
+        },
+        {
+          h: '컴파일 후에 남는 것이 다르다',
+          html: `<p><code>enum</code>은 컴파일되면 실제 JavaScript 객체(런타임 코드)로 남아서 번들 크기가 늘어나요. 반면 리터럴 유니언(<code>"active" | "inactive"</code>)은 <b>타입 전용</b>이라서 컴파일 후 완전히 사라지고, 값 자체는 이미 사람이 읽기 쉬운 문자열이에요.</p>`
+        },
+        {
+          h: '그럼 언제 뭘 쓸까요',
+          html: `<p>가볍고 문자열 그대로 로그·JSON에 쓰고 싶다면 <b>리터럴 유니언</b>이 유리해요. 값들을 하나의 이름 아래 묶어 관리하거나(예: <code>StatusEnum.Active</code>처럼 자동완성 그룹핑), 역방향 매핑(숫자→이름)이 필요하면 <b>enum</b>이 유리할 수 있어요.</p>`,
+          after: `<div class="note"><b>실무 팁</b> — 최근 TypeScript 프로젝트에서는 번들 크기와 직렬화 편의성 때문에 리터럴 유니언을 더 선호하는 경향이 있어요. enum은 팀 컨벤션에 따라 선택하면 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '컴파일 후 실제 JavaScript 코드(객체)로 남는 것은?',
+          'enum', ['문자열 리터럴 유니언 타입', '둘 다 남지 않는다', '둘 다 남는다'],
+          'enum은 실제 런타임 객체로 컴파일되지만, 리터럴 유니언은 타입 전용이라 컴파일 후 사라져요.',
+          '"런타임에 존재하는가"를 기준으로 생각해보세요.'
+        ),
+        () => makeChoice(
+          '문자열 리터럴 유니언 타입(<code>"active" | "inactive"</code>)의 장점은?',
+          '컴파일 후 완전히 사라져 번들이 가볍고, 값 자체가 이미 읽기 쉬운 문자열이다',
+          ['항상 숫자로 자동 변환된다', 'IDE 자동완성을 지원하지 않는다', '역방향 매핑을 자동으로 지원한다'],
+          '리터럴 유니언은 타입 전용이라 번들에 영향을 안 주고, 값 자체가 사람이 읽기 쉬운 문자열이에요.',
+          '"타입 전용"이라는 표현을 떠올려보세요.'
+        ),
+        () => {
+          const idx = randInt(0, 2);
+          const names = ['Active', 'Inactive', 'Pending'];
+          return {
+            type: 'blank',
+            q: `<code>enum StatusEnum { Active, Inactive, Pending }</code>일 때, <code>StatusEnum.${names[idx]}</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(idx)], placeholder: '숫자',
+            why: `enum은 기본적으로 0부터 순서대로 번호가 매겨져서, ${names[idx]}는 ${idx}예요.`,
+            hint: 'Active가 0부터 시작해서 순서대로 번호가 붙어요.'
+          };
+        },
+        () => makeChoice(
+          '여러 상태 값을 JSON으로 그대로 저장하거나 로그로 남기기 편한 쪽은?',
+          '문자열 리터럴 유니언 ("active" 같은 값 자체를 쓰므로)',
+          ['enum (항상 숫자만 저장되므로 더 편하다)', '값 저장 방식에 차이가 없다', 'enum과 유니언 모두 JSON으로 저장할 수 없다'],
+          '리터럴 유니언은 값 자체가 "active" 같은 읽기 쉬운 문자열이라, JSON이나 로그에 그대로 남기기 편해요.',
+          '숫자보다 문자열이 사람이 읽기에 더 명확하다는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '"pending", "shipped", "delivered" 세 가지 값 중 하나를 가지는 문자열 리터럴 유니언 타입 <code>OrderStatus</code>를 작성하세요.',
+          starter: '',
+          placeholder: 'type OrderStatus = "pending" | "shipped" | "delivered";',
+          accept: ['type OrderStatus = "pending" | "shipped" | "delivered";'],
+          why: '문자열 리터럴들을 |로 연결하면 리터럴 유니언 타입이 돼요.',
+          hint: 'type OrderStatus = "pending" | "shipped" | "delivered"; 를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const idx = randInt(0, 2);
+        const names = ['Active', 'Inactive', 'Pending'];
+        return {
+          type: 'blank',
+          q: `<code>enum StatusEnum { Active, Inactive, Pending }</code>일 때, <code>StatusEnum.${names[idx]}</code>의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(idx)], placeholder: '숫자',
+          why: `0번부터 순서대로 번호가 매겨지므로 ${names[idx]}는 ${idx}예요.`,
+          hint: '배열 인덱스처럼 0부터 순서를 세어보세요.'
+        };
+      }
+    },
+    {
+      id: 'abstractConstructorTypes',
+      title: '추상 생성자 타입(Abstract Constructor Types)',
+      ready: true,
+      summary: '"new로 직접 만들 수는 없지만, 자식 클래스의 생성자여야 한다"는 조건을 표현하는 추상 생성자 타입을 배워요.',
+      goals: ['abstract new () => T 문법 이해하기', '일반 생성자 타입과의 차이', '팩토리 함수에 활용하기'],
+      blocks: [
+        {
+          h: '생성자를 매개변수로 받는 함수',
+          html: `<p>클래스 자체(생성자 함수)를 매개변수로 받아서 <code>new</code>로 인스턴스를 만들어주는 함수를 만들 수 있어요. 이때 매개변수 타입은 <code>new () =&gt; T</code> 형태로 적어요.</p>`,
+          code: {
+            label: 'ctor_basic.ts',
+            lang: 'typescript',
+            src: `class Dog {
+  speak(): string {
+    return "멍멍";
+  }
+}
+
+function createInstance<T>(Ctor: new () => T): T {
+  return new Ctor();
+}
+
+const d = createInstance(Dog);
+console.log(d.speak());`,
+            out: `멍멍`
+          }
+        },
+        {
+          h: 'abstract 클래스는 new로 못 만든다',
+          html: `<p><code>abstract class</code>는 직접 <code>new</code>로 인스턴스를 만들 수 없어요. 그래서 <code>new () =&gt; T</code> 타입에는 추상 클래스를 넘길 수 없고, 이때는 <code>abstract new () =&gt; T</code>라는 <b>추상 생성자 타입</b>을 써야 해요.</p>`,
+          code: {
+            label: 'ctor_abstract.ts',
+            lang: 'typescript',
+            src: `abstract class Animal {
+  abstract speak(): string;
+}
+
+class Cat extends Animal {
+  speak(): string {
+    return "야옹";
+  }
+}
+
+function describe<T extends Animal>(Ctor: abstract new () => T): string {
+  return Ctor.name;
+}
+
+console.log(describe(Cat));`,
+            out: `Cat`
+          },
+          after: `<div class="note"><b>왜 유용할까요</b> — describe 함수는 인스턴스를 직접 만들지 않고 클래스 이름만 확인하니까, 추상 클래스 자체(Animal)도 넘길 수 있어요. 이렇게 "new로 만들 수 있는지"를 타입으로 구분해두면, 실수로 추상 클래스를 new하려는 코드를 미리 막을 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `클래스 자체를 매개변수로 받아 <code>new</code>로 인스턴스를 만들 수 있다는 걸 나타내는 타입 표기를 완성하세요. (T는 결과 타입)`,
+          prefix: 'function createInstance<T>(Ctor: ', suffix: '): T { return new Ctor(); }', accept: ['new () => T'], placeholder: '타입',
+          why: '<code>new () =&gt; T</code>는 "매개변수 없이 new로 호출하면 T를 만들어내는 생성자"라는 뜻이에요.',
+          hint: '일반 함수 타입 앞에 new 키워드를 붙이면 돼요.'
+        }),
+        () => makeChoice(
+          'abstract class를 new () => T 타입의 매개변수로 넘기려고 하면 어떻게 되나요?',
+          '컴파일 오류가 난다 (추상 클래스는 직접 new로 만들 수 없으므로)',
+          ['정상적으로 인스턴스가 만들어진다', '자동으로 일반 클래스로 바뀐다', '항상 undefined가 반환된다'],
+          'abstract class는 new로 직접 인스턴스를 만들 수 없기 때문에, 일반 생성자 타입(new () => T)에는 맞지 않아요.',
+          'abstract class의 가장 큰 특징이 뭐였는지 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `추상 클래스도 받을 수 있는 생성자 타입을 만들려면, <code>new () =&gt; T</code> 앞에 어떤 키워드를 붙여야 할까요?`,
+          prefix: 'Ctor: ', suffix: ' new () => T', accept: ['abstract'], placeholder: '키워드',
+          why: '<code>abstract new () =&gt; T</code>는 "new로 직접 만들 수는 없지만, 그런 생성자여야 한다"는 뜻이에요.',
+          hint: 'abstract class를 선언할 때 쓰는 그 키워드예요.'
+        }),
+        () => makeChoice(
+          '추상 생성자 타입(abstract new () => T)을 쓰는 이유는?',
+          '실제로 new하지 않고 클래스 자체(정적 속성 등)만 다루는 함수에서, 추상 클래스도 인자로 받을 수 있게 하려고',
+          ['모든 클래스를 abstract로 강제하려고', '함수 실행 속도를 높이려고', 'new 키워드 사용을 아예 막으려고'],
+          'describe 같은 함수는 인스턴스를 만들지 않으니, 추상 클래스까지 포함해서 더 넓은 범위의 클래스를 받을 수 있어요.',
+          '함수 안에서 실제로 new를 호출하는지 안 하는지를 살펴보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>abstract class Shape { abstract area(): number; }</code>를 상속하는 어떤 클래스든 받아서, 그 클래스의 이름(<code>.name</code>)을 반환하는 함수 <code>getClassName&lt;T extends Shape&gt;(Ctor: abstract new () =&gt; T): string</code>을 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'function getClassName<T extends Shape>(Ctor: abstract new () => T): string {\n  return Ctor.name;\n}',
+          accept: ['function getClassName<T extends Shape>(Ctor: abstract new () => T): string {\n  return Ctor.name;\n}'],
+          why: 'abstract new () => T 타입의 매개변수를 받아 Ctor.name을 반환하면 돼요.',
+          hint: 'function getClassName<T extends Shape>(Ctor: abstract new () => T): string { return Ctor.name; }를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const name = pick(['Cat', 'Bird', 'Fish']);
+        return {
+          type: 'blank',
+          q: `<code>function describe&lt;T extends Animal&gt;(Ctor: abstract new () =&gt; T): string { return Ctor.name; }</code>일 때, <code>class ${name} extends Animal { speak() { return ""; } }</code>를 <code>describe(${name})</code>로 호출한 결과는?`,
+          prefix: '', suffix: '', accept: [name], placeholder: '값',
+          why: `describe는 클래스의 이름(.name)을 그대로 반환하므로, "${name}"이 나와요.`,
+          hint: '클래스의 .name 속성은 그 클래스 이름 그대로예요.'
+        };
+      }
+    },
+    {
+      id: 'overloadResolution',
+      title: '함수 오버로드의 해석 순서',
+      ready: true,
+      summary: '여러 오버로드 시그니처가 있을 때, TypeScript가 위에서부터 순서대로 맞는 것을 찾는다는 해석 규칙을 배워요.',
+      goals: ['오버로드 시그니처를 위에서부터 검사하는 원리', '순서가 잘못되면 생기는 문제', '구현 시그니처는 호출자에게 안 보인다는 점'],
+      blocks: [
+        {
+          h: '위에서부터 순서대로 검사해요',
+          html: `<p>오버로드 시그니처가 여러 개 있으면, TypeScript는 함수를 호출할 때 <b>위에서부터 순서대로</b> 맞는 시그니처를 찾다가, 가장 먼저 맞는 것을 사용해요.</p>`,
+          code: {
+            label: 'overload_order.ts',
+            lang: 'typescript',
+            src: `function format(value: string): string;
+function format(value: number): string;
+function format(value: string | number): string {
+  if (typeof value === "number") {
+    return value.toFixed(2);
+  }
+  return value.trim();
+}
+
+console.log(format(3.5));
+console.log(format("  hi  "));`,
+            out: `3.50\nhi`
+          }
+        },
+        {
+          h: '순서가 잘못되면 생기는 문제',
+          html: `<p>더 넓은 타입을 받는 시그니처를 위에 두면, 그 아래 있는 더 좁은 시그니처는 <b>영원히 선택될 기회를 잃어요</b>. 그래서 오버로드는 항상 <b>좁고 구체적인 시그니처를 위에</b>, 넓은 시그니처를 아래에 둬야 해요.</p>`,
+          code: {
+            label: 'overload_wrong_order.ts',
+            lang: 'typescript',
+            src: `function pick(value: string | number): string; // 너무 넓은 게 맨 위
+function pick(value: string): string;           // 이 줄은 절대 선택되지 못함
+function pick(value: string | number): string {
+  return String(value);
+}`,
+          },
+          after: `<div class="note"><b>주의</b> — 실제로 호출하는 쪽에서는 마지막의 구현 시그니처(<code>value: string | number</code>)가 보이지 않아요. 호출자는 오직 위쪽의 오버로드 시그니처들만 보고 어떤 형태로 호출할 수 있는지 판단해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '여러 오버로드 시그니처가 있을 때, TypeScript는 어떤 순서로 맞는 시그니처를 찾나요?',
+          '위에서부터 순서대로 검사해서 가장 먼저 맞는 것을 쓴다',
+          ['아래에서부터 순서대로 검사한다', '가장 구체적인 것을 자동으로 찾아준다(순서 무관)', '무작위로 하나를 고른다'],
+          'TypeScript는 오버로드 시그니처를 위에서부터 순서대로 검사해서, 가장 먼저 맞는 것을 선택해요.',
+          '"위에서부터"라는 표현이 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>function format(value: string): string; function format(value: number): string; function format(value: string | number): string { ... }</code>에서, 호출하는 쪽에 실제로 보이는 시그니처는 몇 개인가요? (구현 시그니처 제외) 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: ['2'], placeholder: '숫자',
+          why: '오버로드 시그니처 2개(string 버전, number 버전)만 호출자에게 보이고, 마지막 구현 시그니처는 보이지 않아요.',
+          hint: '맨 아래 실제 구현부는 호출자에게 안 보인다는 점을 떠올려보세요.'
+        }),
+        () => makeChoice(
+          '넓은 타입(string | number)을 받는 오버로드 시그니처를 맨 위에 두면 생기는 문제는?',
+          '그 아래 있는 더 좁은 시그니처들이 영원히 선택되지 못한다',
+          ['컴파일 오류가 즉시 발생한다', '더 좁은 시그니처가 먼저 선택된다', '아무 문제도 생기지 않는다'],
+          '넓은 시그니처가 위에 있으면 그보다 좁은 타입의 호출도 먼저 매칭돼버려서, 아래 시그니처들은 쓰일 기회가 없어요.',
+          '위에서부터 순서대로 검사한다는 규칙을 다시 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `오버로드 시그니처를 쓸 때, 좁고 구체적인 시그니처와 넓은 시그니처 중 어느 것을 위쪽에 둬야 할까요? (좁은/넓은 중 하나로 답하세요)`,
+          prefix: '', suffix: '', accept: ['좁은'], placeholder: '단어',
+          why: '좁고 구체적인 시그니처를 위에 둬야, 그 아래 넓은 시그니처에 가려지지 않고 제대로 선택돼요.',
+          hint: '더 구체적인 것이 먼저 검사돼야 기회를 놓치지 않아요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>combine</code> 함수에 오버로드 시그니처 두 개를 작성하세요: 매개변수가 둘 다 <code>string</code>이면 반환도 <code>string</code>, 둘 다 <code>number</code>이면 반환도 <code>number</code>. 구현부는 작성하지 않고 시그니처 두 줄만 쓰세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'function combine(a: string, b: string): string;\nfunction combine(a: number, b: number): number;',
+          accept: ['function combine(a: string, b: string): string;\nfunction combine(a: number, b: number): number;'],
+          why: '각 타입 조합마다 오버로드 시그니처를 하나씩 적어요.',
+          hint: 'function combine(a: string, b: string): string;\nfunction combine(a: number, b: number): number; 를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const useNumber = Math.random() < 0.5;
+        const val = useNumber ? randInt(1, 9) + 0.5 : '  hi  ';
+        return {
+          type: 'blank',
+          q: `<code>function format(value: string): string; function format(value: number): string; function format(value: string | number): string { if (typeof value === "number") return value.toFixed(2); return value.trim(); }</code>일 때, <code>format(${useNumber ? val : `"${val}"`})</code>의 결과는? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [useNumber ? val.toFixed(2) : val.trim()], placeholder: '값',
+          why: useNumber ? `숫자이므로 toFixed(2)가 적용되어 "${val.toFixed(2)}"가 돼요.` : `문자열이므로 trim()이 적용되어 "${val.trim()}"이 돼요.`,
+          hint: '값이 숫자인지 문자열인지에 따라 다른 처리가 일어나요.'
+        };
+      }
+    },
+    {
+      id: 'assertionFunctions',
+      title: '단언 함수(Assertion Functions)',
+      ready: true,
+      summary: 'asserts 키워드로, "이 함수를 통과하면 그 값은 반드시 이런 조건을 만족한다"고 TS에게 알려주는 단언 함수를 배워요.',
+      goals: ['asserts condition 문법 이해하기', 'asserts value is Type 문법 이해하기', '타입 가드(is)와의 차이'],
+      blocks: [
+        {
+          h: '조건이 참임을 단언하기: asserts condition',
+          html: `<p>함수가 <code>asserts 조건</code>을 반환 타입으로 가지면, "이 함수가 정상적으로 리턴되면(오류를 던지지 않으면) 그 조건은 반드시 참"이라고 TS에게 알려줘요.</p>`,
+          code: {
+            label: 'assert_condition.ts',
+            lang: 'typescript',
+            src: `function assertIsPositive(value: number): asserts value is number {
+  if (value <= 0) {
+    throw new Error("양수가 아니에요");
+  }
+}
+
+function process(n: number) {
+  assertIsPositive(n);
+  console.log(Math.sqrt(n));
+}
+
+process(16);`,
+            out: `4`
+          }
+        },
+        {
+          h: '타입 가드(is)와 뭐가 다를까요',
+          html: `<p>타입 가드 함수(<code>x is Type</code>)는 <code>if</code> 조건으로 써야 타입이 좁혀지지만, 단언 함수(<code>asserts x is Type</code>)는 <b>호출하는 순간 그 아래 코드 전체에서</b> 타입이 좁혀져요. 조건을 만족 못 하면 예외를 던지는 방식이에요.</p>`,
+          code: {
+            label: 'assert_value.ts',
+            lang: 'typescript',
+            src: `function assertIsString(value: unknown): asserts value is string {
+  if (typeof value !== "string") {
+    throw new Error("문자열이 아니에요");
+  }
+}
+
+function greet(value: unknown) {
+  assertIsString(value);
+  console.log(value.toUpperCase()); // 여기서부터 value는 string
+}
+
+greet("hello");`,
+            out: `HELLO`
+          },
+          after: `<div class="note"><b>비유</b> — 타입 가드가 "이 문 너머는 안전한지 미리 확인하는 검문소"라면, 단언 함수는 "조건이 안 맞으면 그 자리에서 바로 통행을 막아버리는(예외를 던지는) 검문소"예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `함수가 "정상적으로 리턴되면 value는 반드시 string"이라는 걸 나타내는 반환 타입 표기를 완성하세요.`,
+          prefix: 'function assertIsString(value: unknown): ', suffix: ' { ... }', accept: ['asserts value is string'], placeholder: '반환 타입',
+          why: '<code>asserts value is string</code>은 "이 함수가 정상 종료되면 value는 string"이라는 뜻이에요.',
+          hint: 'asserts 뒤에 매개변수 이름, is, 타입 순서로 쓰세요.'
+        }),
+        () => makeChoice(
+          '단언 함수(asserts)와 일반 타입 가드(is)의 가장 큰 차이는?',
+          '단언 함수는 호출하는 순간 그 아래 코드 전체에서 타입이 좁혀지지만, 타입 가드는 if 블록 안에서만 좁혀진다',
+          ['단언 함수는 항상 boolean을 반환한다', '타입 가드는 예외를 던질 수 없다', '차이가 전혀 없다'],
+          '타입 가드는 if로 감싸야 그 블록 안에서만 좁혀지지만, 단언 함수는 호출 이후 코드 전체에 적용돼요.',
+          '"if 없이도 적용된다"는 점이 단언 함수의 특징이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>function assertIsPositive(value: number): asserts value is number { if (value &lt;= 0) throw new Error(""); }</code>에서, 조건을 만족하지 못하면 함수가 하는 일은? (한 단어: 예외/오류를 어떻게 하나요)`,
+          prefix: '', suffix: '', accept: ['던진다', '던짐', 'throw'], placeholder: '단어',
+          why: '조건이 거짓이면 예외를 던져서(throw), 그 뒤 코드가 실행되지 않게 막아요.',
+          hint: '코드에 있는 throw new Error(...) 부분을 보세요.'
+        }),
+        () => makeChoice(
+          '단언 함수를 호출한 뒤 예외 없이 다음 줄로 넘어갔다면, TypeScript는 무엇을 보장받았다고 판단하나요?',
+          '단언한 조건이 참이라는 것', ['함수가 항상 빠르게 실행됐다는 것', '메모리 누수가 없다는 것', '아무것도 보장받지 않는다'],
+          '단언 함수가 예외 없이 정상 종료됐다는 건, asserts 뒤에 적은 조건이 참이라는 뜻이에요.',
+          '"asserts"라는 단어 자체가 "단언한다"는 뜻이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>value</code>가 <code>null</code>이거나 <code>undefined</code>이면 오류를 던지고, 아니면 그냥 통과하는 단언 함수 <code>assertIsDefined&lt;T&gt;(value: T): asserts value is NonNullable&lt;T&gt;</code>를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'function assertIsDefined<T>(value: T): asserts value is NonNullable<T> {\n  if (value === null || value === undefined) {\n    throw new Error("값이 없어요");\n  }\n}',
+          accept: ['function assertIsDefined<T>(value: T): asserts value is NonNullable<T> {\n  if (value === null || value === undefined) {\n    throw new Error("값이 없어요");\n  }\n}'],
+          why: 'null이나 undefined일 때 예외를 던지고, 반환 타입에 asserts value is NonNullable<T>를 적어요.',
+          hint: 'if (value === null || value === undefined) { throw new Error(...); } 형태로 작성하세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(1, 10);
+        const square = n * n;
+        return {
+          type: 'blank',
+          q: `<code>function assertIsPositive(value: number): asserts value is number { if (value &lt;= 0) throw new Error(""); } function square(n: number) { assertIsPositive(n); return n * n; }</code>일 때, <code>square(${n})</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(square)], placeholder: '숫자',
+          why: `${n}은 양수라서 단언을 통과하고, ${n} * ${n} = ${square}가 반환돼요.`,
+          hint: 'assertIsPositive는 양수일 때만 통과시키고, 그 다음 n * n을 계산해요.'
+        };
+      }
+    },
+    {
+      id: 'genericDefaults',
+      title: '제네릭 기본 타입 매개변수',
+      ready: true,
+      summary: '제네릭 타입 매개변수에 기본값을 지정해서, 타입 인자를 생략해도 되는 제네릭을 만드는 법을 배워요.',
+      goals: ['<T = 기본타입> 문법 이해하기', '기본값이 적용되는 시점', '여러 타입 매개변수와 기본값 함께 쓰기'],
+      blocks: [
+        {
+          h: '타입 인자를 생략할 수 있게 하기',
+          html: `<p>함수 매개변수에 기본값을 줄 수 있듯, 제네릭 타입 매개변수에도 <code>&lt;T = 기본타입&gt;</code>처럼 기본값을 줄 수 있어요. 타입 인자를 생략하면 이 기본값이 쓰여요.</p>`,
+          code: {
+            label: 'generic_default_basic.ts',
+            lang: 'typescript',
+            src: `interface Box<T = string> {
+  value: T;
+}
+
+const b1: Box = { value: "안녕" };        // T는 기본값 string
+const b2: Box<number> = { value: 42 };  // T는 명시적으로 number
+
+console.log(b1.value, b2.value);`,
+            out: `안녕 42`
+          }
+        },
+        {
+          h: '여러 타입 매개변수와 함께 쓰기',
+          html: `<p>타입 매개변수가 여러 개일 때도, 뒤쪽 매개변수에 기본값을 주면 자주 쓰는 조합을 더 짧게 쓸 수 있어요.</p>`,
+          code: {
+            label: 'generic_default_multi.ts',
+            lang: 'typescript',
+            src: `interface ApiResponse<T, E = string> {
+  data: T;
+  error?: E;
+}
+
+const res: ApiResponse<number> = { data: 100 }; // E는 기본값 string
+console.log(res.data);`,
+            out: `100`
+          },
+          after: `<div class="note"><b>주의</b> — 함수 매개변수 기본값처럼, 기본값이 있는 타입 매개변수는 보통 기본값이 없는 타입 매개변수보다 <b>뒤쪽</b>에 둬야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>Box&lt;T&gt;</code>에서 타입 인자를 생략하면 자동으로 <code>string</code>이 쓰이도록, T의 기본값을 지정하는 문법을 완성하세요.`,
+          prefix: 'interface Box<T', suffix: '> { value: T; }', accept: [' = string'], placeholder: ' = 타입',
+          why: '<code>&lt;T = string&gt;</code>처럼 등호로 기본 타입을 지정해요.',
+          hint: '함수 매개변수 기본값(= 값)과 비슷한 자리에 = 타입을 쓰면 돼요.'
+        }),
+        () => makeChoice(
+          '<code>interface Box&lt;T = string&gt; { value: T; }</code>일 때, <code>const b: Box = { value: "hi" };</code>처럼 타입 인자 없이 쓰면 T는 무엇이 되나요?',
+          'string (기본값이 그대로 적용됨)', ['number', 'any', '오류가 난다'],
+          '타입 인자를 생략하면 지정해둔 기본값 string이 그대로 적용돼요.',
+          '함수의 기본 매개변수 값과 똑같은 원리예요.'
+        ),
+        () => makeChoice(
+          '제네릭에서 기본값이 있는 타입 매개변수는 보통 어디에 둬야 하나요?',
+          '기본값이 없는 타입 매개변수보다 뒤쪽에', ['항상 맨 앞에', '아무 위치나 상관없다', '기본값이 있으면 다른 매개변수를 쓸 수 없다'],
+          '함수의 기본 매개변수처럼, 기본값이 있는 타입 매개변수는 뒤쪽에 둬야 자연스럽게 생략할 수 있어요.',
+          '함수 매개변수 기본값의 순서 규칙을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>interface ApiResponse&lt;T, E = string&gt; { data: T; error?: E; }</code>에서, <code>ApiResponse&lt;number&gt;</code>로 쓰면 E는 무엇이 되나요?`,
+          prefix: '', suffix: '', accept: ['string'], placeholder: '타입',
+          why: 'E의 타입 인자를 생략했으니 기본값 string이 적용돼요.',
+          hint: 'E = string으로 정의된 기본값을 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>value: T</code> 속성을 가지는 제네릭 인터페이스 <code>Wrapper&lt;T&gt;</code>를 작성하되, 타입 인자를 생략하면 <code>number</code>가 기본값이 되도록 하세요.',
+          starter: '',
+          placeholder: 'interface Wrapper<T = number> {\n  value: T;\n}',
+          accept: ['interface Wrapper<T = number> {\n  value: T;\n}'],
+          why: '<T = number>로 기본 타입을 number로 지정해요.',
+          hint: 'interface Wrapper<T = number> { value: T; }를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const useDefault = Math.random() < 0.5;
+        const val = useDefault ? '"안녕"' : '42';
+        return {
+          type: 'blank',
+          q: `<code>interface Box&lt;T = string&gt; { value: T; }</code>일 때, <code>const b: ${useDefault ? 'Box' : 'Box<number>'} = { value: ${val} };</code>에서 T의 타입은?`,
+          prefix: '', suffix: '', accept: [useDefault ? 'string' : 'number'], placeholder: '타입',
+          why: useDefault ? '타입 인자를 생략했으니 기본값 string이 적용돼요.' : '타입 인자로 number를 명시했으니 T는 number예요.',
+          hint: '타입 인자를 직접 썼는지, 생략했는지를 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'readonlyArraysTuples',
+      title: '읽기 전용 배열과 튜플',
+      ready: true,
+      summary: 'readonly 배열/튜플로, 한 번 만든 뒤에는 요소를 바꾸거나 추가/삭제할 수 없는 안전한 목록을 만드는 법을 배워요.',
+      goals: ['readonly T[] / ReadonlyArray<T> 문법', 'readonly 튜플 만들기', '변경 메서드가 막히는 이유'],
+      blocks: [
+        {
+          h: '배열 앞에 readonly 붙이기',
+          html: `<p><code>readonly T[]</code>나 <code>ReadonlyArray&lt;T&gt;</code>로 선언하면, 그 배열은 <code>push</code>, <code>pop</code>, 인덱스 대입(<code>arr[0] = ...</code>) 같은 <b>변경 동작이 모두 막혀요.</b></p>`,
+          code: {
+            label: 'readonly_array.ts',
+            lang: 'typescript',
+            src: `const scores: readonly number[] = [90, 85, 100];
+
+console.log(scores[0]);
+// scores.push(70);   // 오류! push는 readonly 배열에 없음
+// scores[0] = 0;      // 오류! 요소를 바꿀 수 없음`,
+            out: `90`
+          }
+        },
+        {
+          h: 'readonly 튜플',
+          html: `<p>튜플에도 <code>readonly</code>를 붙일 수 있어요. <code>readonly [string, number]</code>로 선언하면, 각 자리의 값을 나중에 바꿀 수 없어요.</p>`,
+          code: {
+            label: 'readonly_tuple.ts',
+            lang: 'typescript',
+            src: `const point: readonly [number, number] = [3, 4];
+
+console.log(point[0], point[1]);
+// point[0] = 10; // 오류! readonly 튜플의 요소는 바꿀 수 없음`,
+            out: `3 4`
+          },
+          after: `<div class="note"><b>왜 유용할까요</b> — 함수의 매개변수를 <code>readonly T[]</code>로 받으면, "이 함수는 배열을 절대 변경하지 않는다"는 약속을 타입으로 명확히 드러낼 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `숫자 배열을 읽기 전용으로 선언하는 표기를 완성하세요. (예: const scores: ___ number[] = [1,2,3];)`,
+          prefix: 'const scores: ', suffix: ' number[] = [90, 85, 100];', accept: ['readonly'], placeholder: '키워드',
+          why: '<code>readonly number[]</code>는 변경이 금지된 숫자 배열 타입이에요.',
+          hint: '객체 속성에 붙이는 그 키워드를 배열 타입 앞에도 붙일 수 있어요.'
+        }),
+        () => makeChoice(
+          '<code>const scores: readonly number[] = [90, 85];</code>일 때, <code>scores.push(70);</code>을 쓰면?',
+          '컴파일 오류가 난다 (readonly 배열에는 push 메서드 자체가 없으므로)',
+          ['정상적으로 70이 추가된다', 'scores가 [70]으로 바뀐다', '경고만 뜨고 실행은 된다'],
+          'readonly 배열 타입에는 push, pop 같은 변경 메서드 자체가 타입 정의에서 빠져 있어서 사용할 수 없어요.',
+          'readonly 배열의 타입에 어떤 메서드들이 있을지 생각해보세요.'
+        ),
+        () => makeChoice(
+          '함수의 매개변수 타입을 <code>readonly T[]</code>로 받는 이유는?',
+          '이 함수가 배열을 변경하지 않는다는 약속을 타입으로 명확히 드러내기 위해',
+          ['함수 실행 속도를 높이기 위해', '배열의 길이를 자동으로 고정하기 위해', 'undefined 값을 막기 위해'],
+          'readonly 매개변수는 "이 함수 안에서 원본 배열을 건드리지 않는다"는 걸 타입 시스템으로 보장해줘요.',
+          '"약속을 명확히 드러낸다"는 표현을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>const point: readonly [number, number] = [3, 4]; point[0] = 10;</code>를 실행하면 어떻게 되나요? (한 단어)`,
+          prefix: '', suffix: '', accept: ['오류', '오류가 난다'], placeholder: '결과',
+          why: 'readonly 튜플의 요소는 바꿀 수 없어서, 대입하려고 하면 컴파일 오류가 나요.',
+          hint: 'readonly가 붙은 값에 대입을 시도하면 어떻게 될지 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '이름 두 개를 담는 읽기 전용 튜플 타입의 상수 <code>names</code>를 선언하세요. 값은 <code>["지수", "민준"]</code>이어야 해요.',
+          starter: '',
+          placeholder: 'const names: readonly [string, string] = ["지수", "민준"];',
+          accept: ['const names: readonly [string, string] = ["지수", "민준"];'],
+          why: 'readonly [string, string]로 선언하면 두 자리 모두 변경할 수 없는 튜플이 돼요.',
+          hint: 'const names: readonly [string, string] = ["지수", "민준"]; 를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const arr = [randInt(1, 100), randInt(1, 100), randInt(1, 100)];
+        const idx = randInt(0, 2);
+        return {
+          type: 'blank',
+          q: `<code>const scores: readonly number[] = [${arr.join(', ')}];</code>일 때, <code>scores[${idx}]</code>의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(arr[idx])], placeholder: '숫자',
+          why: `readonly 배열도 읽는 것(인덱스 접근)은 자유로워서, scores[${idx}]는 ${arr[idx]}예요.`,
+          hint: 'readonly는 "쓰기"만 막을 뿐, 읽는 것은 평소와 똑같아요.'
+        };
+      }
+    },
+    {
+      id: 'recursiveTypeAliases',
+      title: '재귀적 타입 별칭',
+      ready: true,
+      summary: '타입이 자기 자신을 다시 참조하는 재귀적 타입 별칭으로, JSON이나 트리처럼 중첩 깊이가 정해지지 않은 구조를 표현해요.',
+      goals: ['타입이 자기 자신을 참조하는 방법', 'JSON 값 타입 직접 만들어보기', '트리 구조 표현하기'],
+      blocks: [
+        {
+          h: '타입이 자기 자신을 참조할 수 있어요',
+          html: `<p>함수가 자기 자신을 호출하는 재귀처럼, 타입 별칭도 자기 자신을 정의 안에서 다시 참조할 수 있어요. 이러면 "몇 겹으로 중첩될지 미리 알 수 없는" 구조를 표현할 수 있어요.</p>`,
+          code: {
+            label: 'recursive_json.ts',
+            lang: 'typescript',
+            src: `type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | Json[]
+  | { [key: string]: Json };
+
+const data: Json = {
+  name: "지수",
+  tags: ["학생", "17세"],
+  address: { city: "서울", zipcode: null },
+};
+
+console.log(data.name);`,
+            out: `지수`
+          }
+        },
+        {
+          h: '트리 구조 표현하기',
+          html: `<p>재귀적 타입은 트리처럼 "같은 모양이 계속 반복되는" 구조를 표현할 때도 유용해요. 자식 노드의 타입이 바로 자기 자신(TreeNode)이에요.</p>`,
+          code: {
+            label: 'recursive_tree.ts',
+            lang: 'typescript',
+            src: `type TreeNode = {
+  value: number;
+  children: TreeNode[];
+};
+
+const tree: TreeNode = {
+  value: 1,
+  children: [
+    { value: 2, children: [] },
+    { value: 3, children: [{ value: 4, children: [] }] },
+  ],
+};
+
+console.log(tree.children[1].children[0].value);`,
+            out: `4`
+          },
+          after: `<div class="note"><b>주의</b> — 재귀적 타입 별칭은 반드시 배열, 객체, 유니언처럼 "간접적으로" 자기 자신을 참조해야 해요. <code>type A = A;</code>처럼 직접 자기 자신과 완전히 같으면 오류가 나요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '재귀적 타입 별칭이 유용한 경우는?',
+          'JSON 값이나 트리처럼, 중첩 깊이가 미리 정해지지 않은 구조를 표현할 때',
+          ['항상 두 단계까지만 중첩되는 구조를 표현할 때', '숫자 계산 속도를 높일 때', '함수의 매개변수 개수를 제한할 때'],
+          '재귀적 타입은 몇 겹으로 중첩되든 상관없이 같은 규칙을 반복 적용할 수 있어서, JSON이나 트리 구조에 잘 맞아요.',
+          '"깊이가 정해지지 않았다"는 표현을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>type TreeNode = { value: number; children: TreeNode[]; };</code>에서, children의 타입이 자기 자신인 TreeNode를 다시 참조하는 걸 (무엇)적 타입이라고 부르나요? (두 글자)`,
+          prefix: '', suffix: '', accept: ['재귀'], placeholder: '단어',
+          why: '타입이 자기 자신을 정의 안에서 다시 참조하는 걸 재귀적 타입이라고 해요.',
+          hint: '함수가 자기 자신을 호출하는 것과 같은 원리의 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>type A = A;</code>처럼 타입을 직접적으로 자기 자신과 완전히 같게 정의하면 어떻게 되나요?',
+          '컴파일 오류가 난다 (직접 재귀는 허용되지 않으므로)',
+          ['정상적으로 동작한다', 'any 타입으로 자동 변환된다', '무한히 중첩된 타입이 만들어진다'],
+          '배열이나 객체 속성처럼 간접적으로 참조해야 하고, 완전히 직접적인 자기 참조는 오류가 나요.',
+          '"간접적으로"라는 표현이 힌트예요.'
+        ),
+        () => {
+          const val = randInt(1, 100);
+          return {
+            type: 'blank',
+            q: `<code>type TreeNode = { value: number; children: TreeNode[]; }; const tree: TreeNode = { value: 1, children: [{ value: ${val}, children: [] }] };</code>일 때, <code>tree.children[0].value</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(val)], placeholder: '숫자',
+            why: `tree의 children 배열 첫 번째 요소의 value는 ${val}이에요.`,
+            hint: '중첩된 객체를 하나씩 따라가며 값을 찾아보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: 'JSON에서 올 수 있는 값의 타입 <code>Json</code>을 재귀적으로 정의하세요. string, number, boolean, null, Json 배열, 그리고 문자열 키를 가지는 Json 객체를 모두 포함해야 해요.',
+          starter: '',
+          rows: 7,
+          placeholder: 'type Json =\n  | string\n  | number\n  | boolean\n  | null\n  | Json[]\n  | { [key: string]: Json };',
+          accept: ['type Json =\n  | string\n  | number\n  | boolean\n  | null\n  | Json[]\n  | { [key: string]: Json };'],
+          why: '기본 값 타입들과 함께, Json[]과 { [key: string]: Json }으로 자기 자신을 재귀적으로 참조해요.',
+          hint: '유니언에 Json[]과 { [key: string]: Json }을 포함시키세요.'
+        }),
+      ],
+      boss: () => {
+        const val = randInt(1, 50);
+        return {
+          type: 'blank',
+          q: `<code>type TreeNode = { value: number; children: TreeNode[]; }; const t: TreeNode = { value: 0, children: [{ value: 0, children: [{ value: ${val}, children: [] }] }] };</code>일 때, <code>t.children[0].children[0].value</code>의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(val)], placeholder: '숫자',
+          why: `children을 두 번 따라 들어가면 value가 ${val}인 노드에 도달해요.`,
+          hint: 'children[0]을 두 번 따라가 보세요.'
+        };
+      }
+    },
+    {
+      id: 'brandedTypes',
+      title: '브랜드 타입(Branded Types)',
+      ready: true,
+      summary: '구조가 같아도 의미가 다른 값들을 구분하기 위해, 타입에 가짜 표식을 붙이는 브랜드 타입 기법을 배워요.',
+      goals: ['구조적 타이핑의 한계 이해하기', '브랜드 표식 붙이는 법', '전용 생성 함수로 안전하게 만들기'],
+      blocks: [
+        {
+          h: '구조가 같으면 다른 의미도 섞여요',
+          html: `<p>TypeScript는 <b>구조적 타이핑</b>이라서, <code>UserId</code>와 <code>ProductId</code>가 둘 다 <code>string</code>이면 서로 실수로 바꿔 써도 오류가 나지 않아요.</p>`,
+          code: {
+            label: 'brand_problem.ts',
+            lang: 'typescript',
+            src: `type UserId = string;
+type ProductId = string;
+
+function getUser(id: UserId) {
+  return \`유저 \${id}\`;
+}
+
+const productId: ProductId = "prod-1";
+console.log(getUser(productId)); // 실수인데 오류가 안 남!`,
+            out: `유저 prod-1`
+          }
+        },
+        {
+          h: '가짜 표식(브랜드)으로 구분하기',
+          html: `<p>실제로는 존재하지 않는 속성(<code>__brand</code>)을 타입에 끼워 넣으면, 구조가 같아도 서로 <b>다른 타입</b>으로 취급돼서 실수로 섞어 쓸 수 없게 돼요.</p>`,
+          code: {
+            label: 'brand_solution.ts',
+            lang: 'typescript',
+            src: `type UserId = string & { readonly __brand: "UserId" };
+type ProductId = string & { readonly __brand: "ProductId" };
+
+function toUserId(id: string): UserId {
+  return id as UserId;
+}
+
+function getUser(id: UserId) {
+  return \`유저 \${id}\`;
+}
+
+const uid = toUserId("u-1");
+console.log(getUser(uid));
+// getUser(productId); // 이제 오류! ProductId는 UserId가 아님`,
+            out: `유저 u-1`
+          },
+          after: `<div class="note"><b>비유</b> — 브랜드 타입은 겉모습이 똑같은 열쇠 두 개에, 눈에 안 보이는 미세한 홈을 하나씩 파서 "이건 현관용, 저건 자물쇠용"으로 구분해두는 것과 비슷해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'TypeScript에서 <code>type UserId = string; type ProductId = string;</code>일 때, ProductId 값을 UserId를 요구하는 곳에 넘기면?',
+          '구조가 둘 다 string이라 오류 없이 통과된다 (구조적 타이핑)',
+          ['이름이 다르므로 항상 오류가 난다', 'ProductId가 자동으로 UserId로 바뀐다', '실행할 때만 오류가 난다'],
+          'TypeScript는 이름이 아니라 구조를 보고 타입을 판단하는 구조적 타이핑이라서, 둘 다 string이면 구분하지 못해요.',
+          '"구조적 타이핑"이 무엇을 기준으로 타입을 비교하는지 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>type UserId = string & { readonly __brand: "UserId" };</code>처럼, 실제로 존재하지 않는 속성을 타입에 끼워 넣어 구조가 같은 타입들을 구분하는 기법을 (무엇) 타입이라고 부르나요? (영어로)`,
+          prefix: '', suffix: '', accept: ['branded', 'brand'], placeholder: '단어',
+          why: '이런 기법을 브랜드(branded) 타입 또는 나미널(nominal) 타이핑 흉내라고 불러요.',
+          hint: '소, 가축 등에 찍는 낙인이라는 뜻의 영단어예요.'
+        }),
+        () => makeChoice(
+          '브랜드 타입을 만들 때 <code>string & { __brand: "UserId" }</code>처럼 인터섹션(&)을 쓰는 이유는?',
+          'string이 가진 원래 기능은 그대로 쓰면서, 구분을 위한 가짜 표식만 추가로 덧붙이기 위해',
+          ['런타임에 실제로 __brand 속성을 만들기 위해', 'string 타입을 완전히 대체하기 위해', '유니언 타입을 만들기 위해'],
+          '인터섹션은 기존 타입의 기능은 유지한 채 표식 속성만 타입 레벨에서 추가해줘요. 실제 런타임에는 __brand 값이 존재하지 않아요.',
+          '인터섹션(&)이 "둘 다 만족"을 뜻한다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `브랜드 타입에서 <code>__brand</code> 같은 속성은 실제 런타임에 (존재한다/존재하지 않는다) 중 무엇일까요?`,
+          prefix: '', suffix: '', accept: ['존재하지 않는다', '존재하지않는다'], placeholder: '답',
+          why: '__brand는 오직 컴파일 시점의 타입 검사만을 위한 가짜 표식이라서, 실제 객체에는 존재하지 않아요.',
+          hint: '타입은 컴파일 후 사라진다는 TS의 기본 성질을 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>string</code> 기반의 브랜드 타입 <code>Email</code>을 <code>__brand: "Email"</code> 표식을 사용해 정의하세요.',
+          starter: '',
+          placeholder: 'type Email = string & { readonly __brand: "Email" };',
+          accept: ['type Email = string & { readonly __brand: "Email" };'],
+          why: 'string과 { readonly __brand: "Email" }을 인터섹션으로 합쳐 브랜드 타입을 만들어요.',
+          hint: 'type Email = string & { readonly __brand: "Email" }; 를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const kind = pick(['UserId', 'ProductId', 'OrderId']);
+        return {
+          type: 'blank',
+          q: `<code>type ${kind} = string & { readonly __brand: "${kind}" };</code>일 때, 이 타입의 값을 만들 때 실제 런타임에 <code>__brand</code>라는 속성이 객체에 존재하나요? (예/아니오)`,
+          prefix: '', suffix: '', accept: ['아니오', '아니요'], placeholder: '답',
+          why: '__brand는 타입 검사 전용 가짜 속성이라서, 실제 값에는 존재하지 않아요.',
+          hint: '브랜드 타입의 표식은 컴파일 타임에만 존재한다는 점을 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'constTypeParameters',
+      title: 'const 타입 매개변수',
+      ready: true,
+      summary: '제네릭 타입 매개변수 앞에 const를 붙여서, 넘겨받은 값을 자동으로 리터럴 타입 그대로 추론하게 만드는 법을 배워요.',
+      goals: ['const 타입 매개변수 문법', 'as const와의 관계', '넓혀지지 않은 리터럴 타입 유지하기'],
+      blocks: [
+        {
+          h: '제네릭이 값을 너무 넓게 추론하는 문제',
+          html: `<p>보통 제네릭 함수에 배열 리터럴을 넘기면, TypeScript는 각 요소를 <code>string</code>처럼 넓은 타입으로 추론해버려서 정확한 값("red" 같은 리터럴)을 잃어버려요.</p>`,
+          code: {
+            label: 'const_param_problem.ts',
+            lang: 'typescript',
+            src: `function firstOf<T>(arr: T[]): T {
+  return arr[0];
+}
+
+const result = firstOf(["red", "green", "blue"]);
+// result의 타입은 string (넓어짐)`,
+          }
+        },
+        {
+          h: 'const 타입 매개변수로 리터럴 그대로 유지하기',
+          html: `<p>타입 매개변수 앞에 <code>const</code>를 붙이면, <code>as const</code>를 쓴 것처럼 넘겨받은 값의 <b>좁은 리터럴 타입</b>을 그대로 유지한 채 추론해줘요.</p>`,
+          code: {
+            label: 'const_param_solution.ts',
+            lang: 'typescript',
+            src: `function firstOf<const T>(arr: T[]): T {
+  return arr[0];
+}
+
+const result = firstOf(["red", "green", "blue"]);
+// result의 타입은 "red" (좁은 리터럴 그대로!)
+
+console.log(result);`,
+            out: `red`
+          },
+          after: `<div class="note"><b>비유</b> — 호출할 때마다 매번 <code>as const</code>를 손으로 붙이는 대신, 함수 쪽에서 "여기 들어오는 값은 항상 리터럴 그대로 취급해줘"라고 미리 약속해두는 것과 같아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `제네릭 함수 <code>firstOf&lt;T&gt;(arr: T[]): T</code>가 넘겨받은 배열 요소의 리터럴 타입을 넓히지 않고 그대로 유지하도록 만들려면, T 앞에 어떤 키워드를 붙여야 할까요?`,
+          prefix: 'function firstOf<', suffix: ' T>(arr: T[]): T { return arr[0]; }', accept: ['const'], placeholder: '키워드',
+          why: '<code>&lt;const T&gt;</code>로 쓰면 넘겨받은 값의 좁은 리터럴 타입을 그대로 유지해요.',
+          hint: '이 단원의 제목이기도 한 그 키워드예요.'
+        }),
+        () => makeChoice(
+          'const 타입 매개변수를 쓰지 않은 일반 제네릭 함수에 <code>["red", "green"]</code>을 넘기면, 각 요소의 타입은 보통 어떻게 추론되나요?',
+          '넓은 string 타입으로 추론된다', ['리터럴 "red" | "green" 그대로 유지된다', '항상 any로 추론된다', '오류가 난다'],
+          '일반 제네릭은 리터럴 값을 더 넓은 타입(string)으로 추론해버려요.',
+          '"넓힌다(widening)"는 TS의 기본 추론 동작을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'const 타입 매개변수가 하는 역할과 가장 비슷한, 값에서 쓰는 문법은?',
+          '<code>as const</code>', ['<code>as any</code>', '<code>satisfies</code>', '<code>readonly</code> 단독'],
+          'const 타입 매개변수는 함수를 호출할 때마다 자동으로 as const를 적용한 것과 같은 효과를 줘요.',
+          '리터럴을 넓히지 않고 그대로 유지하는 그 문법을 떠올려보세요.'
+        ),
+        () => {
+          const color = pick(['red', 'green', 'blue']);
+          return {
+            type: 'blank',
+            q: `<code>function firstOf&lt;const T&gt;(arr: T[]): T { return arr[0]; }</code>일 때, <code>firstOf(["${color}", "yellow"])</code>의 반환값 타입(그리고 값)은?`,
+            prefix: '', suffix: '', accept: [color], placeholder: '값',
+            why: `const 타입 매개변수 덕분에 배열의 첫 요소인 "${color}" 리터럴 타입 그대로 반환돼요.`,
+            hint: '배열의 첫 번째 요소가 그대로 반환된다는 점을 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '넘겨받은 배열의 리터럴 타입을 그대로 유지하며 배열을 그대로 반환하는 제네릭 함수 <code>freeze</code>를 const 타입 매개변수를 사용해 작성하세요. (매개변수 arr: T[], 반환 타입 T[])',
+          starter: '',
+          rows: 3,
+          placeholder: 'function freeze<const T>(arr: T[]): T[] {\n  return arr;\n}',
+          accept: ['function freeze<const T>(arr: T[]): T[] {\n  return arr;\n}'],
+          why: '<const T>로 타입 매개변수를 선언하면, 넘겨받은 배열의 리터럴 타입이 넓혀지지 않아요.',
+          hint: 'function freeze<const T>(arr: T[]): T[] { return arr; } 를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const color = pick(['red', 'green', 'blue', 'yellow']);
+        return {
+          type: 'blank',
+          q: `<code>function firstOf&lt;const T&gt;(arr: T[]): T { return arr[0]; }</code>일 때, <code>firstOf(["${color}", "black"])</code>의 반환값은?`,
+          prefix: '', suffix: '', accept: [color], placeholder: '값',
+          why: `첫 번째 요소인 "${color}"이 그대로 반환돼요.`,
+          hint: '배열의 첫 요소를 반환하는 함수라는 점을 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'structuralTypingEdgeCases',
+      title: '구조적 타이핑의 함정: 초과 속성 검사',
+      ready: true,
+      summary: '구조만 맞으면 호환되는 구조적 타이핑의 원리와, 객체 리터럴을 직접 넘길 때만 발동하는 초과 속성 검사의 예외를 배워요.',
+      goals: ['구조적 타이핑 기본 원리 복습', '초과 속성 검사가 발동하는 조건', '변수를 거치면 검사가 느슨해지는 이유'],
+      blocks: [
+        {
+          h: '구조만 맞으면 통과되는 구조적 타이핑',
+          html: `<p>TypeScript는 이름이 아니라 <b>속성 구조</b>로 타입 호환을 판단해요. 필요한 속성을 다 갖추고 있다면, 그 이상 속성이 더 있어도 대입 자체는 허용돼요.</p>`,
+          code: {
+            label: 'structural_basic.ts',
+            lang: 'typescript',
+            src: `interface Point {
+  x: number;
+  y: number;
+}
+
+const p3d = { x: 1, y: 2, z: 3 };
+const p: Point = p3d; // 변수를 거치면 통과됨(z는 무시)
+
+console.log(p.x, p.y);`,
+            out: `1 2`
+          }
+        },
+        {
+          h: '객체 리터럴을 직접 넘기면 더 엄격해져요',
+          html: `<p>하지만 변수 없이 <b>객체 리터럴을 바로</b> 대입하면, TypeScript는 "필요 없는 속성이 실수로 들어간 건 아닌지" <b>초과 속성 검사</b>를 추가로 해요. 이때는 정의에 없는 속성이 있으면 오류가 나요.</p>`,
+          code: {
+            label: 'structural_excess.ts',
+            lang: 'typescript',
+            src: `const q: Point = { x: 1, y: 2, z: 3 };
+// 오류! Point에 없는 z 속성이 있음 (초과 속성 검사)`,
+          },
+          after: `<div class="note"><b>왜 이렇게 만들었을까요</b> — 오타(예: 원래 쓰려던 속성 이름을 잘못 씀)를 실수로 지나치기 쉬운 게 객체 리터럴 직접 대입이라서, TS가 이 경우에만 특별히 더 엄격하게 검사해요. 변수를 거치면 이미 다른 곳에서 쓰이고 있을 수 있어서 검사를 완화해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'TypeScript가 두 타입이 호환되는지 판단하는 기본 기준은?',
+          '타입의 이름이 아니라, 실제로 가진 속성들의 구조', ['타입을 선언한 파일 이름', '타입 이름이 똑같은지', '선언한 순서'],
+          'TypeScript는 구조적 타이핑을 쓰기 때문에, 이름과 상관없이 필요한 속성 구조만 맞으면 호환된다고 판단해요.',
+          '"구조적" 타이핑이라는 이름 자체가 기준을 알려줘요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>interface Point { x: number; y: number; } const q: Point = { x: 1, y: 2, z: 3 };</code>처럼 객체 리터럴을 바로 대입할 때, 정의에 없는 속성이 있으면 발동하는 특별한 검사를 (무엇) 검사라고 부르나요? (한글로)`,
+          prefix: '', suffix: ' 속성 검사', accept: ['초과'], placeholder: '단어',
+          why: '이 검사를 초과 속성 검사(excess property check)라고 불러요.',
+          hint: '정의보다 "초과"한 속성이 있는지 확인한다는 뜻이에요.'
+        }),
+        () => makeChoice(
+          '<code>const p3d = { x: 1, y: 2, z: 3 }; const p: Point = p3d;</code>처럼 변수를 거쳐서 대입하면 어떻게 되나요? (Point는 x, y만 정의)',
+          '정상적으로 통과된다 (변수를 거치면 초과 속성 검사가 발동하지 않으므로)',
+          ['객체 리터럴 직접 대입과 똑같이 오류가 난다', 'z 속성이 자동으로 제거된다', 'p3d의 타입이 Point로 강제 변환된다'],
+          '변수를 거쳐서 대입하면 초과 속성 검사가 발동하지 않고, 구조적 타이핑의 일반 규칙(필요한 속성만 있으면 통과)만 적용돼요.',
+          '초과 속성 검사는 "객체 리터럴을 직접 대입할 때만" 발동한다는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `초과 속성 검사가 "발동한다/발동하지 않는다" 중 무엇일까요, 변수에 담긴 객체를 대입할 때는?`,
+          prefix: '', suffix: '', accept: ['발동하지 않는다', '발동안한다', '발동하지않는다'], placeholder: '답',
+          why: '초과 속성 검사는 객체 리터럴을 직접 대입할 때만 발동하고, 변수를 거치면 발동하지 않아요.',
+          hint: '리터럴 직접 대입과 변수 경유의 차이를 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>interface Config { timeout: number; }</code>일 때, 객체 <code>{ timeout: 3000, retries: 3 }</code>을 먼저 변수 <code>raw</code>에 담은 뒤, 그 변수를 <code>Config</code> 타입 상수 <code>cfg</code>에 대입하는 코드를 작성하세요. (초과 속성 검사를 피하는 방식)',
+          starter: '',
+          rows: 2,
+          placeholder: 'const raw = { timeout: 3000, retries: 3 };\nconst cfg: Config = raw;',
+          accept: ['const raw = { timeout: 3000, retries: 3 };\nconst cfg: Config = raw;'],
+          why: '객체를 변수에 먼저 담아 대입하면 초과 속성 검사를 우회할 수 있어요.',
+          hint: 'const raw = { ... }; 로 먼저 만든 뒤, const cfg: Config = raw; 로 대입하세요.'
+        }),
+      ],
+      boss: () => {
+        const z = randInt(1, 20);
+        return {
+          type: 'blank',
+          q: `<code>interface Point { x: number; y: number; } const raw = { x: 5, y: 7, z: ${z} }; const p: Point = raw;</code>일 때, <code>p.x + p.y</code>의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: ['12'], placeholder: '숫자',
+          why: '변수를 거쳐 대입했으니 오류 없이 통과되고, p.x + p.y = 5 + 7 = 12예요.',
+          hint: 'z는 무시하고 x와 y만 더하면 돼요.'
+        };
+      }
+    },
+    {
+      id: 'awaitedUtilityType',
+      title: 'Awaited<T> 유틸리티 타입',
+      ready: true,
+      summary: 'Promise가 몇 겹으로 중첩되어 있어도, 최종적으로 await했을 때 얻게 될 값의 타입을 뽑아내는 Awaited<T>를 배워요.',
+      goals: ['Awaited<T>의 역할 이해하기', '중첩된 Promise에서도 동작하는 이유', 'async 함수 반환 타입 계산에 활용하기'],
+      blocks: [
+        {
+          h: 'Promise 안의 진짜 값 타입 뽑아내기',
+          html: `<p><code>Awaited&lt;T&gt;</code>는 <code>T</code>가 <code>Promise&lt;X&gt;</code>이면 <code>X</code>를, Promise가 아니면 <code>T</code> 그대로를 돌려주는 유틸리티 타입이에요. <code>await</code>를 실제로 했을 때 얻는 타입과 똑같아요.</p>`,
+          code: {
+            label: 'awaited_basic.ts',
+            lang: 'typescript',
+            src: `type A = Awaited<Promise<string>>; // string
+type B = Awaited<number>;          // number (Promise가 아니면 그대로)
+
+let a: A = "안녕";
+console.log(a);`,
+            out: `안녕`
+          }
+        },
+        {
+          h: '중첩된 Promise도 한 번에 풀어줘요',
+          html: `<p><code>await</code>를 여러 번 해야 하는 <code>Promise&lt;Promise&lt;T&gt;&gt;</code> 같은 중첩 구조도, <code>Awaited</code>는 안쪽 실제 값의 타입까지 한 번에 뽑아내 줘요.</p>`,
+          code: {
+            label: 'awaited_nested.ts',
+            lang: 'typescript',
+            src: `type Nested = Awaited<Promise<Promise<number>>>; // number
+
+async function fetchNested(): Promise<Promise<number>> {
+  return Promise.resolve(42);
+}
+
+async function run() {
+  const value: Nested = await fetchNested();
+  console.log(value);
+}
+
+run();`,
+            out: `42`
+          },
+          after: `<div class="note"><b>왜 유용할까요</b> — async 함수 여러 개를 조합하는 라이브러리 타입을 만들 때, "최종적으로 무슨 값을 받게 되는지"를 표현하려면 Awaited가 꼭 필요해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const kind = pick([
+            { t: 'Promise<string>', r: 'string' },
+            { t: 'Promise<boolean>', r: 'boolean' },
+            { t: 'number', r: 'number' },
+          ]);
+          return {
+            type: 'blank',
+            q: `<code>Awaited&lt;${kind.t}&gt;</code>의 결과 타입은?`,
+            prefix: '', suffix: '', accept: [kind.r], placeholder: '타입',
+            why: kind.t.startsWith('Promise') ? `Promise 안의 값 타입인 ${kind.r}을 뽑아내요.` : `Promise가 아니므로 그대로 ${kind.r}이에요.`,
+            hint: 'Promise<X> 형태이면 X만 남기고, 아니면 그대로예요.'
+          };
+        },
+        () => makeChoice(
+          'Awaited<T>가 하는 역할은?',
+          'T가 Promise면 그 안의 실제 값 타입을, Promise가 아니면 T 그대로를 돌려준다',
+          ['모든 타입을 Promise로 감싸준다', '함수의 실행 순서를 바꿔준다', 'async 함수를 동기 함수로 바꿔준다'],
+          'Awaited는 실제로 await했을 때 최종적으로 얻게 될 타입을 계산해줘요.',
+          '"await 했을 때 얻는 타입"이라는 표현을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>type Nested = Awaited&lt;Promise&lt;Promise&lt;number&gt;&gt;&gt;;</code>의 결과 타입은?`,
+          prefix: '', suffix: '', accept: ['number'], placeholder: '타입',
+          why: 'Awaited는 중첩된 Promise도 한 번에 풀어서 최종 값의 타입(number)까지 뽑아내요.',
+          hint: 'Promise가 몇 겹이든 상관없이 가장 안쪽 값의 타입을 찾으면 돼요.'
+        }),
+        () => makeChoice(
+          'Awaited<T>가 특히 필요한 상황은?',
+          'async 함수 여러 개를 조합하는 라이브러리에서, 최종적으로 어떤 값을 받게 되는지 타입으로 표현할 때',
+          ['동기 함수의 반환 타입을 표현할 때', '배열의 요소 타입을 추출할 때', '문자열을 숫자로 변환할 때'],
+          'Awaited는 Promise가 여러 겹 중첩돼도 최종적으로 await한 결과의 타입을 정확히 계산해줘요.',
+          'Promise, await와 관련된 상황을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Promise&lt;boolean&gt;</code>을 await했을 때 얻는 타입을 <code>Awaited</code>로 뽑아낸 타입 별칭 <code>Result</code>를 작성하세요.',
+          starter: '',
+          placeholder: 'type Result = Awaited<Promise<boolean>>;',
+          accept: ['type Result = Awaited<Promise<boolean>>;'],
+          why: 'Awaited<Promise<boolean>>는 boolean이 돼요.',
+          hint: 'type Result = Awaited<Promise<boolean>>; 를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const kind = pick([
+          { t: 'Promise<Promise<string>>', r: 'string' },
+          { t: 'Promise<number>', r: 'number' },
+          { t: 'boolean', r: 'boolean' },
+        ]);
+        return {
+          type: 'blank',
+          q: `<code>Awaited&lt;${kind.t}&gt;</code>의 결과 타입은?`,
+          prefix: '', suffix: '', accept: [kind.r], placeholder: '타입',
+          why: `최종적으로 await했을 때 얻는 값의 타입은 ${kind.r}이에요.`,
+          hint: 'Promise가 몇 겹이든 가장 안쪽 값의 타입을 찾으세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({

@@ -2517,6 +2517,2706 @@ println(session.username) // 오류! UninitializedPropertyAccessException`
           hint: 'lateinit 프로퍼티는 값을 대입하기 전까지는 "비어있는" 상태와 비슷해요.'
         };
       }
+    },
+    {
+      id: 'enumClass',
+      title: '열거형 클래스(enum class)',
+      ready: true,
+      summary: '정해진 값들 중 하나만 가질 수 있는 enum class로, 상태나 종류를 안전하게 표현하는 법을 배워요.',
+      goals: ['enum class로 정해진 값 표현하기', 'when과 함께 안전하게 분기하기', '프로퍼티와 메서드를 가진 enum'],
+      blocks: [
+        {
+          h: '정해진 값들 중 하나: enum class',
+          html: `<p><code>enum class</code>는 미리 정해둔 몇 가지 값(상수) 중 하나만 가질 수 있는 타입이에요. 요일, 방향, 상태처럼 "정해진 몇 가지 경우"를 표현할 때 딱 맞아요.</p>`,
+          code: {
+            label: 'enum_basic.kt',
+            lang: 'kotlin',
+            src: `enum class Direction {
+    NORTH, SOUTH, EAST, WEST
+}
+
+val dir = Direction.NORTH
+println(dir)`,
+            out: `NORTH`
+          }
+        },
+        {
+          h: 'when과 함께 안전하게 분기하기',
+          html: `<p>enum class를 <code>when</code>으로 분기할 때, 모든 경우를 다 처리하면 <code>else</code> 없이도 컴파일러가 통과시켜줘요. 나중에 enum 값이 추가되면 컴파일러가 빠진 경우를 알려줘요.</p>`,
+          code: {
+            label: 'enum_when.kt',
+            lang: 'kotlin',
+            src: `fun describe(dir: Direction): String = when (dir) {
+    Direction.NORTH -> "북쪽"
+    Direction.SOUTH -> "남쪽"
+    Direction.EAST -> "동쪽"
+    Direction.WEST -> "서쪽"
+}
+
+println(describe(Direction.EAST))`,
+            out: `동쪽`
+          }
+        },
+        {
+          h: '프로퍼티와 메서드를 가진 enum',
+          html: `<p>enum class도 일반 클래스처럼 생성자로 프로퍼티를 받거나, 메서드를 가질 수 있어요.</p>`,
+          code: {
+            label: 'enum_property.kt',
+            lang: 'kotlin',
+            src: `enum class Grade(val minScore: Int) {
+    A(90), B(80), C(70)
+}
+
+println(Grade.B.minScore)`,
+            out: `80`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const dirs = [{ v: 'NORTH', ko: '북쪽' }, { v: 'SOUTH', ko: '남쪽' }, { v: 'EAST', ko: '동쪽' }, { v: 'WEST', ko: '서쪽' }];
+          const dir = pick(dirs);
+          return {
+            type: 'blank',
+            q: `describe 함수는 각 Direction 값을 한글로 바꿔줘요. <code>describe(Direction.${dir.v})</code>의 결과는? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [dir.ko], placeholder: '값',
+            why: `Direction.${dir.v}는 "${dir.ko}"에 대응돼요.`,
+            hint: 'when으로 각 enum 값마다 대응하는 한글을 반환해요.'
+          };
+        },
+        () => makeChoice(
+          'enum class가 유용한 경우는?',
+          '요일, 방향처럼 정해진 몇 가지 값 중 하나만 가져야 할 때', ['아무 값이나 자유롭게 담아야 할 때', '값이 계속 바뀌어야 할 때', '숫자 계산을 빠르게 해야 할 때'],
+          'enum class는 "정해진 값들의 집합"을 안전하게 표현할 때 써요.',
+          '방향이나 요일처럼 "경우의 수"가 정해져 있는 상황을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `정해진 값들 중 하나만 가질 수 있는 타입을 선언하는 키워드 두 개를 순서대로 쓰세요.`,
+          prefix: '', suffix: ' Direction { NORTH, SOUTH, EAST, WEST }', accept: ['enum class'], placeholder: '키워드',
+          why: '<code>enum class</code>로 정해진 값들의 집합을 선언해요.',
+          hint: '"열거하다"라는 뜻의 enum과 class를 같이 써요.'
+        }),
+        () => makeChoice(
+          '<code>enum class Grade(val minScore: Int) { A(90), B(80), C(70) }</code>에서, <code>Grade.A.minScore</code>의 값은?',
+          '90', ['80', '70', '0'],
+          'A(90)이므로 minScore는 90이에요.',
+          '괄호 안의 숫자가 그 enum 값의 프로퍼티 값이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>PENDING</code>, <code>DONE</code>, <code>CANCELED</code> 세 가지 값을 가지는 <code>Status</code> enum class를 작성하세요.',
+          starter: '',
+          placeholder: 'enum class Status { PENDING, DONE, CANCELED }',
+          accept: ['enum class Status { PENDING, DONE, CANCELED }'],
+          why: 'enum class 이름 { 값1, 값2, 값3 } 형태로 정해진 값들을 선언해요.',
+          hint: 'enum class Status { PENDING, DONE, CANCELED }를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const grades = [{ v: 'A', s: 90 }, { v: 'B', s: 80 }, { v: 'C', s: 70 }];
+        const g = pick(grades);
+        return {
+          type: 'blank',
+          q: `<code>enum class Grade(val minScore: Int) { A(90), B(80), C(70) }</code>일 때, <code>Grade.${g.v}.minScore</code>의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(g.s)], placeholder: '숫자',
+          why: `Grade.${g.v}의 minScore는 ${g.s}예요.`,
+          hint: '괄호 안에 적힌 숫자가 각 enum 값의 minScore예요.'
+        };
+      }
+    },
+    {
+      id: 'destructuringDeclarations',
+      title: '구조 분해 선언',
+      ready: true,
+      summary: 'data class나 Map, 리스트의 값을 한 번에 여러 변수로 뽑아내는 구조 분해 선언을 배워요.',
+      goals: ['data class를 val (a, b) = obj로 분해하기', 'withIndex()로 인덱스와 값 함께 분해하기', 'Map을 반복문에서 분해하기'],
+      blocks: [
+        {
+          h: 'data class를 여러 변수로 한 번에 뽑기',
+          html: `<p>data class는 자동으로 <code>component1()</code>, <code>component2()</code> 같은 함수를 가지고 있어서, <code>val (a, b) = obj</code> 형태로 프로퍼티들을 한 번에 여러 변수로 뽑아낼 수 있어요.</p>`,
+          code: {
+            label: 'destructure_basic.kt',
+            lang: 'kotlin',
+            src: `data class Point(val x: Int, val y: Int)
+
+val p = Point(3, 4)
+val (x, y) = p
+println("$x, $y")`,
+            out: `3, 4`
+          }
+        },
+        {
+          h: '인덱스와 값을 함께: withIndex()',
+          html: `<p><code>list.withIndex()</code>는 각 값에 인덱스를 붙여주고, <code>for ((index, value) in ...)</code>로 인덱스와 값을 한 번에 구조 분해해서 쓸 수 있어요.</p>`,
+          code: {
+            label: 'destructure_withindex.kt',
+            lang: 'kotlin',
+            src: `val fruits = listOf("사과", "바나나", "귤")
+for ((index, value) in fruits.withIndex()) {
+    println("$index: $value")
+}`,
+            out: `0: 사과\n1: 바나나\n2: 귤`
+          }
+        },
+        {
+          h: 'Map도 반복문에서 바로 분해할 수 있어요',
+          html: `<p>Map을 반복할 때 <code>for ((key, value) in map)</code>으로 키와 값을 바로 구조 분해해서 쓸 수 있어요.</p>`,
+          code: {
+            label: 'destructure_map.kt',
+            lang: 'kotlin',
+            src: `val scores = mapOf("지수" to 90, "민준" to 85)
+for ((name, score) in scores) {
+    println("$name: $score")
+}`,
+            out: `지수: 90\n민준: 85`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const x = randInt(1, 20), y = randInt(1, 20);
+          return {
+            type: 'blank',
+            q: `<code>data class Point(val x: Int, val y: Int); val p = Point(${x}, ${y}); val (a, b) = p</code>일 때, <code>a + b</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(x + y)], placeholder: '숫자',
+            why: `구조 분해로 a에는 x(${x}), b에는 y(${y})가 들어가서, a + b는 ${x + y}예요.`,
+            hint: '구조 분해는 순서대로 프로퍼티를 각 변수에 담아줘요.'
+          };
+        },
+        () => makeChoice(
+          'data class가 자동으로 구조 분해를 지원하는 이유는?',
+          'component1(), component2() 같은 함수를 컴파일러가 자동으로 만들어줘서', ['data class는 배열이라서', '구조 분해는 모든 클래스가 기본으로 지원해서', 'val로 선언했기 때문에'],
+          'data class는 프로퍼티 순서대로 component1(), component2(), ... 함수를 자동으로 생성해줘서 구조 분해가 가능해요.',
+          '괄호 안 변수들은 실제로 componentN() 함수 호출로 채워져요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `리스트의 각 값에 인덱스를 붙여서 (index, value) 쌍으로 반복하고 싶을 때 쓰는 함수를 쓰세요.`,
+          prefix: 'for ((index, value) in fruits.', suffix: '()) { ... }', accept: ['withIndex'], placeholder: '함수 이름',
+          why: '<code>withIndex()</code>는 각 요소에 인덱스를 붙여서, 구조 분해로 함께 꺼낼 수 있게 해줘요.',
+          hint: '"인덱스와 함께(with index)"라는 뜻 그대로예요.'
+        }),
+        () => makeChoice(
+          '<code>for ((name, score) in scores)</code>에서 scores가 Map&lt;String, Int&gt;일 때, name과 score는 각각 무엇에 대응될까요?',
+          'name은 키(key), score는 값(value)', ['name은 값, score는 키', '둘 다 키', '둘 다 값'],
+          'Map을 구조 분해할 때는 (key, value) 순서로 분해돼요.',
+          'Map의 각 항목은 키와 값 한 쌍으로 이루어져 있어요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>data class Point(val x: Int, val y: Int)</code>의 인스턴스 <code>p = Point(1, 2)</code>를 구조 분해해서 <code>x</code>, <code>y</code> 두 변수에 담는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'val (x, y) = p',
+          accept: ['val (x, y) = p'],
+          why: 'val (변수1, 변수2) = 객체 형태로 구조 분해 선언을 해요.',
+          hint: 'val (x, y) = p를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const fruits = shuffle(['사과', '바나나', '귤', '포도']).slice(0, randInt(2, 4));
+        const idx = randInt(0, fruits.length - 1);
+        const listText = fruits.map(f => `"${f}"`).join(', ');
+        return {
+          type: 'blank',
+          q: `<code>val fruits = listOf(${listText}); for ((index, value) in fruits.withIndex()) { println("$index: $value") }</code>를 실행했을 때, "${idx}: "로 시작하는 줄에 출력되는 값은? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [fruits[idx]], placeholder: '값',
+          why: `인덱스 ${idx}에 해당하는 값은 "${fruits[idx]}"예요.`,
+          hint: 'withIndex()는 0번부터 순서대로 인덱스를 붙여줘요.'
+        };
+      }
+    },
+    {
+      id: 'typealiasKotlin',
+      title: '타입 별칭(typealias)',
+      ready: true,
+      summary: '복잡하거나 긴 타입에 짧고 의미있는 이름을 붙여주는 typealias를 배워요.',
+      goals: ['typealias로 타입에 별명 붙이기', '함수 타입에 typealias 쓰기', '코드 가독성이 좋아지는 이유'],
+      blocks: [
+        {
+          h: '긴 타입에 짧은 이름 붙이기: typealias',
+          html: `<p><code>typealias 별명 = 원래타입</code>으로, 자주 쓰는 타입에 더 읽기 쉬운 이름을 붙일 수 있어요. 실제로는 완전히 같은 타입이에요.</p>`,
+          code: {
+            label: 'typealias_basic.kt',
+            lang: 'kotlin',
+            src: `typealias Score = Int
+
+val myScore: Score = 90
+println(myScore)`,
+            out: `90`
+          }
+        },
+        {
+          h: '복잡한 함수 타입에 특히 유용해요',
+          html: `<p>함수를 매개변수로 받는 함수 타입(<code>(Int, Int) -> Int</code>)처럼 복잡한 타입에 typealias를 붙이면 코드가 훨씬 읽기 쉬워져요.</p>`,
+          code: {
+            label: 'typealias_function.kt',
+            lang: 'kotlin',
+            src: `typealias Calculator = (Int, Int) -> Int
+
+val add: Calculator = { a, b -> a + b }
+println(add(3, 4))`,
+            out: `7`
+          },
+          after: `<div class="note"><b>참고</b> — typealias는 새로운 타입을 만드는 게 아니라, 기존 타입에 이름만 하나 더 붙여주는 거예요. Score와 Int는 완전히 같은 타입으로 취급돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const val_ = randInt(1, 100);
+          return {
+            type: 'blank',
+            q: `<code>typealias Score = Int; val myScore: Score = ${val_}</code>일 때, <code>myScore</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(val_)], placeholder: '숫자',
+            why: `Score는 Int의 별명일 뿐이라, myScore는 그대로 ${val_}이에요.`,
+            hint: 'typealias는 실제 값에 영향을 주지 않고, 이름만 하나 더 붙여줘요.'
+          };
+        },
+        () => makeChoice(
+          'typealias를 쓰는 이유로 알맞은 것은?',
+          '복잡하거나 긴 타입에 읽기 쉬운 이름을 붙여서 코드 가독성을 높이려고', ['새로운 타입을 만들어 기존 타입과 다르게 동작하게 하려고', '실행 속도를 높이려고', '타입 검사를 아예 건너뛰려고'],
+          'typealias는 실제로는 같은 타입에 읽기 쉬운 이름을 하나 더 붙여주는 것뿐이에요.',
+          '"별명"이라는 이름처럼, 원래 타입은 그대로예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `타입에 별명을 붙일 때 맨 앞에 쓰는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' Score = Int', accept: ['typealias'], placeholder: '키워드',
+          why: '<code>typealias 별명 = 원래타입</code>으로 타입 별칭을 만들어요.',
+          hint: '"타입"과 "별명(alias)"을 합친 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>typealias Calculator = (Int, Int) -> Int</code>일 때, Calculator 타입에 대한 설명으로 옳은 것은?',
+          '(Int, Int) -> Int와 완전히 같은 함수 타입이다', ['Calculator라는 새로운 클래스가 만들어진다', 'Int 두 개를 담는 배열 타입이다', '함수를 실행할 수 없는 타입이다'],
+          'typealias는 이름만 다를 뿐, (Int, Int) -> Int와 완전히 같은 타입이에요.',
+          '별명일 뿐 실제 타입은 바뀌지 않는다는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Map&lt;String, Int&gt;</code>에 <code>ScoreBoard</code>라는 typealias를 붙이는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'typealias ScoreBoard = Map<String, Int>',
+          accept: ['typealias ScoreBoard = Map<String, Int>'],
+          why: 'typealias 별명 = 원래타입 형태로 Map<String, Int>에 이름을 붙여요.',
+          hint: 'typealias ScoreBoard = Map<String, Int>를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(1, 20), b = randInt(1, 20);
+        const isAdd = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `<code>typealias Calculator = (Int, Int) -> Int; val op: Calculator = { a, b -> a ${isAdd ? '+' : '*'} b }</code>일 때, <code>op(${a}, ${b})</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(isAdd ? a + b : a * b)], placeholder: '숫자',
+          why: isAdd ? `a + b이므로 ${a} + ${b} = ${a + b}예요.` : `a * b이므로 ${a} * ${b} = ${a * b}예요.`,
+          hint: 'Calculator 타입은 그냥 (Int, Int) -> Int 함수 타입과 완전히 같아요.'
+        };
+      }
+    },
+    {
+      id: 'varargsSpread',
+      title: '가변 인자(vararg)와 스프레드 연산자',
+      ready: true,
+      summary: '개수가 정해지지 않은 인자를 받는 vararg와, 배열을 인자들로 펼쳐 넘기는 스프레드 연산자(*)를 배워요.',
+      goals: ['vararg로 개수 제한 없이 인자 받기', '스프레드 연산자(*)로 배열 펼쳐 넘기기', '가변 인자는 함수 안에서 배열처럼 쓰인다는 것'],
+      blocks: [
+        {
+          h: '개수 제한 없이 인자 받기: vararg',
+          html: `<p>매개변수 앞에 <code>vararg</code>를 붙이면, 그 자리에 원하는 개수만큼 값을 콤마로 나열해서 넘길 수 있어요. 함수 안에서는 그 값들이 배열처럼 다뤄져요.</p>`,
+          code: {
+            label: 'vararg_basic.kt',
+            lang: 'kotlin',
+            src: `fun sumAll(vararg numbers: Int): Int {
+    var total = 0
+    for (n in numbers) {
+        total += n
+    }
+    return total
+}
+
+println(sumAll(1, 2, 3, 4))`,
+            out: `10`
+          }
+        },
+        {
+          h: '배열을 펼쳐서 넘기기: 스프레드 연산자(*)',
+          html: `<p>이미 배열로 값을 가지고 있다면, 배열 앞에 <code>*</code>를 붙여서 그 배열의 각 값을 개별 인자로 "펼쳐서" 넘길 수 있어요.</p>`,
+          code: {
+            label: 'spread_operator.kt',
+            lang: 'kotlin',
+            src: `val nums = intArrayOf(5, 10, 15)
+println(sumAll(*nums))`,
+            out: `30`
+          },
+          after: `<div class="note"><b>주의</b> — *를 안 붙이고 그냥 sumAll(nums)라고 쓰면, 배열 하나를 통째로 넘기려는 것으로 오해되어 컴파일 오류가 나요. 꼭 *로 펼쳐줘야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const nums = Array.from({ length: randInt(2, 5) }, () => randInt(1, 20));
+          return {
+            type: 'blank',
+            q: `<code>fun sumAll(vararg numbers: Int): Int { var total = 0; for (n in numbers) { total += n }; return total }</code>일 때, <code>sumAll(${nums.join(', ')})</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(nums.reduce((a, b) => a + b, 0))], placeholder: '숫자',
+            why: `넘긴 모든 값을 더해서 ${nums.reduce((a, b) => a + b, 0)}이 나와요.`,
+            hint: 'vararg로 받은 값들은 배열처럼 순서대로 순회할 수 있어요.'
+          };
+        },
+        () => makeChoice(
+          'vararg 매개변수를 함수 안에서 다룰 때 가장 알맞은 표현은?',
+          '배열처럼 for문으로 순회하거나 인덱스로 접근할 수 있다', ['하나의 값으로만 취급된다', '호출할 때마다 무조건 0개여야 한다', 'vararg는 문자열만 받을 수 있다'],
+          'vararg로 받은 값들은 함수 안에서 배열처럼 다뤄져요.',
+          'for (n in numbers)처럼 배열을 순회하듯 쓸 수 있어요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `이미 있는 배열 nums를 vararg 함수에 개별 인자들로 펼쳐서 넘길 때, 배열 이름 앞에 붙이는 기호를 쓰세요.`,
+          prefix: 'sumAll(', suffix: 'nums)', accept: ['*'], placeholder: '기호',
+          why: '<code>*배열</code>은 그 배열의 값들을 각각의 인자로 펼쳐서 넘겨줘요.',
+          hint: '"스프레드(펼치다)"를 나타내는 별표 기호예요.'
+        }),
+        () => makeChoice(
+          '<code>sumAll(nums)</code>처럼 *를 붙이지 않고 배열을 그냥 넘기면?',
+          '배열 하나를 통째로 넘기려는 것으로 취급되어 컴파일 오류가 난다', ['자동으로 펼쳐져서 정상 동작한다', '첫 번째 값만 넘겨진다', '런타임에만 오류가 난다'],
+          'vararg 매개변수에 배열을 그냥 넘기면 타입이 안 맞아서 컴파일 오류가 나요. *로 펼쳐줘야 해요.',
+          '*가 없으면 "배열 하나"와 "여러 개의 값들"을 구분할 수 없어요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '여러 개의 문자열을 받아 콤마로 이어붙여 반환하는 함수 <code>joinAll(vararg words: String): String</code>을 작성하세요. (힌트: <code>words.joinToString(", ")</code> 활용)',
+          starter: '',
+          placeholder: 'fun joinAll(vararg words: String): String { return words.joinToString(", ") }',
+          accept: ['fun joinAll(vararg words: String): String { return words.joinToString(", ") }'],
+          why: 'vararg로 여러 문자열을 받아, joinToString으로 콤마로 이어붙여 반환해요.',
+          hint: 'fun joinAll(vararg words: String): String { return words.joinToString(", ") }를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const nums = Array.from({ length: randInt(2, 4) }, () => randInt(1, 15));
+        return {
+          type: 'blank',
+          q: `<code>val nums = intArrayOf(${nums.join(', ')}); println(sumAll(*nums))</code>를 실행하면 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(nums.reduce((a, b) => a + b, 0))], placeholder: '숫자',
+          why: `*nums는 배열의 값들을 펼쳐서 넘기고, sumAll은 그 합인 ${nums.reduce((a, b) => a + b, 0)}을 반환해요.`,
+          hint: '*로 배열을 펼쳐 넘기면 sumAll(1, 2, 3, ...)처럼 개별 인자를 넘긴 것과 같아요.'
+        };
+      }
+    },
+    {
+      id: 'sequencesLazy',
+      title: '시퀀스(Sequence)와 지연 연산',
+      ready: true,
+      summary: '리스트 연산을 값이 필요할 때까지 미루는 시퀀스(Sequence)로, 큰 데이터를 더 효율적으로 처리하는 법을 배워요.',
+      goals: ['asSequence()로 시퀀스 만들기', '지연 연산(lazy evaluation)의 의미', '시퀀스가 유용한 상황'],
+      blocks: [
+        {
+          h: '리스트는 즉시, 시퀀스는 나중에',
+          html: `<p>일반 리스트에 <code>map</code>, <code>filter</code>를 연달아 쓰면 각 단계마다 <b>새 리스트를 통째로 만들어요</b>. <code>asSequence()</code>로 시퀀스를 만들면, 각 단계가 값 하나하나에 대해 필요할 때만(지연) 실행돼요.</p>`,
+          code: {
+            label: 'sequence_basic.kt',
+            lang: 'kotlin',
+            src: `val result = listOf(1, 2, 3, 4, 5)
+    .asSequence()
+    .map { it * 2 }
+    .filter { it > 4 }
+    .toList()
+
+println(result)`,
+            out: `[6, 8, 10]`
+          }
+        },
+        {
+          h: '왜 지연 연산이 효율적일까요',
+          html: `<p>리스트로 연산하면 map 결과 리스트 전체, filter 결과 리스트 전체가 각각 메모리에 만들어져요. 시퀀스는 값 하나가 map → filter를 거쳐 바로 다음 단계로 넘어가서, <b>중간 리스트를 만들지 않아요</b>. 데이터가 아주 많을 때 특히 유리해요.</p>`,
+          after: `<div class="note"><b>정리</b> — toList()나 first() 같은 "결과를 실제로 꺼내는" 연산을 호출해야 그제서야 시퀀스의 계산이 실제로 진행돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const nums = Array.from({ length: 5 }, () => randInt(1, 10));
+          const threshold = randInt(4, 12);
+          const result = nums.map(n => n * 2).filter(n => n > threshold);
+          return {
+            type: 'blank',
+            q: `<code>listOf(${nums.join(', ')}).asSequence().map { it * 2 }.filter { it > ${threshold} }.toList()</code>의 결과는? (배열 형태로, 예: [1, 2])`,
+            prefix: '', suffix: '', accept: [`[${result.join(', ')}]`], placeholder: '[값, 값]',
+            why: `각 값을 2배로 만든 뒤 ${threshold}보다 큰 값만 남기면 [${result.join(', ')}]예요.`,
+            hint: '먼저 모든 값을 2배로 만든 목록을 떠올린 뒤, 그중 조건을 만족하는 것만 골라보세요.'
+          };
+        },
+        () => makeChoice(
+          '리스트와 시퀀스의 차이로 알맞은 것은?',
+          '리스트는 각 연산마다 즉시 새 리스트를 만들고, 시퀀스는 값이 필요할 때까지 연산을 미룬다', ['시퀀스는 항상 리스트보다 느리다', '리스트는 map을 쓸 수 없다', '시퀀스는 filter를 지원하지 않는다'],
+          '시퀀스는 map, filter 같은 연산을 값 하나하나에 대해 지연시켜 처리해서, 중간 리스트를 만들지 않아요.',
+          '"즉시"와 "지연"의 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `리스트를 지연 연산되는 시퀀스로 바꿀 때 쓰는 함수를 쓰세요.`,
+          prefix: 'listOf(1, 2, 3).', suffix: '().map { it * 2 }', accept: ['asSequence'], placeholder: '함수 이름',
+          why: '<code>asSequence()</code>는 리스트를 시퀀스로 바꿔서 연산을 지연시켜요.',
+          hint: '"~로서의 시퀀스"라는 뜻 그대로예요.'
+        }),
+        () => makeChoice(
+          '시퀀스가 특히 유리한 상황은?',
+          '데이터 양이 아주 많아서, 중간 리스트를 만드는 비용을 줄이고 싶을 때', ['데이터가 3개 이하로 아주 적을 때', '문자열을 다룰 때만', '정렬이 필요 없을 때만'],
+          '데이터가 많을수록 중간 리스트를 만들지 않는 시퀀스의 이점이 커져요.',
+          '"중간 리스트를 안 만든다"는 이점이 언제 가장 크게 느껴질지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>listOf(1, 2, 3, 4, 5)</code>를 시퀀스로 바꾼 뒤, 각 값을 제곱하고 10보다 큰 값만 남겨서 리스트로 만드는 코드를 작성하세요. (결과를 <code>result</code>에 담으세요)',
+          starter: '',
+          rows: 4,
+          placeholder: 'val result = listOf(1, 2, 3, 4, 5)\n    .asSequence()\n    .map { it * it }\n    .filter { it > 10 }\n    .toList()',
+          accept: ['val result = listOf(1, 2, 3, 4, 5)\n    .asSequence()\n    .map { it * it }\n    .filter { it > 10 }\n    .toList()'],
+          why: 'asSequence()로 시퀀스로 바꾼 뒤 map, filter, toList()를 이어 붙여요.',
+          hint: 'asSequence() 뒤에 map { it * it }, filter { it > 10 }, toList()를 순서대로 붙이세요.'
+        }),
+      ],
+      boss: () => {
+        const nums = Array.from({ length: 5 }, () => randInt(1, 8));
+        const result = nums.map(n => n * n).filter(n => n > 10);
+        return {
+          type: 'blank',
+          q: `<code>listOf(${nums.join(', ')}).asSequence().map { it * it }.filter { it > 10 }.toList()</code>의 결과는? (배열 형태로, 예: [1, 2])`,
+          prefix: '', suffix: '', accept: [`[${result.join(', ')}]`], placeholder: '[값, 값]',
+          why: `각 값을 제곱한 뒤 10보다 큰 값만 남기면 [${result.join(', ')}]예요.`,
+          hint: '먼저 제곱한 값들을 떠올린 뒤, 10보다 큰 것만 남겨보세요.'
+        };
+      }
+    },
+    {
+      id: 'coroutineFlow',
+      title: 'Flow로 여러 값을 순서대로 방출하기',
+      ready: true,
+      summary: '코루틴에서 여러 개의 값을 시간차를 두고 순서대로 만들어내는 Flow의 기본 개념을 배워요.',
+      goals: ['flow { emit(...) }로 값 여러 개 만들기', 'collect로 값 받기', 'Flow와 리스트의 차이'],
+      blocks: [
+        {
+          h: '값을 하나씩 순서대로 만들어내기: flow',
+          html: `<p><code>flow { }</code> 블록 안에서 <code>emit(값)</code>을 호출하면, 그 값을 하나씩 "내보낼" 수 있어요. Flow는 리스트처럼 값을 모아두는 게 아니라, <b>값이 만들어지는 대로 순서대로</b> 전달해요.</p>`,
+          code: {
+            label: 'flow_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.*
+
+fun numbersFlow(): Flow<Int> = flow {
+    emit(1)
+    emit(2)
+    emit(3)
+}
+
+fun main() = runBlocking {
+    numbersFlow().collect { value ->
+        println(value)
+    }
+}`,
+            out: `1\n2\n3`
+          }
+        },
+        {
+          h: '값을 받아 처리하기: collect',
+          html: `<p>Flow는 만들어두기만 해서는 아무 일도 안 일어나요. <code>collect { }</code>를 호출해야 실제로 값들이 순서대로 만들어지고 전달돼요.</p>`
+        },
+        {
+          h: 'Flow와 리스트의 차이',
+          html: `<p>리스트는 이미 완성된 값들의 모음이지만, Flow는 값이 <b>시간에 따라 하나씩 생성되는</b> 흐름이에요. 서버에서 실시간으로 오는 데이터나, 시간차를 두고 발생하는 이벤트를 다룰 때 자주 써요.</p>`,
+          after: `<div class="note"><b>비유</b> — 리스트가 "미리 포장된 상자"라면, Flow는 "컨베이어 벨트 위로 하나씩 흘러오는 물건"에 가까워요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const vals = Array.from({ length: randInt(2, 4) }, () => randInt(1, 20));
+          const emitCalls = vals.map(v => `emit(${v})`).join('; ');
+          return {
+            type: 'blank',
+            q: `<code>fun numbersFlow(): Flow&lt;Int&gt; = flow { ${emitCalls} }</code>이고 <code>numbersFlow().collect { value -> println(value) }</code>를 실행할 때, 첫 번째로 출력되는 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(vals[0])], placeholder: '숫자',
+            why: `collect는 emit된 순서 그대로 값을 받아서 출력하므로, 첫 번째는 ${vals[0]}이에요.`,
+            hint: 'Flow는 emit한 순서 그대로 값을 전달해요.'
+          };
+        },
+        () => makeChoice(
+          'Flow에서 값을 실제로 받아서 처리할 때 쓰는 함수는?',
+          '<code>collect</code>', ['<code>emit</code>', '<code>launch</code>', '<code>delay</code>'],
+          '<code>collect { value -> ... }</code>로 Flow가 내보내는 값을 순서대로 받아 처리해요.',
+          '"모으다, 거둬들이다"라는 뜻의 영어 단어예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `flow { } 블록 안에서 값을 하나 내보낼 때 쓰는 함수를 쓰세요.`,
+          prefix: 'flow { ', suffix: '(1) }', accept: ['emit'], placeholder: '함수 이름',
+          why: '<code>emit(값)</code>은 Flow 밖으로 값을 하나 내보내요.',
+          hint: '"내보내다, 방출하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'Flow와 리스트(List)의 가장 큰 차이는?',
+          '리스트는 이미 완성된 값들의 모음이고, Flow는 값이 시간에 따라 하나씩 만들어지는 흐름이다', ['Flow는 값을 하나도 저장할 수 없다', '리스트는 코루틴 안에서만 쓸 수 있다', '둘은 완전히 같은 개념이다'],
+          'Flow는 "지금 이 순간 하나씩 만들어지는" 값의 흐름이라, 이미 완성된 리스트와는 다른 개념이에요.',
+          '"컨베이어 벨트"와 "이미 포장된 상자"의 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '1, 2, 3을 순서대로 emit하는 <code>Flow&lt;Int&gt;</code>를 반환하는 함수 <code>numbersFlow(): Flow&lt;Int&gt;</code>를 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'fun numbersFlow(): Flow<Int> = flow {\n    emit(1)\n    emit(2)\n    emit(3)\n}',
+          accept: ['fun numbersFlow(): Flow<Int> = flow {\n    emit(1)\n    emit(2)\n    emit(3)\n}'],
+          why: 'flow { } 블록 안에서 emit을 순서대로 호출해서 값을 하나씩 내보내요.',
+          hint: 'fun numbersFlow(): Flow<Int> = flow { emit(1); emit(2); emit(3) } 형태를 여러 줄로 쓰면 돼요.'
+        }),
+      ],
+      boss: () => {
+        const vals = Array.from({ length: randInt(3, 5) }, () => randInt(1, 30));
+        return {
+          type: 'blank',
+          q: `numbersFlow()가 순서대로 ${vals.join(', ')}를 emit하고, <code>numbersFlow().collect { value -> println(value) }</code>를 실행할 때, 마지막으로 출력되는 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(vals[vals.length - 1])], placeholder: '숫자',
+          why: `collect는 emit된 순서 그대로 출력하므로, 마지막 값은 ${vals[vals.length - 1]}이에요.`,
+          hint: 'Flow는 emit한 순서를 그대로 유지해서 전달해요.'
+        };
+      }
+    },
+    {
+      id: 'objectExpressions',
+      title: '오브젝트 표현식(익명 객체)',
+      ready: true,
+      summary: '이름 없이 그 자리에서 바로 인터페이스나 클래스를 구현하는 오브젝트 표현식(object : Interface { ... })을 배워요.',
+      goals: ['object : 인터페이스 { ... }로 익명 구현 만들기', '한 번만 쓰고 버릴 구현에 유용한 이유', 'companion object(선언)와의 차이'],
+      blocks: [
+        {
+          h: '이름 없이 바로 구현하기: object 표현식',
+          html: `<p>인터페이스를 구현하는 클래스를 따로 이름 붙여 만들 필요 없이, <code>object : 인터페이스 { ... }</code>로 그 자리에서 바로 "이름 없는" 구현체를 만들 수 있어요.</p>`,
+          code: {
+            label: 'object_expression_basic.kt',
+            lang: 'kotlin',
+            src: `interface ClickListener {
+    fun onClick(): String
+}
+
+val listener = object : ClickListener {
+    override fun onClick(): String = "클릭됨"
+}
+
+println(listener.onClick())`,
+            out: `클릭됨`
+          }
+        },
+        {
+          h: '한 번만 쓰고 버릴 구현에 유용해요',
+          html: `<p>그 함수 하나에서만 딱 한 번 쓰는 간단한 구현이라면, 따로 클래스 이름을 지어 파일에 선언할 필요 없이 오브젝트 표현식으로 바로 그 자리에서 만들면 코드가 더 간결해져요.</p>`
+        },
+        {
+          h: 'companion object(선언)와는 다른 개념이에요',
+          html: `<p>이전에 배운 <code>companion object</code>는 클래스 안에 "이름이 있는 단 하나의" 동반 객체를 선언하는 거였다면, 오브젝트 표현식은 필요한 곳 어디서든 인터페이스를 즉석에서 구현하는 "이름 없는" 객체를 만드는 거예요.</p>`,
+          after: `<div class="note"><b>정리</b> — object 선언(companion object 등)은 "미리 정해둔 단 하나의 인스턴스"를, object 표현식은 "그때그때 필요한 곳에서 즉석으로 만드는 구현체"를 뜻해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const msg = pick(['클릭됨', '눌림', '선택됨']);
+          return {
+            type: 'blank',
+            q: `<code>val listener = object : ClickListener { override fun onClick(): String = "${msg}" }</code>일 때, <code>listener.onClick()</code>의 결과는? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [msg], placeholder: '값',
+            why: `오브젝트 표현식이 구현한 onClick()이 "${msg}"를 반환해요.`,
+            hint: '오브젝트 표현식도 인터페이스를 구현한 값처럼 그대로 호출할 수 있어요.'
+          };
+        },
+        () => makeChoice(
+          '오브젝트 표현식(object : 인터페이스 { ... })을 쓰는 이유는?',
+          '한 번만 쓰는 간단한 구현체를 따로 클래스 이름을 짓지 않고 그 자리에서 바로 만들 수 있어서', ['companion object를 대체하기 위해서 항상 써야 해서', 'object 표현식은 인터페이스 없이는 절대 못 만들어서', '실행 속도가 항상 빨라져서'],
+          '오브젝트 표현식은 한 번만 쓸 간단한 구현을 위해 따로 클래스를 선언하지 않아도 되게 해줘요.',
+          '이름을 지을 필요가 없다는 점이 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `인터페이스를 이름 없이 그 자리에서 바로 구현할 때 쓰는 키워드를 쓰세요.`,
+          prefix: 'val listener = ', suffix: ' : ClickListener { override fun onClick(): String = "클릭됨" }', accept: ['object'], placeholder: '키워드',
+          why: '<code>object : 인터페이스 { ... }</code>로 이름 없는 구현체를 만들어요.',
+          hint: 'companion object에서도 봤던 그 키워드예요.'
+        }),
+        () => makeChoice(
+          'object 표현식과 companion object의 차이는?',
+          '표현식은 필요한 곳에서 즉석으로 만드는 이름 없는 구현체, companion object는 클래스에 미리 정해둔 이름있는 동반 객체', ['둘은 완전히 같은 것이다', 'object 표현식은 인터페이스를 구현할 수 없다', 'companion object는 여러 개 만들 수 있다'],
+          'object 표현식은 즉석 구현체, companion object는 클래스마다 미리 정해둔 단 하나의 동반 객체예요.',
+          '"즉석에서"와 "미리 정해둔"의 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>interface Greeter { fun greet(): String }</code>를 오브젝트 표현식으로 즉석에서 구현해서, <code>greet()</code>가 <code>"안녕하세요"</code>를 반환하는 <code>val g</code>를 만드세요.',
+          starter: '',
+          placeholder: 'val g = object : Greeter { override fun greet(): String = "안녕하세요" }',
+          accept: ['val g = object : Greeter { override fun greet(): String = "안녕하세요" }'],
+          why: 'object : 인터페이스 { override fun ... } 형태로 즉석 구현체를 만들어요.',
+          hint: 'val g = object : Greeter { override fun greet(): String = "안녕하세요" }를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const msg = pick(['안녕하세요', '반갑습니다', '환영합니다']);
+        return {
+          type: 'blank',
+          q: `<code>interface Greeter { fun greet(): String }; val g = object : Greeter { override fun greet(): String = "${msg}" }</code>일 때, <code>g.greet()</code>의 결과는? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [msg], placeholder: '값',
+          why: `g는 Greeter를 즉석에서 구현한 객체라서, greet()는 "${msg}"를 반환해요.`,
+          hint: '오브젝트 표현식으로 만든 객체도 인터페이스에 정의된 메서드를 그대로 호출할 수 있어요.'
+        };
+      }
+    },
+    {
+      id: 'comparableSorting',
+      title: 'Comparable과 커스텀 정렬',
+      ready: true,
+      summary: '내가 만든 클래스를 정렬 가능하게 만드는 Comparable 인터페이스와, compareBy로 원하는 기준을 골라 정렬하는 법을 배워요.',
+      goals: ['Comparable 구현으로 기본 정렬 기준 정하기', 'sortedWith와 compareBy로 원하는 기준 정렬하기', '오름차순/내림차순 뒤집기'],
+      blocks: [
+        {
+          h: '내 클래스도 정렬 가능하게: Comparable',
+          html: `<p><code>Comparable&lt;T&gt;</code>를 구현하고 <code>compareTo</code>를 정의하면, 그 클래스의 리스트를 <code>sorted()</code>로 바로 정렬할 수 있어요.</p>`,
+          code: {
+            label: 'comparable_basic.kt',
+            lang: 'kotlin',
+            src: `data class Player(val name: String, val score: Int) : Comparable<Player> {
+    override fun compareTo(other: Player): Int = score - other.score
+}
+
+val players = listOf(Player("민준", 80), Player("지수", 95))
+println(players.sorted().map { it.name })`,
+            out: `[민준, 지수]`
+          }
+        },
+        {
+          h: '다른 기준으로 정렬하기: sortedWith와 compareBy',
+          html: `<p>매번 Comparable을 구현할 필요 없이, <code>sortedWith(compareBy { 기준 })</code>로 그때그때 원하는 기준으로 정렬할 수 있어요.</p>`,
+          code: {
+            label: 'sortedwith_compareby.kt',
+            lang: 'kotlin',
+            src: `val players = listOf(Player("민준", 80), Player("지수", 95), Player("서연", 80))
+val byScoreThenName = players.sortedWith(compareBy({ it.score }, { it.name }))
+println(byScoreThenName.map { it.name })`,
+            out: `[민준, 서연, 지수]`
+          }
+        },
+        {
+          h: '내림차순으로 뒤집기',
+          html: `<p><code>sortedByDescending { 기준 }</code>이나 <code>compareByDescending { 기준 }</code>으로 큰 값부터 순서대로 정렬할 수 있어요.</p>`,
+          code: {
+            label: 'sorted_descending.kt',
+            lang: 'kotlin',
+            src: `val players2 = listOf(Player("민준", 80), Player("지수", 95))
+println(players2.sortedByDescending { it.score }.map { it.name })`,
+            out: `[지수, 민준]`
+          }
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const names = ['민준', '지수', '서연', '하늘'];
+          const players = shuffle(names).slice(0, 3).map(n => ({ name: n, score: randInt(60, 100) }));
+          const sorted = [...players].sort((a, b) => a.score - b.score);
+          const playerText = players.map(p => `${p.name}(${p.score})`).join(', ');
+          return {
+            type: 'blank',
+            q: `Player는 score 기준 compareTo를 구현했어요. 점수가 각각 ${playerText}인 선수들을 <code>sorted()</code>로 정렬해서 이름만 뽑으면? (배열 형태로, 예: [이름, 이름])`,
+            prefix: '', suffix: '', accept: [`[${sorted.map(p => p.name).join(', ')}]`], placeholder: '[이름, 이름]',
+            why: `score가 작은 순서대로 정렬되어 [${sorted.map(p => p.name).join(', ')}]이 돼요.`,
+            hint: 'compareTo가 score - other.score라서, 점수가 낮은 사람이 앞으로 와요.'
+          };
+        },
+        () => makeChoice(
+          'Comparable<T>를 구현하고 compareTo를 정의하면 좋은 점은?',
+          '그 클래스의 리스트를 sorted()로 바로 정렬할 수 있다', ['클래스를 상속할 수 없게 된다', '객체를 더 이상 만들 수 없다', '실행 속도가 항상 빨라진다'],
+          'compareTo를 정의하면 그 클래스가 "비교 가능"해져서, sorted()로 바로 정렬할 수 있어요.',
+          '"비교할 수 있다(Comparable)"는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `Comparable<Player>를 구현할 때 재정의해야 하는 메서드 이름을 쓰세요.`,
+          prefix: 'override fun ', suffix: '(other: Player): Int = score - other.score', accept: ['compareTo'], placeholder: '메서드 이름',
+          why: '<code>compareTo</code>는 두 값을 비교해서, 음수/0/양수로 순서를 알려주는 메서드예요.',
+          hint: '"비교하다(compare)"와 "~로(to)"를 합친 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>sortedByDescending { it.score }</code>가 하는 일은?',
+          'score가 큰 값부터 순서대로 내림차순 정렬한다', ['score가 작은 값부터 정렬한다', '정렬하지 않고 그대로 둔다', 'score가 아닌 다른 기준으로 정렬한다'],
+          'Descending은 "내림차순"이라는 뜻으로, 큰 값부터 순서대로 정렬해요.',
+          '오름차순(ascending)과 반대되는 단어예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>data class Player(val name: String, val score: Int)</code>가 <code>score</code> 기준으로 정렬되도록 <code>Comparable&lt;Player&gt;</code>를 구현하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'data class Player(val name: String, val score: Int) : Comparable<Player> {\n    override fun compareTo(other: Player): Int = score - other.score\n}',
+          accept: ['data class Player(val name: String, val score: Int) : Comparable<Player> {\n    override fun compareTo(other: Player): Int = score - other.score\n}'],
+          why: 'Comparable<Player>를 구현하고 compareTo에서 score - other.score를 반환하면 score 기준 오름차순 정렬이 가능해요.',
+          hint: ': Comparable<Player> { override fun compareTo(other: Player): Int = score - other.score }를 클래스 뒤에 붙이세요.'
+        }),
+      ],
+      boss: () => {
+        const names = ['민준', '지수', '서연', '하늘'];
+        const players = shuffle(names).slice(0, 3).map(n => ({ name: n, score: randInt(60, 100) }));
+        const sorted = [...players].sort((a, b) => b.score - a.score);
+        const playerText = players.map(p => `${p.name}(${p.score})`).join(', ');
+        return {
+          type: 'blank',
+          q: `점수가 각각 ${playerText}인 선수들을 <code>sortedByDescending { it.score }</code>로 정렬해서 이름만 뽑으면? (배열 형태로, 예: [이름, 이름])`,
+          prefix: '', suffix: '', accept: [`[${sorted.map(p => p.name).join(', ')}]`], placeholder: '[이름, 이름]',
+          why: `score가 큰 순서대로 정렬되어 [${sorted.map(p => p.name).join(', ')}]이 돼요.`,
+          hint: 'Descending은 큰 값부터 순서대로 정렬한다는 뜻이에요.'
+        };
+      }
+    },
+    {
+      id: 'sealedInterface',
+      title: '봉인된 인터페이스(sealed interface)',
+      ready: true,
+      summary: '클래스 계층에 얽매이지 않고도 구현 종류를 제한할 수 있는 sealed interface로, 더 유연하게 안전한 분기 처리를 만들어요.',
+      goals: ['sealed interface 정의', 'sealed class와의 차이', '이미 다른 클래스를 상속한 타입도 구현체로 묶기'],
+      blocks: [
+        {
+          h: '인터페이스 버전의 sealed: sealed interface',
+          html: `<p><code>sealed class</code>처럼 <code>sealed interface</code>도 구현체의 종류를 같은 파일(또는 모듈) 안으로 제한해요. 그래서 <code>when</code>으로 분기할 때 <code>else</code> 없이도 모든 경우를 안전하게 처리할 수 있어요.</p>`,
+          code: {
+            label: 'sealed_interface_basic.kt',
+            lang: 'kotlin',
+            src: `sealed interface UiState
+
+data class Success(val data: String) : UiState
+object Loading : UiState
+class Error(val message: String) : UiState
+
+fun render(state: UiState): String = when (state) {
+    is Success -> "성공: \${state.data}"
+    Loading -> "로딩 중"
+    is Error -> "오류: \${state.message}"
+}
+
+println(render(Success("완료")))`,
+            out: `성공: 완료`
+          }
+        },
+        {
+          h: 'sealed class와 다른 점: 이미 다른 클래스를 상속했어도 OK',
+          html: `<p><code>sealed class</code>의 하위 클래스는 그 sealed class 단 하나만 상속할 수 있지만, <code>sealed interface</code>는 인터페이스라서 <b>이미 다른 클래스를 상속받은 타입도 구현</b>할 수 있어요. 그래서 서로 다른 클래스 계층에 있는 타입들을 하나로 묶고 싶을 때 더 유연해요.</p>`,
+          code: {
+            label: 'sealed_interface_flex.kt',
+            lang: 'kotlin',
+            src: `open class BaseEntity(val id: Int)
+
+sealed interface Syncable
+
+class RemoteUser(id: Int, val name: String) : BaseEntity(id), Syncable
+
+fun describe(s: Syncable): String = when (s) {
+    is RemoteUser -> "사용자 \${s.name}"
+}
+
+println(describe(RemoteUser(1, "지수")))`,
+            out: `사용자 지수`
+          },
+          after: `<div class="note"><b>정리</b> — 클래스는 부모 클래스를 하나만 상속할 수 있지만 인터페이스는 여러 개 구현할 수 있어서, sealed interface가 sealed class보다 더 자유롭게 조합돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const msg = pick(['서버 오류', '연결 끊김', '시간 초과']);
+          return {
+            type: 'blank',
+            q: `<code>fun render(state: UiState): String = when (state) { is Success -> "성공: \${state.data}"; Loading -> "로딩 중"; is Error -> "오류: \${state.message}" }</code>일 때, <code>render(Error("${msg}"))</code>의 결과는? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`오류: ${msg}`], placeholder: '결과 문자열',
+            why: `is Error 분기가 실행되어 "오류: ${msg}"가 돼요.`,
+            hint: 'Error 타입이므로 is Error 분기가 실행돼요.'
+          };
+        },
+        () => makeChoice(
+          'sealed interface가 sealed class와 다른 점은?',
+          '인터페이스라서, 이미 다른 클래스를 상속받은 타입도 구현체로 쓸 수 있다', ['구현체 종류를 전혀 제한하지 않는다', 'when에서 반드시 else가 필요하다', '프로퍼티를 하나도 가질 수 없다'],
+          'sealed interface는 인터페이스이므로, 다른 클래스를 상속한 타입도 함께 구현할 수 있어서 더 유연해요.',
+          '클래스는 하나만 상속하지만, 인터페이스는 여러 개 구현할 수 있다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `여러 클래스 계층에 걸쳐 구현 종류를 제한하고 싶을 때, <code>sealed class</code> 대신 쓰는 키워드 조합을 쓰세요.`,
+          prefix: 'sealed ', suffix: ' UiState', accept: ['interface'], placeholder: '키워드',
+          why: '<code>sealed interface</code>는 클래스 상속 제약 없이도 구현 종류를 제한해요.',
+          hint: 'class 대신 쓸 수 있는, 여러 개 구현 가능한 그 타입이에요.'
+        }),
+        () => makeChoice(
+          'sealed interface를 쓰면 좋은 상황은?',
+          '서로 다른 부모 클래스를 상속한 타입들을 하나의 공통 분류로 묶어서 when으로 안전하게 처리하고 싶을 때', ['클래스 하나만 만들고 끝낼 때', '아무 분기 처리도 하지 않을 때', '상속을 아예 쓰지 않을 때'],
+          '이미 다른 클래스를 상속한 타입들도 sealed interface로는 함께 묶어서 다룰 수 있어요.',
+          '클래스 상속 제약이 없다는 점이 핵심이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>UiState</code>라는 sealed interface를 정의하는 코드를 한 줄로 작성하세요.',
+          starter: '',
+          placeholder: 'sealed interface UiState',
+          accept: ['sealed interface UiState'],
+          why: '<code>sealed interface 이름</code> 형태로 봉인된 인터페이스를 선언해요.',
+          hint: 'sealed interface UiState 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const id = randInt(1, 99);
+        const name = pick(['민준', '지수', '서연', '하늘']);
+        return {
+          type: 'blank',
+          q: `<code>open class BaseEntity(val id: Int)</code>, <code>sealed interface Syncable</code>, <code>class RemoteUser(id: Int, val name: String) : BaseEntity(id), Syncable</code>이고 <code>fun describe(s: Syncable): String = when (s) { is RemoteUser -> "사용자 \${s.name}" }</code>일 때, <code>describe(RemoteUser(${id}, "${name}"))</code>의 결과는? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`사용자 ${name}`], placeholder: '결과 문자열',
+          why: `RemoteUser는 BaseEntity를 상속하면서도 Syncable을 구현해서, describe는 "사용자 ${name}"을 반환해요.`,
+          hint: 'RemoteUser가 이미 BaseEntity를 상속했어도 Syncable 구현체로 다룰 수 있어요.'
+        };
+      }
+    },
+    {
+      id: 'valueClass',
+      title: '값 클래스(value class)로 타입 안전성 강화',
+      ready: true,
+      summary: '실행 시 오버헤드 없이 원시 타입을 감싸서, 서로 다른 의미의 값을 섞어 쓰는 실수를 컴파일 타임에 막아주는 값 클래스를 배워요.',
+      goals: ['@JvmInline value class 정의', '타입 착각을 컴파일 타임에 막기', '값 클래스의 제약(프로퍼티 하나)'],
+      blocks: [
+        {
+          h: '값 하나를 감싸는 타입 안전한 래퍼: value class',
+          html: `<p><code>value class</code>는 프로퍼티를 딱 하나만 가지는 클래스예요. <code>@JvmInline</code>을 붙이면, 컴파일된 코드에서는 대부분 원래 타입(예: Int) 그대로 처리되어서 객체를 새로 만드는 비용이 거의 없어요.</p>`,
+          code: {
+            label: 'value_class_basic.kt',
+            lang: 'kotlin',
+            src: `@JvmInline
+value class UserId(val value: Int)
+
+fun printUserId(id: UserId) {
+    println("사용자 ID: \${id.value}")
+}
+
+printUserId(UserId(42))`,
+            out: `사용자 ID: 42`
+          }
+        },
+        {
+          h: '타입 착각을 막아주는 이유',
+          html: `<p>여러 종류의 아이디를 그냥 <code>Int</code>로 다루면, 실수로 순서를 바꿔 넣어도 컴파일러가 잡아내지 못해요. 각각을 서로 다른 <code>value class</code>로 감싸면, 컴파일러가 서로 다른 타입으로 구분해서 실수를 미리 막아줘요.</p>`,
+          code: {
+            label: 'value_class_safety.kt',
+            lang: 'kotlin',
+            src: `@JvmInline
+value class UserId(val value: Int)
+
+@JvmInline
+value class ProductId(val value: Int)
+
+fun buyItem(user: UserId, product: ProductId) {
+    println("사용자 \${user.value}가 상품 \${product.value}를 구매")
+}
+
+// buyItem(ProductId(1), UserId(2)) // 컴파일 오류! 타입이 서로 다름
+buyItem(UserId(2), ProductId(1))`,
+            out: `사용자 2가 상품 1를 구매`
+          },
+          after: `<div class="note"><b>정리</b> — value class는 프로퍼티를 딱 하나만 가질 수 있고, 그 프로퍼티는 반드시 <code>val</code>이어야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(1, 999);
+          return {
+            type: 'blank',
+            q: `<code>@JvmInline value class UserId(val value: Int)</code>이고 <code>fun printUserId(id: UserId) { println("사용자 ID: \${id.value}") }</code>일 때, <code>printUserId(UserId(${n}))</code>의 출력은? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`사용자 ID: ${n}`], placeholder: '출력 결과',
+            why: `id.value가 ${n}이므로 "사용자 ID: ${n}"이 출력돼요.`,
+            hint: 'UserId 안의 value 프로퍼티가 그대로 출력에 쓰여요.'
+          };
+        },
+        () => makeChoice(
+          'value class의 장점으로 알맞은 것은?',
+          '실행 시 오버헤드가 거의 없이, 서로 다른 의미의 원시 타입 값을 실수로 바꿔 쓰는 걸 컴파일 타임에 막아준다', ['프로퍼티를 여러 개 자유롭게 가질 수 있다', '항상 일반 클래스보다 실행 속도가 느리다', '상속 계층을 자유롭게 여러 단계로 만들 수 있다'],
+          'value class는 컴파일 시 대부분 원래 타입으로 처리되어 오버헤드가 적으면서도, 타입 자체는 구분돼서 실수를 막아줘요.',
+          '"타입은 다르지만 실행 비용은 거의 없다"는 게 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>value class UserId(val value: Int)</code> 위에 붙여야 하는 어노테이션을 쓰세요.`,
+          prefix: '', suffix: '\nvalue class UserId(val value: Int)', accept: ['@JvmInline'], placeholder: '어노테이션',
+          why: '<code>@JvmInline</code>을 붙여야 JVM에서 인라인 처리되는 값 클래스로 컴파일돼요.',
+          hint: '"JVM에 인라인으로"라는 뜻의 어노테이션이에요.'
+        }),
+        () => makeChoice(
+          'value class의 제약으로 알맞은 것은?',
+          '프로퍼티를 딱 하나만 가질 수 있고, 그 프로퍼티는 val이어야 한다', ['프로퍼티를 최대 두 개까지 가질 수 있다', 'var 프로퍼티만 가질 수 있다', '함수를 하나도 가질 수 없다'],
+          'value class는 감싸는 값이 딱 하나뿐이라, 프로퍼티도 하나(val)만 허용돼요.',
+          '"하나의 값을 감싼다"는 의미를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Int</code> 값 하나(<code>value</code>)를 감싸는 값 클래스 <code>UserId</code>를 <code>@JvmInline</code>과 함께 정의하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: '@JvmInline\nvalue class UserId(val value: Int)',
+          accept: ['@JvmInline\nvalue class UserId(val value: Int)'],
+          why: '@JvmInline과 value class를 함께 써서, Int를 감싸는 타입 안전한 래퍼를 만들어요.',
+          hint: '@JvmInline\\nvalue class UserId(val value: Int) 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(1, 500);
+        return {
+          type: 'blank',
+          q: `<code>@JvmInline value class ProductId(val value: Int)</code>이고 <code>fun printProductId(id: ProductId) { println("상품 ID: \${id.value}") }</code>일 때, <code>printProductId(ProductId(${n}))</code>의 출력은? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`상품 ID: ${n}`], placeholder: '출력 결과',
+          why: `id.value가 ${n}이므로 "상품 ID: ${n}"이 출력돼요.`,
+          hint: 'value class도 안의 값 하나를 그대로 담고 있을 뿐이에요.'
+        };
+      }
+    },
+    {
+      id: 'dslBuilder',
+      title: '람다 with 수신 객체로 만드는 나만의 DSL',
+      ready: true,
+      summary: '수신 객체가 있는 함수 타입(예: Html.() -> Unit)을 활용해서, 도메인에 특화된 읽기 좋은 DSL을 직접 만드는 법을 배워요.',
+      goals: ['수신 객체가 있는 람다(A.() -> Unit) 이해하기', '빌더 패턴을 DSL 스타일로 표현하기', 'DSL 함수를 직접 작성하기'],
+      blocks: [
+        {
+          h: '수신 객체가 있는 람다란',
+          html: `<p>일반 함수 타입 <code>(String) -&gt; Unit</code>은 매개변수로 값을 받지만, <b>수신 객체가 있는</b> 함수 타입 <code>Html.() -&gt; Unit</code>은 그 람다 안에서 <code>this</code>가 <code>Html</code> 인스턴스를 가리켜서, 마치 <code>Html</code>의 멤버 함수처럼 자연스럽게 호출할 수 있게 해줘요.</p>`,
+          code: {
+            label: 'dsl_basic.kt',
+            lang: 'kotlin',
+            src: `class Html {
+    val lines = mutableListOf<String>()
+    fun text(content: String) {
+        lines.add(content)
+    }
+}
+
+fun buildHtml(block: Html.() -> Unit): Html {
+    val html = Html()
+    html.block()
+    return html
+}
+
+val page = buildHtml {
+    text("안녕하세요")
+    text("환영합니다")
+}
+println(page.lines)`,
+            out: `[안녕하세요, 환영합니다]`
+          }
+        },
+        {
+          h: '이게 바로 DSL의 원리예요',
+          html: `<p><code>buildHtml { text(...) }</code>처럼 블록 안에서 <code>text</code>를 최상위 함수처럼 자연스럽게 부를 수 있는 이유는, <code>block</code>의 타입이 <code>Html.() -&gt; Unit</code>이라서 그 블록 안에서는 <code>this</code>가 자동으로 <code>Html</code> 인스턴스가 되기 때문이에요. Gradle Kotlin DSL이나 kotlinx.html도 이 원리로 만들어졌어요.</p>`,
+          after: `<div class="note"><b>정리</b> — <code>Html.() -&gt; Unit</code>에서 <code>Html</code>을 "수신 객체 타입"이라고 불러요. 일반 함수 타입 <code>() -&gt; Unit</code>과 달리, 그 안에서 <code>this</code>가 자동으로 채워져요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const t1 = pick(['안녕', '반가워', '환영해']);
+          const t2 = pick(['좋은 하루', '고마워', '수고했어']);
+          return {
+            type: 'blank',
+            q: `위 <code>Html</code>/<code>buildHtml</code> 코드에서 <code>val page = buildHtml { text("${t1}"); text("${t2}") }; println(page.lines)</code>를 실행하면 결과는? (배열 형태로, 예: [값, 값])`,
+            prefix: '', suffix: '', accept: [`[${t1}, ${t2}]`], placeholder: '[값, 값]',
+            why: `text로 추가한 순서 그대로 lines에 쌓여서 [${t1}, ${t2}]가 돼요.`,
+            hint: 'text 호출은 lines 리스트에 순서대로 추가돼요.'
+          };
+        },
+        () => makeChoice(
+          '<code>Html.() -&gt; Unit</code> 같은 "수신 객체가 있는 함수 타입"의 특징은?',
+          '그 람다 안에서 this가 지정된 타입(Html)의 인스턴스를 가리켜서, 그 타입의 멤버처럼 함수를 호출할 수 있다', ['매개변수를 절대 받을 수 없다', '항상 Unit이 아닌 값을 반환해야 한다', '클래스 안에서만 정의할 수 있다'],
+          '수신 객체가 있는 함수 타입은 그 안에서 this가 자동으로 지정된 타입이 되어, 마치 그 타입 안에 있는 것처럼 코드를 쓸 수 있어요.',
+          '"수신 객체(receiver)"라는 이름처럼 this가 그 타입이 돼요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>fun buildHtml(block: Html.____): Html { ... }</code>에서 "Html의 멤버처럼 동작하고 아무 것도 반환하지 않는 함수 타입"을 채우세요.`,
+          prefix: 'fun buildHtml(block: Html.', suffix: '): Html { val html = Html(); html.block(); return html }', accept: ['() -> Unit'], placeholder: '함수 타입',
+          why: '<code>Html.() -&gt; Unit</code>은 Html을 수신 객체로 하는, 반환값이 없는 함수 타입이에요.',
+          hint: '일반 함수 타입 () -> Unit 앞에 수신 객체 타입(Html.)만 붙이면 돼요.'
+        }),
+        () => makeChoice(
+          '이런 수신 객체 람다 스타일이 특히 유용한 경우는?',
+          '만들고자 하는 객체를 설정하는 DSL(예: HTML 빌더, 빌드 스크립트)을 자연스러운 문법으로 만들 때', ['단순히 두 숫자를 더하는 함수를 만들 때', '반복문을 아예 쓰지 않으려 할 때', '클래스를 하나도 정의하지 않으려 할 때'],
+          '수신 객체 람다는 블록 안에서 특정 타입의 멤버를 자연스럽게 호출하게 해줘서, 설정용 DSL을 만들 때 특히 강력해요.',
+          'HTML 빌더나 Gradle 빌드 스크립트를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Html</code> 클래스(내부에 <code>lines</code> 리스트와 <code>text</code> 함수가 있음)를 받아서, <code>Html.() -&gt; Unit</code> 블록을 실행한 뒤 그 <code>Html</code>을 반환하는 함수 <code>buildHtml</code>을 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'fun buildHtml(block: Html.() -> Unit): Html {\n    val html = Html()\n    html.block()\n    return html\n}',
+          accept: ['fun buildHtml(block: Html.() -> Unit): Html {\n    val html = Html()\n    html.block()\n    return html\n}'],
+          why: 'Html 인스턴스를 만든 뒤, block()을 그 인스턴스에 대해 호출하고, 완성된 인스턴스를 반환해요.',
+          hint: 'val html = Html()로 만들고 html.block()을 호출한 뒤 html을 반환하세요.'
+        }),
+      ],
+      boss: () => {
+        const texts = shuffle(['하나', '둘', '셋', '넷']).slice(0, 3);
+        return {
+          type: 'blank',
+          q: `<code>val page = buildHtml { ${texts.map(t => `text("${t}")`).join('; ')} }; println(page.lines)</code>를 실행하면 결과는? (배열 형태로, 예: [값, 값, 값])`,
+          prefix: '', suffix: '', accept: [`[${texts.join(', ')}]`], placeholder: '[값, 값, 값]',
+          why: `text를 호출한 순서 그대로 lines에 쌓여서 [${texts.join(', ')}]이 돼요.`,
+          hint: '수신 객체 람다 안에서 text 호출은 순서대로 lines에 추가돼요.'
+        };
+      }
+    },
+    {
+      id: 'customDelegate',
+      title: '커스텀 위임 프로퍼티(getValue/setValue)',
+      ready: true,
+      summary: 'by lazy를 넘어, getValue와 setValue를 직접 구현해서 프로퍼티가 읽히고 쓰일 때의 동작을 내 마음대로 정의하는 법을 배워요.',
+      goals: ['operator fun getValue/setValue 구현', '값이 바뀔 때 로직 끼워 넣기', '위임 객체를 여러 프로퍼티에 재사용하는 이유'],
+      blocks: [
+        {
+          h: '읽고 쓰는 동작을 직접 정의하기',
+          html: `<p><code>by lazy</code>처럼, 직접 만든 클래스에 <code>operator fun getValue</code>와 <code>operator fun setValue</code>를 정의하면 그 객체를 <code>by</code>로 위임할 수 있어요. <code>KProperty</code> 매개변수로 위임된 프로퍼티의 이름 등 정보를 알 수 있어요.</p>`,
+          code: {
+            label: 'custom_delegate_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlin.reflect.KProperty
+
+class LoggingDelegate(private var value: Int) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): Int {
+        println("\${property.name} 읽음: \$value")
+        return value
+    }
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: Int) {
+        println("\${property.name} 변경: \$value -> \$newValue")
+        value = newValue
+    }
+}
+
+var score: Int by LoggingDelegate(0)
+score = 10
+println(score)`,
+            out: `score 변경: 0 -> 10\nscore 읽음: 10\n10`
+          }
+        },
+        {
+          h: '위임 객체를 여러 프로퍼티에 재사용하기',
+          html: `<p>여러 프로퍼티가 같은 로직(로그 남기기, 값 검증 등)을 필요로 할 때, 그 로직을 매번 getter/setter에 반복해서 쓰는 대신 <code>LoggingDelegate</code> 같은 위임 객체 하나로 뽑아내면 여러 프로퍼티에서 그대로 재사용할 수 있어요.</p>`,
+          after: `<div class="note"><b>정리</b> — 표준 라이브러리의 <code>by lazy</code>, <code>Delegates.observable</code>도 결국 이 <code>getValue</code>/<code>setValue</code> 규칙을 따르는 위임 객체예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const init = randInt(0, 20);
+          const newVal = randInt(21, 99);
+          return {
+            type: 'blank',
+            q: `<code>var score: Int by LoggingDelegate(${init}); score = ${newVal}; println(score)</code>를 실행할 때, 가장 마지막 줄(println(score))의 출력은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(newVal)], placeholder: '숫자',
+            why: `score = ${newVal}로 setValue가 호출되어 값이 ${newVal}로 바뀌고, 이어서 println(score)는 getValue를 통해 ${newVal}을 돌려줘요.`,
+            hint: 'setValue로 값이 바뀐 뒤, getValue는 그 바뀐 값을 그대로 돌려줘요.'
+          };
+        },
+        () => makeChoice(
+          '위임 프로퍼티에서 <code>setValue</code>가 호출되는 시점은?',
+          '위임된 프로퍼티에 값을 대입(=)할 때', ['프로퍼티 값을 읽기만 할 때', '클래스가 선언될 때 딱 한 번', 'by 키워드를 처음 쓸 때만'],
+          '<code>변수 = 값</code>처럼 대입할 때마다 setValue가 호출돼서 그 안의 로직이 실행돼요.',
+          '"set"이 "값을 넣다"라는 뜻이라는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `프로퍼티를 <b>읽을 때</b> 호출되는 연산자 함수의 이름을 쓰세요.`,
+          prefix: 'operator fun ', suffix: '(thisRef: Any?, property: KProperty<*>): Int { return value }', accept: ['getValue'], placeholder: '함수 이름',
+          why: '<code>getValue</code>는 위임된 프로퍼티를 읽을 때 호출돼요.',
+          hint: '"값을 가져오다(get)"라는 뜻의 이름이에요.'
+        }),
+        () => makeChoice(
+          'getValue/setValue를 직접 구현한 위임 객체를 여러 프로퍼티에서 재사용하면 좋은 점은?',
+          '로깅, 검증 같은 공통 로직을 한 곳에 모아두고 여러 프로퍼티가 그대로 재사용할 수 있다', ['프로퍼티마다 다른 타입을 가질 수 없게 된다', '클래스 상속이 아예 불가능해진다', '읽기/쓰기 속도가 항상 두 배로 빨라진다'],
+          '위임 객체는 "읽고 쓰는 로직"을 한 곳에 모아서, 비슷한 동작이 필요한 여러 프로퍼티에서 재사용할 수 있게 해줘요.',
+          '중복 코드를 줄이는 게 핵심 목적이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '프로퍼티를 읽을 때 항상 <code>42</code>를 반환하는 <code>getValue</code> 연산자 함수를 작성하세요. (<code>thisRef: Any?, property: KProperty&lt;*&gt;</code>를 매개변수로 받고, 반환 타입은 <code>Int</code>)',
+          starter: '',
+          placeholder: 'operator fun getValue(thisRef: Any?, property: KProperty<*>): Int = 42',
+          accept: ['operator fun getValue(thisRef: Any?, property: KProperty<*>): Int = 42'],
+          why: '<code>operator fun getValue(thisRef, property): Int</code> 형태로 정의하면 by로 위임했을 때 읽기 동작을 담당해요.',
+          hint: 'operator fun getValue(thisRef: Any?, property: KProperty<*>): Int = 42 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const init = randInt(0, 10);
+        const step1 = randInt(11, 30);
+        const step2 = randInt(31, 60);
+        return {
+          type: 'blank',
+          q: `<code>var count: Int by LoggingDelegate(${init}); count = ${step1}; count = ${step2}; println(count)</code>를 실행할 때, 가장 마지막 줄의 출력은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(step2)], placeholder: '숫자',
+          why: `count는 ${init} -> ${step1} -> ${step2} 순서로 바뀌고, 마지막 println(count)는 가장 최근 값인 ${step2}를 출력해요.`,
+          hint: '대입을 여러 번 해도, 마지막으로 읽을 때는 가장 최근에 설정된 값이 나와요.'
+        };
+      }
+    },
+    {
+      id: 'structuredConcurrency',
+      title: '구조화된 동시성: coroutineScope',
+      ready: true,
+      summary: '자식 코루틴들이 모두 끝날 때까지 기다려주는 coroutineScope로, 코루틴 간의 부모-자식 관계를 안전하게 관리하는 법을 배워요.',
+      goals: ['coroutineScope로 여러 작업 묶기', '모든 자식이 끝나야 다음으로 진행되는 이유', '구조화된 동시성이라는 개념'],
+      blocks: [
+        {
+          h: '자식들이 다 끝날 때까지 기다리기: coroutineScope',
+          html: `<p><code>coroutineScope { }</code>는 suspend 함수예요. 그 안에서 <code>launch</code>로 시작한 코루틴들이 모두 끝나야 <code>coroutineScope</code> 자체가 끝나서, 결과를 안전하게 이어서 쓸 수 있어요.</p>`,
+          code: {
+            label: 'coroutine_scope_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.*
+
+suspend fun loadAll(): String = coroutineScope {
+    launch {
+        delay(50)
+        println("이미지 로딩 완료")
+    }
+    launch {
+        delay(30)
+        println("텍스트 로딩 완료")
+    }
+    "모두 준비됨"
+}
+
+fun main() = runBlocking {
+    val result = loadAll()
+    println(result)
+}`,
+            out: `텍스트 로딩 완료\n이미지 로딩 완료\n모두 준비됨`
+          }
+        },
+        {
+          h: '왜 "구조화"라고 부를까요',
+          html: `<p><code>coroutineScope</code> 안에서 시작한 <code>launch</code>는 그 scope의 "자식"이 돼요. 자식이 하나라도 끝나지 않으면 <code>coroutineScope</code>도 끝나지 않고 기다려서, 코루틴들이 부모-자식 트리 구조로 관리돼요. 그 덕분에 작업이 다 끝나기 전에 결과를 반환해버리는 실수를 막아줘요.</p>`,
+          after: `<div class="note"><b>정리</b> — 이 구조 덕분에 부모 코루틴이 취소되면 그 안의 모든 자식 코루틴도 자동으로 함께 취소돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const d1 = randInt(10, 40);
+          const d2 = randInt(41, 80);
+          return makeChoice(
+            `<code>coroutineScope { launch { delay(${d1}); println("A 완료") }; launch { delay(${d2}); println("B 완료") }; "끝" }</code>일 때, 두 println 중 먼저 출력되는 것은?`,
+            '"A 완료"', ['"B 완료"', '둘이 동시에 출력된다', '아무 것도 출력되지 않는다'],
+            `delay(${d1})이 delay(${d2})보다 짧아서, "A 완료"가 먼저 출력돼요.`,
+            'delay 시간이 짧은 launch가 먼저 println을 실행해요.'
+          );
+        },
+        () => makeChoice(
+          'coroutineScope의 특징으로 알맞은 것은?',
+          '그 안에서 시작한 모든 자식 코루틴이 끝날 때까지 기다렸다가 종료된다', ['launch를 호출하자마자 바로 종료된다', '반드시 새로운 스레드를 만들어야 한다', 'runBlocking 밖에서는 절대 호출할 수 없다'],
+          'coroutineScope는 자식 코루틴들이 모두 끝나야 자기 자신도 끝나는, "구조화된" 동시성을 만들어줘요.',
+          '자식이 다 끝나기 전엔 부모도 끝나지 않는다는 게 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `여러 launch를 묶어서 "모두 끝날 때까지 기다리는" suspend 블록을 만들 때 쓰는 함수 이름을 쓰세요.`,
+          prefix: 'suspend fun loadAll(): String = ', suffix: ' { launch { /* ... */ }; "모두 준비됨" }', accept: ['coroutineScope'], placeholder: '함수 이름',
+          why: '<code>coroutineScope</code>는 그 안의 모든 자식 코루틴이 끝나야 반환돼요.',
+          hint: '"코루틴의 범위(scope)"라는 이름 그대로예요.'
+        }),
+        () => makeChoice(
+          'launch로 시작한 코루틴이 아직 안 끝났는데 coroutineScope 블록이 곧바로 결과를 반환하는 일이 있을까요?',
+          '없다. coroutineScope는 모든 자식이 끝날 때까지 반환을 미룬다', ['있다. launch는 결과 반환과 아무 상관이 없다', '있다. coroutineScope는 항상 즉시 반환된다', '경우에 따라 다르며 예측할 수 없다'],
+          'coroutineScope는 구조화된 동시성의 핵심으로, 자식이 모두 끝나기 전에는 절대 먼저 반환되지 않아요.',
+          '"구조화"라는 말은 부모가 자식을 끝까지 책임진다는 뜻이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'suspend 함수 <code>doWork()</code>가 <code>coroutineScope</code> 안에서 <code>launch { delay(10); println("완료") }</code>를 실행한 뒤 <code>"끝"</code>을 반환하도록 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'suspend fun doWork(): String = coroutineScope {\n    launch { delay(10); println("완료") }\n    "끝"\n}',
+          accept: ['suspend fun doWork(): String = coroutineScope {\n    launch { delay(10); println("완료") }\n    "끝"\n}'],
+          why: 'coroutineScope 블록 안에서 launch를 실행하고, 마지막 줄의 값이 coroutineScope의 반환값이 돼요.',
+          hint: 'coroutineScope { launch { ... }; "끝" } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const resultMsg = pick(['모두 준비됨', '로딩 완료', '작업 끝']);
+        return {
+          type: 'blank',
+          q: `<code>suspend fun loadAll(): String = coroutineScope { launch { delay(50); println("이미지 로딩 완료") }; launch { delay(30); println("텍스트 로딩 완료") }; "${resultMsg}" }</code>이고 <code>runBlocking { println(loadAll()) }</code>을 실행할 때, 가장 마지막에 출력되는 줄은? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [resultMsg], placeholder: '마지막 출력 줄',
+          why: `coroutineScope는 두 launch가 모두 끝난 뒤에야 결과 문자열을 반환하고, 그 값을 main에서 마지막에 출력하므로 "${resultMsg}"가 가장 나중에 출력돼요.`,
+          hint: 'coroutineScope는 자식 launch가 다 끝나야 반환값을 돌려줘요. 그 반환값은 항상 맨 마지막에 출력돼요.'
+        };
+      }
+    },
+    {
+      id: 'flowOperatorChain',
+      title: 'Flow 연산자 체이닝: map, filter, onEach',
+      ready: true,
+      summary: 'Flow에도 컬렉션처럼 map, filter, onEach를 이어 붙여서, 값이 만들어지는 그 순간마다 가공하는 법을 배워요.',
+      goals: ['map으로 Flow의 각 값 변환하기', 'filter로 조건에 맞는 값만 통과시키기', 'onEach로 중간에 부수 작업 끼워넣기'],
+      blocks: [
+        {
+          h: '컬렉션처럼 이어 붙이는 Flow 연산자',
+          html: `<p>Flow도 <code>map</code>, <code>filter</code> 같은 연산자를 지원해요. 리스트처럼 전체를 한꺼번에 모아서 처리하는 게 아니라, <b>emit된 값 하나하나가 그 자리에서 바로</b> map → filter를 거쳐 collect로 전달돼요.</p>`,
+          code: {
+            label: 'flow_operators.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.*
+
+fun numbersFlow(): Flow<Int> = flow {
+    emit(1)
+    emit(2)
+    emit(3)
+    emit(4)
+}
+
+fun main() = runBlocking {
+    numbersFlow()
+        .map { it * 10 }
+        .filter { it > 15 }
+        .collect { value -> println(value) }
+}`,
+            out: `20\n30\n40`
+          }
+        },
+        {
+          h: '값은 그대로 두고 부수 작업만: onEach',
+          html: `<p><code>onEach</code>는 값을 바꾸지 않고 그대로 다음 단계로 넘기면서, 그 사이에 로그를 남기는 등 부수 작업을 끼워 넣을 수 있게 해줘요.</p>`,
+          code: {
+            label: 'flow_oneach.kt',
+            lang: 'kotlin',
+            src: `fun main() = runBlocking {
+    numbersFlow()
+        .onEach { println("받음: $it") }
+        .map { it * 10 }
+        .collect { value -> println("결과: $value") }
+}`,
+            out: `받음: 1\n결과: 10\n받음: 2\n결과: 20\n받음: 3\n결과: 30\n받음: 4\n결과: 40`
+          },
+          after: `<div class="note"><b>정리</b> — 각 값은 map, filter, collect를 순서대로 하나씩 거쳐가요. 리스트처럼 중간 결과를 통째로 모아두지 않아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const vals = Array.from({ length: 4 }, () => randInt(1, 10));
+          const mult = randInt(2, 5);
+          const threshold = randInt(5, 20);
+          const emits = vals.map(v => `emit(${v})`).join('; ');
+          const result = vals.map(v => v * mult).filter(v => v > threshold);
+          return {
+            type: 'blank',
+            q: `<code>flow { ${emits} }.map { it * ${mult} }.filter { it > ${threshold} }.collect { println(it) }</code>를 실행하면 출력되는 값들은? (배열 형태로, 예: [값, 값])`,
+            prefix: '', suffix: '', accept: [`[${result.join(', ')}]`], placeholder: '[값, 값]',
+            why: `각 값을 ${mult}배로 만든 뒤 ${threshold}보다 큰 값만 남기면 [${result.join(', ')}]예요.`,
+            hint: 'map으로 먼저 변환한 값들을 떠올린 뒤, filter 조건을 만족하는 것만 골라보세요.'
+          };
+        },
+        () => makeChoice(
+          'Flow의 <code>onEach</code>가 하는 일은?',
+          '값을 바꾸지 않고 그대로 다음 단계로 넘기면서, 그 사이 부수 작업(로그 등)을 실행할 수 있게 한다', ['값을 걸러내서 조건에 맞는 것만 통과시킨다', '값을 다른 타입으로 변환한다', 'Flow를 즉시 종료시킨다'],
+          'onEach는 값 자체는 그대로 두고, 그 값이 지나갈 때 부수적인 동작(로그 출력 등)만 실행해요.',
+          '"각각에 대해(on each)"라는 이름처럼, 값마다 뭔가를 "하는" 것이지 "바꾸는" 게 아니에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `Flow가 내보내는 각 값을 다른 값으로 변환할 때 쓰는 연산자를 쓰세요.`,
+          prefix: 'numbersFlow().', suffix: ' { it * 2 }.collect { println(it) }', accept: ['map'], placeholder: '연산자 이름',
+          why: '<code>map</code>은 Flow의 각 값을 원하는 형태로 변환해요.',
+          hint: '컬렉션에서도 쓰던 그 이름 그대로예요.'
+        }),
+        () => makeChoice(
+          'Flow에 <code>map</code>을 적용하면 일어나는 일로 알맞은 것은?',
+          'emit된 값 하나하나에 대해, 그 자리에서 즉시 변환이 적용된다', ['모든 값을 리스트로 모은 뒤 한꺼번에 변환한다', 'collect가 호출되기 전에 미리 다 계산해서 저장해둔다', '변환된 값은 저장되지 않고 사라진다'],
+          'Flow의 map은 리스트의 map과 달리, 값이 emit되는 그 순간마다 즉시 변환을 적용해요.',
+          'Flow는 "컨베이어 벨트"처럼 값이 하나씩 흘러간다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>numbersFlow()</code>가 내보내는 값들에 <code>map { it * 2 }</code>를 적용하고, <code>filter { it > 4 }</code>로 걸러낸 뒤, <code>collect { println(it) }</code>로 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'numbersFlow()\n    .map { it * 2 }\n    .filter { it > 4 }\n    .collect { println(it) }',
+          accept: ['numbersFlow()\n    .map { it * 2 }\n    .filter { it > 4 }\n    .collect { println(it) }'],
+          why: 'map, filter, collect를 순서대로 이어 붙여서 값을 변환하고 걸러낸 뒤 출력해요.',
+          hint: '.map { it * 2 }.filter { it > 4 }.collect { println(it) }를 순서대로 이어 붙이세요.'
+        }),
+      ],
+      boss: () => {
+        const vals = Array.from({ length: 4 }, () => randInt(1, 8));
+        const threshold = randInt(3, 12);
+        const emits = vals.map(v => `emit(${v})`).join('; ');
+        const result = vals.map(v => v * v).filter(v => v > threshold);
+        return {
+          type: 'blank',
+          q: `<code>flow { ${emits} }.map { it * it }.filter { it > ${threshold} }.collect { println(it) }</code>를 실행하면 출력되는 값들은? (배열 형태로, 예: [값, 값])`,
+          prefix: '', suffix: '', accept: [`[${result.join(', ')}]`], placeholder: '[값, 값]',
+          why: `각 값을 제곱한 뒤 ${threshold}보다 큰 값만 남기면 [${result.join(', ')}]예요.`,
+          hint: '먼저 제곱한 값들을 떠올린 뒤, filter 조건을 만족하는 것만 남겨보세요.'
+        };
+      }
+    },
+    {
+      id: 'stateFlowBasics',
+      title: 'StateFlow로 상태 관리하기',
+      ready: true,
+      summary: '항상 최신 값 하나를 들고 있다가, 값이 바뀔 때마다 구독자에게 알려주는 StateFlow의 기본 개념을 배워요.',
+      goals: ['MutableStateFlow로 상태 만들기', '.value로 값 읽고 쓰기', 'StateFlow와 일반 Flow의 차이'],
+      blocks: [
+        {
+          h: '항상 값을 가지고 있는 Flow: StateFlow',
+          html: `<p>일반 Flow는 <code>collect</code>하기 전까진 아무 일도 안 일어나지만, <code>StateFlow</code>는 항상 "현재 값" 하나를 들고 있어서 <code>.value</code>로 언제든 즉시 읽고 쓸 수 있어요. <code>MutableStateFlow(초기값)</code>으로 만들어요.</p>`,
+          code: {
+            label: 'stateflow_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.flow.*
+
+val counter = MutableStateFlow(0)
+
+println(counter.value)
+counter.value = 5
+println(counter.value)`,
+            out: `0\n5`
+          }
+        },
+        {
+          h: '값이 바뀔 때마다 구독자에게 알림',
+          html: `<p>StateFlow를 <code>collect</code>로 구독하면, <code>.value</code>가 바뀔 때마다 그 새 값을 자동으로 전달받아요.</p>`,
+          code: {
+            label: 'stateflow_collect.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+
+fun main() = runBlocking {
+    val counter = MutableStateFlow(0)
+    val job = launch {
+        counter.collect { value -> println("현재 값: $value") }
+    }
+    counter.value = 1
+    counter.value = 2
+    delay(10)
+    job.cancel()
+}`,
+            out: `현재 값: 0\n현재 값: 1\n현재 값: 2`
+          },
+          after: `<div class="note"><b>정리</b> — 화면에 보여줄 "최신 상태"를 관리할 때 StateFlow를 자주 써요. 외부에는 읽기 전용 StateFlow 타입으로 노출하고, 내부에서만 MutableStateFlow로 값을 바꾸는 패턴이 흔해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const init = randInt(0, 20);
+          const newVal = randInt(21, 60);
+          return {
+            type: 'blank',
+            q: `<code>val counter = MutableStateFlow(${init}); counter.value = ${newVal}; println(counter.value)</code>를 실행하면 출력은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(newVal)], placeholder: '숫자',
+            why: `counter.value를 ${newVal}로 바꾼 뒤 읽으므로 ${newVal}이 출력돼요.`,
+            hint: '.value에 새 값을 대입하면 그 즉시 값이 바뀌어요.'
+          };
+        },
+        () => makeChoice(
+          'StateFlow의 특징으로 알맞은 것은?',
+          '항상 현재 값 하나를 들고 있어서, .value로 언제든 즉시 읽을 수 있다', ['구독(collect)해야만 비로소 값이 생긴다', '값을 하나도 저장할 수 없다', '한 번 값을 정하면 절대 바꿀 수 없다'],
+          'StateFlow는 "상태(state)"라는 이름처럼 항상 최신 값을 들고 있어요.',
+          '일반 Flow와 달리 collect 없이도 .value로 바로 확인할 수 있어요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `초기값 0으로 상태를 가진 StateFlow를 만드는 코드를 작성하세요.`,
+          prefix: 'val counter = ', suffix: '', accept: ['MutableStateFlow(0)'], placeholder: 'MutableStateFlow(...)',
+          why: '<code>MutableStateFlow(초기값)</code>으로 값을 바꿀 수 있는 StateFlow를 만들어요.',
+          hint: 'MutableStateFlow(0) 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          'StateFlow와 일반 Flow(<code>flow { emit(...) }</code>)의 가장 큰 차이는?',
+          'StateFlow는 항상 최신 값을 보관하고 있다가 구독자에게 바로 알려주지만, 일반 Flow는 collect하기 전까진 아무 값도 만들지 않는다', ['StateFlow는 값을 절대 두 번 이상 못 바꾼다', '일반 Flow만 코루틴 안에서 쓸 수 있다', '둘은 완전히 같은 개념이다'],
+          'StateFlow는 "현재 상태"를 항상 들고 있는 반면, 일반 Flow는 collect가 호출되어야 값이 만들어지기 시작해요.',
+          '"상태(state)"를 항상 가지고 있다는 이름의 의미를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '초기값 <code>0</code>으로 <code>MutableStateFlow</code>를 만들어 <code>counter</code>에 담고, <code>.value</code>를 <code>10</code>으로 바꾼 뒤 그 값을 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'val counter = MutableStateFlow(0)\ncounter.value = 10\nprintln(counter.value)',
+          accept: ['val counter = MutableStateFlow(0)\ncounter.value = 10\nprintln(counter.value)'],
+          why: 'MutableStateFlow(0)으로 만들고, .value에 10을 대입한 뒤 다시 .value를 읽어 출력해요.',
+          hint: 'MutableStateFlow(0)을 만들고 counter.value = 10으로 바꾼 뒤 println(counter.value)를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const init = randInt(0, 10);
+        const step1 = randInt(11, 30);
+        const step2 = randInt(31, 60);
+        return {
+          type: 'blank',
+          q: `<code>val counter = MutableStateFlow(${init}); counter.value = ${step1}; counter.value = ${step2}; println(counter.value)</code>를 실행하면 출력은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(step2)], placeholder: '숫자',
+          why: `.value는 ${init} -> ${step1} -> ${step2} 순서로 바뀌고, 마지막으로 읽을 때는 가장 최근 값인 ${step2}가 나와요.`,
+          hint: '.value는 대입할 때마다 바로 바뀌고, 읽을 땐 항상 가장 최근 값이에요.'
+        };
+      }
+    },
+    {
+      id: 'coroutineCancellation',
+      title: '코루틴 취소와 협조적 취소',
+      ready: true,
+      summary: 'job.cancel()로 코루틴을 멈추는 법과, 코루틴이 취소 요청에 스스로 협조해야만 실제로 멈추는 이유를 배워요.',
+      goals: ['job.cancel()로 코루틴 취소하기', 'isActive로 취소 여부 확인하기', '취소가 "협조적"으로 동작한다는 것 이해하기'],
+      blocks: [
+        {
+          h: '코루틴 멈추기: job.cancel()',
+          html: `<p><code>launch</code>가 돌려주는 <code>Job</code>에 <code>cancel()</code>을 호출하면 그 코루틴을 취소할 수 있어요. <code>delay</code> 같은 suspend 함수는 취소 요청을 자동으로 감지해서 그 지점에서 멈춰요.</p>`,
+          code: {
+            label: 'cancel_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.*
+
+fun main() = runBlocking {
+    val job = launch {
+        repeat(5) { i ->
+            println("작업 $i")
+            delay(50)
+        }
+    }
+    delay(120)
+    job.cancel()
+    println("취소함")
+}`,
+            out: `작업 0\n작업 1\n작업 2\n취소함`
+          }
+        },
+        {
+          h: '취소는 "협조적"으로 동작해요: isActive',
+          html: `<p>바쁘게 계산만 하는 코드는 취소 요청이 와도 스스로 멈추지 않아요. 그래서 반복문 안에서 <code>isActive</code>를 직접 확인해서, 취소되었으면 스스로 루프를 빠져나오도록 짜야 해요.</p>`,
+          code: {
+            label: 'cancel_cooperative.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.*
+
+fun main() = runBlocking {
+    val job = launch {
+        var i = 0
+        while (isActive) {
+            println("작업 $i")
+            i++
+            if (i == 3) cancel()
+        }
+    }
+    job.join()
+    println("취소 완료")
+}`,
+            out: `작업 0\n작업 1\n작업 2\n취소 완료`
+          },
+          after: `<div class="note"><b>정리</b> — isActive 같은 검사를 전혀 하지 않는 무한 루프는, cancel()을 호출해도 스스로 멈추지 않아요. 그래서 취소는 "강제 종료"가 아니라 "협조적인 요청"이라고 불러요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(3, 6);
+          const lines = Array.from({ length: n }, (_, i) => `작업 ${i}`).join('\\n');
+          return {
+            type: 'blank',
+            q: `<code>launch { var i = 0; while (isActive) { println("작업 $i"); i++; if (i == ${n}) cancel() } }</code>이 있고 job.join() 뒤 "취소 완료"를 출력해요. "작업 X" 줄은 총 몇 번 출력될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `i가 0부터 ${n - 1}까지일 때 출력되고, i가 ${n}이 되는 순간 cancel()이 호출되어 루프가 멈추므로 총 ${n}번 출력돼요.`,
+            hint: 'i가 0부터 시작해서 cancel()이 호출되는 값 직전까지 출력돼요.'
+          };
+        },
+        () => makeChoice(
+          '코루틴 취소가 "협조적"이라는 말의 의미는?',
+          '코루틴 스스로 isActive 같은 검사를 통해 취소 요청에 응답해야 실제로 멈춘다', ['cancel()을 부르면 무조건 그 즉시 강제로 멈춘다', '취소는 delay가 있는 코드에서는 전혀 동작하지 않는다', 'isActive는 항상 true만 반환한다'],
+          '코루틴은 취소 요청을 스스로 확인(isActive)하거나 suspend 지점(delay 등)에서 자동으로 반응해야 실제로 멈춰요.',
+          '"협조적"이라는 말은 코루틴이 스스로 확인해야 한다는 뜻이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `루프 안에서 "이 코루틴이 아직 취소되지 않았는지" 확인할 때 쓰는 프로퍼티를 쓰세요.`,
+          prefix: 'while (', suffix: ') { /* ... */ }', accept: ['isActive'], placeholder: '프로퍼티 이름',
+          why: '<code>isActive</code>는 현재 코루틴이 아직 활성 상태(취소되지 않음)인지 알려줘요.',
+          hint: '"활성 상태인가(is active)"라는 뜻 그대로예요.'
+        }),
+        () => makeChoice(
+          '<code>delay(1000)</code>을 실행 중인 코루틴에 <code>cancel()</code>을 호출하면?',
+          '곧바로 그 지점에서 CancellationException이 발생하며 코루틴이 멈춘다', ['delay가 끝날 때까지 취소가 무시된다', '코루틴이 대신 처음부터 다시 시작된다', '아무 일도 일어나지 않는다'],
+          'delay 같은 suspend 함수는 취소 요청을 자동으로 감지해서, 그 즉시 예외를 던지며 멈춰요.',
+          'delay는 취소에 "협조적으로" 반응하는 대표적인 suspend 함수예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>launch</code> 블록 안에서, <code>isActive</code>가 참인 동안 <code>i</code>(0부터 시작)를 출력하고 1씩 늘리다가, <code>i</code>가 <code>2</code>가 되면 <code>cancel()</code>을 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'var i = 0\nwhile (isActive) {\n    println(i)\n    i++\n    if (i == 2) cancel()\n}',
+          accept: ['var i = 0\nwhile (isActive) {\n    println(i)\n    i++\n    if (i == 2) cancel()\n}'],
+          why: 'isActive를 조건으로 하는 while 루프 안에서 i를 늘리다가, 원하는 값이 되면 cancel()을 직접 호출해요.',
+          hint: 'while (isActive) { println(i); i++; if (i == 2) cancel() } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(4, 7);
+        return {
+          type: 'blank',
+          q: `<code>launch { var i = 0; while (isActive) { println("작업 $i"); i++; if (i == ${n}) cancel() } }</code>이 있고 job.join() 뒤 "취소 완료"를 출력해요. 가장 마지막으로 출력되는 "작업 X" 줄에서 X의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(n - 1)], placeholder: '숫자',
+          why: `i가 ${n}이 되는 순간 cancel()이 호출되어 루프가 멈추므로, 마지막으로 출력되는 건 i가 ${n - 1}일 때예요.`,
+          hint: 'cancel()이 호출되는 값 바로 전까지만 출력돼요.'
+        };
+      }
+    },
+    {
+      id: 'extensionProperties',
+      title: '확장 프로퍼티(extension property)',
+      ready: true,
+      summary: '함수뿐 아니라 프로퍼티도 이미 있는 타입에 추가할 수 있는 확장 프로퍼티를 배워요.',
+      goals: ['val 타입.이름: 타입 get() = ... 형태로 정의하기', '확장 프로퍼티가 상태를 저장할 수 없는 이유', '확장 함수와의 차이'],
+      blocks: [
+        {
+          h: '프로퍼티도 확장할 수 있어요',
+          html: `<p>확장 함수처럼, 이미 있는 타입에 <code>val 타입.이름: 반환타입 get() = ...</code> 형태로 "계산해서 값을 돌려주는" 프로퍼티를 추가할 수 있어요.</p>`,
+          code: {
+            label: 'extension_property_basic.kt',
+            lang: 'kotlin',
+            src: `val String.firstChar: Char
+    get() = this[0]
+
+val List<Int>.secondOrNull: Int?
+    get() = if (size >= 2) this[1] else null
+
+println("안녕".firstChar)
+println(listOf(1, 2, 3).secondOrNull)`,
+            out: `안\n2`
+          }
+        },
+        {
+          h: '왜 값을 저장할 필드는 없을까요',
+          html: `<p>확장 프로퍼티는 원본 클래스 코드 자체를 고치는 게 아니라서, 그 안에 새 필드(값을 저장할 공간)를 추가할 수 없어요. 그래서 확장 프로퍼티는 항상 <code>get()</code>으로 "계산해서" 값을 돌려줘야 해요.</p>`,
+          after: `<div class="note"><b>정리</b> — 확장 함수는 <code>fun</code>으로 동작을 추가하고, 확장 프로퍼티는 <code>val</code>/<code>var</code>로 계산된 값을 추가해요. var로 만들려면 get()과 함께 set()도 정의해야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const word = pick(['안녕', '반가워', '고마워', '좋은아침']);
+          return {
+            type: 'blank',
+            q: `<code>val String.firstChar: Char get() = this[0]</code>일 때, <code>"${word}".firstChar</code>의 결과는? (글자 하나만 입력)`,
+            prefix: '', suffix: '', accept: [word[0]], placeholder: '글자',
+            why: `firstChar는 문자열의 첫 글자를 돌려주므로 "${word[0]}"가 돼요.`,
+            hint: '문자열의 인덱스 0번째 글자를 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          '확장 프로퍼티가 값을 저장할 필드(backing field)를 가질 수 없는 이유는?',
+          '원본 클래스 코드 자체를 수정하는 게 아니라서, 새 필드를 추가할 방법이 없다', ['Kotlin이 프로퍼티 자체를 지원하지 않아서', '확장 프로퍼티는 항상 null이어야 해서', '함수보다 실행 속도가 느려서'],
+          '확장 프로퍼티는 밖에서 "붙여주는" 것이라, 클래스 내부에 실제 필드를 추가할 수는 없어요. 그래서 get()으로 계산해서 값을 돌려줘요.',
+          '확장 함수도 원본 클래스를 고치지 않는다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `확장 프로퍼티에서 값을 "어떻게 계산해서 돌려줄지" 정의하는 키워드를 쓰세요.`,
+          prefix: 'val String.firstChar: Char\n    ', suffix: '() = this[0]', accept: ['get'], placeholder: '키워드',
+          why: '<code>get()</code> 블록 안에서 프로퍼티가 반환할 값을 계산해요.',
+          hint: '"값을 가져오다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '확장 함수와 확장 프로퍼티의 차이로 알맞은 것은?',
+          '확장 함수는 fun으로 동작(행동)을 추가하고, 확장 프로퍼티는 val/var로 계산된 값을 추가한다', ['확장 프로퍼티만 반환값을 가질 수 있다', '확장 함수는 매개변수를 가질 수 없다', '둘은 완전히 같은 것이라 구분할 필요가 없다'],
+          '확장 함수는 "무엇을 하는지"를, 확장 프로퍼티는 "어떤 값을 나타내는지"를 표현할 때 써요.',
+          'fun과 val/var라는 키워드 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Int</code>를 확장해서, 그 값이 0보다 크면 <code>true</code>를 돌려주는 확장 프로퍼티 <code>isPositive</code>(타입 Boolean)를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'val Int.isPositive: Boolean\n    get() = this > 0',
+          accept: ['val Int.isPositive: Boolean\n    get() = this > 0'],
+          why: '<code>val Int.이름: Boolean get() = 조건식</code> 형태로 확장 프로퍼티를 만들어요.',
+          hint: 'val Int.isPositive: Boolean\\n    get() = this > 0 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const size = randInt(1, 4);
+        const list = Array.from({ length: size }, () => randInt(1, 50));
+        const result = list.length >= 2 ? String(list[1]) : 'null';
+        return {
+          type: 'blank',
+          q: `<code>val List<Int>.secondOrNull: Int? get() = if (size >= 2) this[1] else null</code>일 때, <code>listOf(${list.join(', ')}).secondOrNull</code>의 결과는? (숫자 또는 null)`,
+          prefix: '', suffix: '', accept: [result], placeholder: '숫자 또는 null',
+          why: list.length >= 2 ? `리스트의 크기가 2 이상이라 두 번째 값인 ${result}을(를) 돌려줘요.` : `리스트의 크기가 2보다 작아서 null을 돌려줘요.`,
+          hint: '리스트 크기가 2 이상인지 먼저 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'buildCollections',
+      title: 'buildList, buildMap, buildString으로 컬렉션 만들기',
+      ready: true,
+      summary: '가변 빌더 안에서 자유롭게 값을 채운 뒤, 완성되면 읽기 전용 컬렉션으로 돌려주는 buildList/buildMap/buildString을 배워요.',
+      goals: ['buildList { add(...) }로 리스트 만들기', 'buildMap { put(...) }으로 맵 만들기', 'buildString { append(...) }으로 문자열 만들기'],
+      blocks: [
+        {
+          h: '조건에 따라 채워나가는 리스트: buildList',
+          html: `<p><code>buildList { }</code> 블록 안에서는 <code>MutableList</code>처럼 <code>add</code>, 조건문 등을 자유롭게 쓸 수 있어요. 블록이 끝나면 더 이상 바꿀 수 없는 읽기 전용 <code>List</code>로 반환돼요.</p>`,
+          code: {
+            label: 'build_list.kt',
+            lang: 'kotlin',
+            src: `val n = 5
+val result = buildList {
+    for (i in 1..n) {
+        if (i % 2 == 0) add(i)
+    }
+}
+println(result)`,
+            out: `[2, 4]`
+          }
+        },
+        {
+          h: 'buildMap과 buildString도 같은 원리예요',
+          html: `<p><code>buildMap { put(키, 값) }</code>은 <code>Map</code>을, <code>buildString { append(내용) }</code>은 <code>String</code>을 같은 방식으로 만들어줘요.</p>`,
+          code: {
+            label: 'build_map_string.kt',
+            lang: 'kotlin',
+            src: `val map = buildMap {
+    put("a", 1)
+    put("b", 2)
+}
+val text = buildString {
+    append("안녕")
+    append("!")
+}
+println(map)
+println(text)`,
+            out: `{a=1, b=2}\n안녕!`
+          },
+          after: `<div class="note"><b>정리</b> — 매번 mutableListOf()를 만들고 마지막에 toList()로 바꿔주는 것보다, buildList가 그 과정을 한 번에 자연스럽게 표현해줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(4, 9);
+          const result = [];
+          for (let i = 1; i <= n; i++) if (i % 2 === 0) result.push(i);
+          return {
+            type: 'blank',
+            q: `<code>val result = buildList { for (i in 1..${n}) { if (i % 2 == 0) add(i) } }</code>일 때, <code>result</code>의 값은? (배열 형태로, 예: [값, 값])`,
+            prefix: '', suffix: '', accept: [`[${result.join(', ')}]`], placeholder: '[값, 값]',
+            why: `1부터 ${n}까지 중 짝수만 add되어 [${result.join(', ')}]이 돼요.`,
+            hint: '1부터 N까지 중 2로 나눠 떨어지는 값만 골라보세요.'
+          };
+        },
+        () => makeChoice(
+          'buildList { }의 특징으로 알맞은 것은?',
+          '블록 안에서는 자유롭게 add 등을 쓰고, 블록이 끝나면 읽기 전용 List로 반환된다', ['블록 안에서는 add를 쓸 수 없다', '반환된 리스트도 계속 add로 값을 추가할 수 있다', '항상 빈 리스트만 반환한다'],
+          'buildList는 블록 안에서만 가변적으로 채우고, 완성되면 더는 못 바꾸는 List로 돌려줘요.',
+          '"짓다(build)"라는 이름처럼, 짓는 동안만 자유롭고 완성되면 고정돼요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>buildList { }</code> 블록 안에서 값을 하나 추가할 때 쓰는 함수를 쓰세요.`,
+          prefix: 'buildList { ', suffix: '(1) }', accept: ['add'], placeholder: '함수 이름',
+          why: '<code>add(값)</code>은 MutableList와 똑같이 buildList 블록 안에서도 그대로 써요.',
+          hint: '리스트에 값을 더할 때 쓰던 그 함수예요.'
+        }),
+        () => makeChoice(
+          '<code>buildString { }</code>이 하는 일은?',
+          '블록 안에서 append로 문자열을 차례로 이어붙인 뒤, 완성된 String을 반환한다', ['문자열을 거꾸로 뒤집어서 반환한다', '이미 있는 문자열을 지워버린다', '숫자만 이어붙일 수 있다'],
+          'buildString은 StringBuilder처럼 append로 이어붙인 결과를 최종 String으로 돌려줘요.',
+          '"짓다(build)" + "문자열(String)"이라는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>buildMap { }</code>을 이용해서 <code>"a"</code>에 <code>1</code>을, <code>"b"</code>에 <code>2</code>를 담은 맵을 만들어 <code>map</code>에 저장하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'val map = buildMap {\n    put("a", 1)\n    put("b", 2)\n}',
+          accept: ['val map = buildMap {\n    put("a", 1)\n    put("b", 2)\n}'],
+          why: 'buildMap 블록 안에서 put(키, 값)으로 값을 채운 뒤, 완성된 Map을 반환해요.',
+          hint: 'buildMap { put("a", 1)\\n    put("b", 2) } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(6, 12);
+        const result = [];
+        for (let i = 1; i <= n; i++) if (i % 3 === 0) result.push(i);
+        return {
+          type: 'blank',
+          q: `<code>val result = buildList { for (i in 1..${n}) { if (i % 3 == 0) add(i) } }</code>일 때, <code>result</code>의 값은? (배열 형태로, 예: [값, 값])`,
+          prefix: '', suffix: '', accept: [`[${result.join(', ')}]`], placeholder: '[값, 값]',
+          why: `1부터 ${n}까지 중 3의 배수만 add되어 [${result.join(', ')}]이 돼요.`,
+          hint: '1부터 N까지 중 3으로 나눠 떨어지는 값만 골라보세요.'
+        };
+      }
+    },
+    {
+      id: 'safeCastElvis',
+      title: '안전한 캐스팅(as?)과 엘비스 연산자 체이닝',
+      ready: true,
+      summary: '실패하면 예외 대신 null을 돌려주는 안전한 캐스팅 as?와, 엘비스 연산자(?:)를 이어 붙여 기본값까지 한 줄로 처리하는 법을 배워요.',
+      goals: ['as?로 안전하게 타입 캐스팅하기', '캐스팅 실패 시 null이 되는 이유', '?: 체이닝으로 기본값 정하기'],
+      blocks: [
+        {
+          h: '실패해도 안전한 캐스팅: as?',
+          html: `<p><code>as</code>는 캐스팅에 실패하면 예외(ClassCastException)를 던지지만, <code>as?</code>는 실패하면 예외 대신 <b>null</b>을 돌려줘서 앱이 죽지 않아요.</p>`,
+          code: {
+            label: 'safe_cast_basic.kt',
+            lang: 'kotlin',
+            src: `val value: Any = "안녕"
+
+val asString: String? = value as? String
+val asInt: Int? = value as? Int
+
+println(asString)
+println(asInt)`,
+            out: `안녕\nnull`
+          }
+        },
+        {
+          h: '기본값까지 한 줄로: as?와 ?: 체이닝',
+          html: `<p><code>as?</code>가 돌려주는 null을 그냥 두지 않고, 엘비스 연산자 <code>?:</code>를 이어 붙이면 캐스팅에 실패했을 때 쓸 기본값까지 한 줄로 정할 수 있어요.</p>`,
+          code: {
+            label: 'safe_cast_elvis.kt',
+            lang: 'kotlin',
+            src: `val value: Any = 42
+
+val length = (value as? String)?.length ?: -1
+println(length)`,
+            out: `-1`
+          },
+          after: `<div class="note"><b>정리</b> — <code>(value as? String)?.length ?: -1</code>은 "String으로 캐스팅되면 그 길이를, 아니면(캐스팅 실패 또는 null이면) -1을" 뜻하는 안전한 한 줄이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const isString = Math.random() < 0.5;
+          const word = pick(['안녕', '반가워', '고마워']);
+          const num = randInt(1, 100);
+          const value = isString ? `"${word}"` : String(num);
+          return {
+            type: 'blank',
+            q: `<code>val value: Any = ${value}; println(value as? String)</code>를 실행하면? (문자열이면 그대로, 아니면 null 입력)`,
+            prefix: '', suffix: '', accept: [isString ? word : 'null'], placeholder: '값 또는 null',
+            why: isString ? `value가 String이라서 그대로 "${word}"가 출력돼요.` : `value가 String이 아니라서 as?는 null을 돌려줘요.`,
+            hint: 'as?는 캐스팅이 안 되면 예외 대신 null을 돌려줘요.'
+          };
+        },
+        () => makeChoice(
+          '<code>as</code>와 <code>as?</code>의 차이로 알맞은 것은?',
+          'as는 실패하면 예외를 던지고, as?는 실패하면 null을 돌려준다', ['as?는 항상 캐스팅에 성공한다', 'as는 null을 다룰 때만 쓴다', '둘은 완전히 같은 동작을 한다'],
+          'as?는 "안전한(safe)" 캐스팅이라서, 실패해도 프로그램이 멈추지 않고 null을 돌려줘요.',
+          '물음표(?)가 붙으면 대부분 "실패해도 안전하다"는 뜻이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>Any</code> 타입 값을 <code>String</code>으로 안전하게 캐스팅하는(실패 시 null) 연산자를 쓰세요.`,
+          prefix: 'val s: String? = value ', suffix: ' String', accept: ['as?'], placeholder: '연산자',
+          why: '<code>as?</code>는 캐스팅에 실패해도 예외 없이 null을 돌려줘요.',
+          hint: 'as 뒤에 물음표를 붙이면 "안전한" 캐스팅이 돼요.'
+        }),
+        () => makeChoice(
+          '<code>(value as? String)?.length ?: -1</code> 코드가 뜻하는 바는?',
+          'value가 String으로 캐스팅되면 그 길이를, 안 되면 -1을 결과로 쓴다', ['value가 String이 아니면 예외를 던진다', '항상 -1만 반환한다', 'length가 0이면 -1로 바꾼다'],
+          'as?로 캐스팅에 실패하면 null이 되고, ?:는 그 null 대신 -1을 대신 써줘요.',
+          'as?와 ?:를 각각 따로 떼어서 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>value: Any</code>를 <code>String</code>으로 안전하게 캐스팅한 뒤, 그 길이를 구하되 캐스팅에 실패하면 <code>0</code>을 쓰도록 <code>len</code>에 담는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'val len = (value as? String)?.length ?: 0',
+          accept: ['val len = (value as? String)?.length ?: 0'],
+          why: 'as?로 안전하게 캐스팅한 뒤, ?.length로 null이면 건너뛰고, ?:로 기본값 0을 지정해요.',
+          hint: 'val len = (value as? String)?.length ?: 0 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const isString = Math.random() < 0.5;
+        const word = pick(['안녕', '반갑습니다', '고맙습니다', '수고했어요']);
+        const num = randInt(1, 999);
+        const value = isString ? `"${word}"` : String(num);
+        const result = isString ? word.length : -1;
+        return {
+          type: 'blank',
+          q: `<code>val value: Any = ${value}; val length = (value as? String)?.length ?: -1; println(length)</code>를 실행하면? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(result)], placeholder: '숫자',
+          why: isString ? `value가 String이라 캐스팅에 성공해서 길이 ${result}이 출력돼요.` : `value가 String이 아니라 캐스팅에 실패해서 -1이 출력돼요.`,
+          hint: 'value의 타입이 String인지 아닌지부터 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'tailrecFunctions',
+      title: '꼬리 재귀 함수(tailrec)',
+      ready: true,
+      summary: '재귀 호출이 함수의 마지막 동작일 때, tailrec 키워드로 컴파일러가 반복문으로 바꿔줘서 스택 오버플로우 없이 재귀를 쓰는 법을 배워요.',
+      goals: ['tailrec 키워드로 꼬리 재귀 표시하기', '"꼬리 위치"의 재귀 호출이란 무엇인지', '왜 스택 오버플로우를 막아주는지'],
+      blocks: [
+        {
+          h: '재귀가 스택을 쌓지 않게: tailrec',
+          html: `<p>일반적인 재귀 함수는 호출할 때마다 스택에 정보를 쌓아서, 아주 많이 반복하면 <b>스택 오버플로우</b>가 날 수 있어요. 재귀 호출이 함수의 <b>맨 마지막 동작</b>이라면(꼬리 위치), <code>tailrec</code>을 붙여서 컴파일러가 반복문으로 바꿔주게 할 수 있어요.</p>`,
+          code: {
+            label: 'tailrec_basic.kt',
+            lang: 'kotlin',
+            src: `tailrec fun sumTo(n: Int, acc: Int = 0): Int {
+    return if (n == 0) acc else sumTo(n - 1, acc + n)
+}
+
+println(sumTo(100000))`,
+            out: `5000050000`
+          }
+        },
+        {
+          h: '"꼬리 위치"가 아니면 tailrec은 효과가 없어요',
+          html: `<p><code>tailrec</code>이 붙어도, 재귀 호출 결과에 <b>추가 연산</b>을 더 하는 형태(예: <code>n * factorial(n - 1)</code>)라면 그 호출은 꼬리 위치가 아니라서 최적화되지 않아요. 재귀 호출이 그 함수가 반환하는 값 그 자체여야만 해요.</p>`,
+          code: {
+            label: 'tailrec_wrong_shape.kt',
+            lang: 'kotlin',
+            src: `// 이 형태는 재귀 호출(factorial(n - 1)) 뒤에 n을 곱하는 연산이 남아 있어서
+// 꼬리 위치가 아니에요. tailrec을 붙여도 컴파일러가 경고를 줘요.
+fun factorial(n: Int): Long {
+    return if (n <= 1) 1L else n * factorial(n - 1)
+}
+
+println(factorial(5))`,
+            out: `120`
+          },
+          after: `<div class="note"><b>정리</b> — 누산기(accumulator) 매개변수를 추가해서 "재귀 호출이 곧 반환값"이 되도록 함수 모양을 바꾸면 tailrec으로 최적화할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(3, 8);
+          let sum = 0;
+          for (let i = 1; i <= n; i++) sum += i;
+          return {
+            type: 'blank',
+            q: `<code>tailrec fun sumTo(n: Int, acc: Int = 0): Int = if (n == 0) acc else sumTo(n - 1, acc + n)</code>일 때, <code>sumTo(${n})</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(sum)], placeholder: '숫자',
+            why: `1부터 ${n}까지 다 더한 값과 같아서 ${sum}이에요.`,
+            hint: 'acc에 n, n-1, ..., 1을 차례로 더해나가는 셈이에요.'
+          };
+        },
+        () => makeChoice(
+          'tailrec 키워드를 붙이는 이유는?',
+          '재귀 호출이 함수의 꼬리(마지막) 위치에 있을 때, 컴파일러가 반복문으로 바꿔서 스택 오버플로우를 막아준다', ['함수의 실행 속도를 항상 두 배로 늘려준다', '재귀 호출 횟수를 줄여준다', '반환 타입을 자동으로 nullable로 만든다'],
+          'tailrec은 꼬리 위치의 재귀를 반복문으로 바꿔서, 아무리 많이 재귀해도 스택이 쌓이지 않게 해줘요.',
+          '"꼬리(tail)"라는 말은 재귀 호출이 함수의 맨 마지막 동작이라는 뜻이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `재귀 호출이 꼬리 위치에 있는 함수 앞에 붙여서, 컴파일러가 반복문으로 최적화하게 하는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' fun sumTo(n: Int, acc: Int = 0): Int = if (n == 0) acc else sumTo(n - 1, acc + n)', accept: ['tailrec'], placeholder: '키워드',
+          why: '<code>tailrec</code>은 "꼬리 재귀(tail recursion)"의 줄임말이에요.',
+          hint: '"꼬리(tail)"와 "재귀(recursion)"를 합친 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>fun factorial(n: Int): Long = if (n <= 1) 1L else n * factorial(n - 1)</code>에 tailrec을 붙여도 최적화되지 않는 이유는?',
+          '재귀 호출(factorial(n - 1)) 뒤에 n을 곱하는 연산이 남아 있어서, 꼬리 위치가 아니기 때문이다', ['n이 항상 양수라서', '반환 타입이 Long이라서', 'tailrec은 원래 아무 효과가 없어서'],
+          '재귀 호출 결과가 그대로 반환되는 게 아니라, 곱셈이 추가로 남아 있어서 꼬리 위치가 아니에요.',
+          '재귀 호출이 함수의 "진짜 마지막 동작"인지 확인해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>n</code>까지의 곱(팩토리얼)을 누산기 <code>acc</code>(기본값 1)를 이용해 꼬리 재귀로 계산하는 <code>tailrec fun factorialTail(n: Int, acc: Long = 1): Long</code>을 작성하세요.',
+          starter: '',
+          placeholder: 'tailrec fun factorialTail(n: Int, acc: Long = 1): Long = if (n <= 1) acc else factorialTail(n - 1, acc * n)',
+          accept: ['tailrec fun factorialTail(n: Int, acc: Long = 1): Long = if (n <= 1) acc else factorialTail(n - 1, acc * n)'],
+          why: '누산기 acc에 곱셈 결과를 미리 담아 넘겨서, 재귀 호출 자체가 곧 반환값이 되게 만들어요.',
+          hint: 'tailrec fun factorialTail(n: Int, acc: Long = 1): Long = if (n <= 1) acc else factorialTail(n - 1, acc * n) 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(5, 12);
+        let sum = 0;
+        for (let i = 1; i <= n; i++) sum += i * 2;
+        return {
+          type: 'blank',
+          q: `<code>tailrec fun sumEvenSteps(n: Int, acc: Int = 0): Int = if (n == 0) acc else sumEvenSteps(n - 1, acc + n * 2)</code>일 때, <code>sumEvenSteps(${n})</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(sum)], placeholder: '숫자',
+          why: `n이 ${n}부터 1까지 내려가며 각 값의 2배를 acc에 더하므로, 결과는 ${sum}이에요.`,
+          hint: 'n, n-1, ..., 1 각각의 2배를 다 더해보세요.'
+        };
+      }
+    },
+    {
+      id: 'localFunctions',
+      title: '중첩 함수(로컬 함수)와 클로저',
+      ready: true,
+      summary: '함수 안에 함수를 정의해서 바깥의 지역 변수를 그대로 사용하는 중첩 함수(로컬 함수)와 클로저를 배워요.',
+      goals: ['함수 안에 함수 정의하기', '바깥 함수의 지역 변수를 캡처하는 클로저', '중첩 함수가 유용한 상황'],
+      blocks: [
+        {
+          h: '함수 안의 함수: 중첩 함수(로컬 함수)',
+          html: `<p>Kotlin은 함수 <b>안에</b> 또 다른 함수를 정의할 수 있어요. 이런 함수를 중첩 함수(로컬 함수)라고 불러요. 그 함수를 감싸는 바깥 함수 밖에서는 호출할 수 없어요.</p>`,
+          code: {
+            label: 'local_function_basic.kt',
+            lang: 'kotlin',
+            src: `fun printSquares(upTo: Int) {
+    fun square(n: Int): Int = n * n
+
+    for (i in 1..upTo) {
+        println(square(i))
+    }
+}
+
+printSquares(3)`,
+            out: `1\n4\n9`
+          }
+        },
+        {
+          h: '바깥의 변수를 그대로 쓰는 클로저',
+          html: `<p>중첩 함수는 자신을 감싸는 바깥 함수의 지역 변수를 그대로 읽고 쓸 수 있어요. 이렇게 자신이 정의된 곳의 변수를 "붙잡아 두는" 것을 클로저(closure)라고 해요.</p>`,
+          code: {
+            label: 'local_function_closure.kt',
+            lang: 'kotlin',
+            src: `fun makeCounter(): () -> Int {
+    var count = 0
+    fun increment(): Int {
+        count += 1
+        return count
+    }
+    return ::increment
+}
+
+val counter = makeCounter()
+println(counter())
+println(counter())
+println(counter())`,
+            out: `1\n2\n3`
+          },
+          after: `<div class="note"><b>정리</b> — <code>count</code>는 <code>makeCounter</code>가 끝난 뒤에도 사라지지 않고, increment 함수 안에 계속 "붙잡혀" 있어서 호출할 때마다 값이 유지돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(2, 5);
+          return {
+            type: 'blank',
+            q: `<code>fun printSquares(upTo: Int) { fun square(n: Int): Int = n * n; for (i in 1..upTo) { println(square(i)) } }</code>일 때, <code>printSquares(${n})</code>을 실행하면 총 몇 줄이 출력될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `1부터 ${n}까지 각각 한 줄씩 출력되므로 총 ${n}줄이에요.`,
+            hint: 'for (i in 1..upTo) 반복 횟수를 세어보세요.'
+          };
+        },
+        () => makeChoice(
+          '중첩 함수(로컬 함수)의 특징으로 알맞은 것은?',
+          '자신을 둘러싼 바깥 함수 안에서만 호출할 수 있고, 바깥 함수의 지역 변수를 그대로 쓸 수 있다', ['파일의 어디서든 자유롭게 호출할 수 있다', '바깥 함수의 변수에는 절대 접근할 수 없다', '클래스 안에서만 정의할 수 있다'],
+          '중첩 함수는 그 함수를 감싼 바깥 함수 안에서만 쓸 수 있고, 바깥의 변수를 클로저로 붙잡아 사용할 수 있어요.',
+          '"중첩(nested)"이라는 이름처럼 바깥 함수 안에 갇혀 있어요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `함수가 자신이 정의된 곳의 지역 변수를 계속 "붙잡아 두는" 특징을 부르는 이름을 영어로 쓰세요.`,
+          prefix: '', suffix: '(이)라고 부른다', accept: ['closure', 'Closure'], placeholder: '영어 단어',
+          why: '<code>closure</code>는 함수가 자신이 정의된 환경의 변수를 계속 참조하는 것을 말해요.',
+          hint: '"닫다, 감싸다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>makeCounter()</code>가 매번 새로 호출될 때마다 반환하는 카운터들의 특징은?',
+          '각 카운터는 자기만의 독립된 count 변수를 가진다', ['모든 카운터가 하나의 count 변수를 공유한다', '항상 0만 반환한다', '한 번밖에 호출할 수 없다'],
+          'makeCounter를 호출할 때마다 새로운 count 지역 변수가 만들어지고, 그 변수를 각자의 increment가 독립적으로 붙잡아요.',
+          'makeCounter를 두 번 호출하면 count도 두 개 따로 생겨요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>fun printDoubled(upTo: Int)</code> 안에, 값을 2배로 만드는 중첩 함수 <code>double(n: Int): Int = n * 2</code>를 정의하고, <code>1..upTo</code>를 돌며 각 값을 double에 넣어 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'fun printDoubled(upTo: Int) {\n    fun double(n: Int): Int = n * 2\n\n    for (i in 1..upTo) {\n        println(double(i))\n    }\n}',
+          accept: ['fun printDoubled(upTo: Int) {\n    fun double(n: Int): Int = n * 2\n\n    for (i in 1..upTo) {\n        println(double(i))\n    }\n}'],
+          why: '함수 안에 double이라는 중첩 함수를 정의하고, 반복문에서 그 함수를 호출해요.',
+          hint: 'fun printDoubled(upTo: Int) { fun double(n: Int): Int = n * 2; for (i in 1..upTo) { println(double(i)) } } 형태를 여러 줄로 쓰면 돼요.'
+        }),
+      ],
+      boss: () => {
+        const calls = randInt(2, 6);
+        return {
+          type: 'blank',
+          q: `<code>fun makeCounter(): () -> Int { var count = 0; fun increment(): Int { count += 1; return count }; return ::increment }</code>이고 <code>val counter = makeCounter()</code>를 만든 뒤 <code>counter()</code>를 총 ${calls}번 호출했어요. 마지막 호출의 결과값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(calls)], placeholder: '숫자',
+          why: `호출할 때마다 count가 1씩 늘어나므로, ${calls}번째 호출에서는 ${calls}가 나와요.`,
+          hint: 'count는 호출할 때마다 1씩 늘어나는 값이에요.'
+        };
+      }
+    },
+    {
+      id: 'functionTypeDefaults',
+      title: '함수 타입 매개변수의 기본 람다값',
+      ready: true,
+      summary: '고차 함수의 람다 매개변수에도 기본값을 지정해서, 호출하는 쪽에서 생략하면 미리 정해둔 동작이 쓰이게 하는 법을 배워요.',
+      goals: ['함수 타입 매개변수에 기본값(람다) 지정하기', '생략했을 때와 직접 넘겼을 때 비교하기', '기본 동작을 바꿔치기하는 유연함 이해하기'],
+      blocks: [
+        {
+          h: '람다 매개변수에도 기본값을: = { ... }',
+          html: `<p>일반 매개변수처럼, 함수 타입 매개변수에도 <code>= { 기본 동작 }</code> 형태로 기본값을 줄 수 있어요. 호출할 때 그 매개변수를 생략하면 기본 람다가 대신 쓰여요.</p>`,
+          code: {
+            label: 'function_type_default.kt',
+            lang: 'kotlin',
+            src: `fun process(numbers: List<Int>, onEach: (Int) -> Unit = { println("값: $it") }) {
+    for (n in numbers) {
+        onEach(n)
+    }
+}
+
+process(listOf(1, 2, 3))`,
+            out: `값: 1\n값: 2\n값: 3`
+          }
+        },
+        {
+          h: '필요할 때만 다른 람다로 바꿔치기',
+          html: `<p>기본 동작 그대로 써도 되고, 필요하면 호출할 때 다른 람다를 넘겨서 동작을 바꿀 수도 있어요. 기본값이 있는 매개변수라도 원하면 얼마든지 직접 값을 넘길 수 있어요.</p>`,
+          code: {
+            label: 'function_type_default_override.kt',
+            lang: 'kotlin',
+            src: `process(listOf(1, 2, 3)) { n ->
+    println("두 배: \${n * 2}")
+}`,
+            out: `두 배: 2\n두 배: 4\n두 배: 6`
+          },
+          after: `<div class="note"><b>정리</b> — 함수의 마지막 매개변수가 함수 타입이면, 중괄호 <code>{ }</code>를 괄호 밖으로 빼서 호출할 수 있어요(트레일링 람다). 기본값이 있어도 이 방식으로 바꿔치기할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const nums = Array.from({ length: 3 }, () => randInt(1, 20));
+          return {
+            type: 'blank',
+            q: `<code>fun process(numbers: List<Int>, onEach: (Int) -> Unit = { println("값: $it") }) { for (n in numbers) { onEach(n) } }</code>일 때, <code>process(listOf(${nums.join(', ')}))</code>를 실행하면 첫 번째로 출력되는 줄은? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`값: ${nums[0]}`], placeholder: '출력 줄',
+            why: `onEach를 생략했으므로 기본 람다가 쓰여서, 첫 값은 "값: ${nums[0]}"이 출력돼요.`,
+            hint: 'onEach를 넘기지 않았으니 기본값으로 정의된 람다가 그대로 실행돼요.'
+          };
+        },
+        () => makeChoice(
+          '함수 타입 매개변수에 <code>= { ... }</code>로 기본값을 지정하는 이유는?',
+          '호출하는 쪽에서 그 매개변수를 생략해도 미리 정해둔 기본 동작이 대신 쓰이게 하기 위해', ['그 매개변수를 아예 못 쓰게 막기 위해', '함수를 항상 두 번 호출하기 위해', '반환 타입을 Unit으로 고정하기 위해'],
+          '기본 람다를 지정해두면, 호출할 때 굳이 매번 같은 람다를 넘기지 않아도 돼요.',
+          '일반 매개변수의 기본값과 똑같은 원리예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>fun process(numbers: List<Int>, onEach: (Int) -> Unit ____ { println(it) }) { ... }</code>에서, 기본 람다를 지정하는 데 필요한 기호를 쓰세요.`,
+          prefix: 'onEach: (Int) -> Unit ', suffix: ' { println(it) }', accept: ['='], placeholder: '기호',
+          why: '<code>=</code> 뒤에 람다를 적으면 그 함수 타입 매개변수의 기본값이 돼요.',
+          hint: '일반 매개변수 기본값을 줄 때 쓰던 기호와 같아요.'
+        }),
+        () => makeChoice(
+          '기본값이 있는 함수 타입 매개변수라도, 호출할 때 다른 람다를 직접 넘기면?',
+          '넘긴 람다가 기본값 대신 실행된다', ['컴파일 오류가 난다', '기본값과 넘긴 값이 둘 다 실행된다', '아무 일도 일어나지 않는다'],
+          '기본값은 "생략했을 때만" 쓰이는 것이라, 직접 넘기면 그 값이 우선이에요.',
+          '일반 매개변수의 기본값도 직접 값을 넘기면 그 값이 쓰이는 것과 같아요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>numbers: List&lt;Int&gt;</code>를 받고, 각 값에 적용할 <code>transform: (Int) -&gt; Int</code>를 매개변수로 받되 기본값으로 <code>{ it }</code>(그대로 반환)을 갖는 함수 <code>mapAll</code>을, transform이 적용된 새 리스트를 반환하도록 작성하세요.',
+          starter: '',
+          placeholder: 'fun mapAll(numbers: List<Int>, transform: (Int) -> Int = { it }): List<Int> = numbers.map(transform)',
+          accept: ['fun mapAll(numbers: List<Int>, transform: (Int) -> Int = { it }): List<Int> = numbers.map(transform)'],
+          why: 'transform 매개변수에 기본값 { it }을 지정해서, 생략하면 값을 그대로 두게 만들어요.',
+          hint: 'fun mapAll(numbers: List<Int>, transform: (Int) -> Int = { it }): List<Int> = numbers.map(transform) 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const nums = Array.from({ length: 3 }, () => randInt(1, 15));
+        return {
+          type: 'blank',
+          q: `<code>fun process(numbers: List<Int>, onEach: (Int) -> Unit = { println("값: $it") }) { for (n in numbers) { onEach(n) } }</code>이고 <code>process(listOf(${nums.join(', ')})) { n -> println("두 배: \${n * 2}") }</code>를 실행하면, 마지막으로 출력되는 줄은? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`두 배: ${nums[nums.length - 1] * 2}`], placeholder: '출력 줄',
+          why: `트레일링 람다로 onEach를 직접 넘겼으므로 기본값 대신 이 람다가 쓰여서, 마지막 값의 두 배인 "두 배: ${nums[nums.length - 1] * 2}"가 출력돼요.`,
+          hint: '괄호 뒤에 붙은 람다가 기본값을 대신해서 쓰여요.'
+        };
+      }
+    },
+    {
+      id: 'operatorInvokeUnary',
+      title: 'invoke와 단항 연산자 오버로딩',
+      ready: true,
+      summary: '객체를 함수처럼 호출 가능하게 만드는 invoke 연산자와, -x 같은 단항 연산자를 커스텀 타입에 정의하는 법을 배워요.',
+      goals: ['operator fun invoke로 객체를 함수처럼 호출하기', 'operator fun unaryMinus로 -연산자 정의하기', '연산자 오버로딩이 코드를 더 읽기 좋게 만드는 경우'],
+      blocks: [
+        {
+          h: '객체를 함수처럼: operator fun invoke',
+          html: `<p><code>operator fun invoke(...)</code>를 정의하면, 그 클래스의 인스턴스를 <code>인스턴스(인자)</code>처럼 <b>함수 호출 문법</b>으로 쓸 수 있어요.</p>`,
+          code: {
+            label: 'invoke_basic.kt',
+            lang: 'kotlin',
+            src: `class Greeter(val greeting: String) {
+    operator fun invoke(name: String): String {
+        return "$greeting, $name!"
+    }
+}
+
+val hello = Greeter("안녕")
+println(hello("지수"))`,
+            out: `안녕, 지수!`
+          }
+        },
+        {
+          h: '부호를 뒤집는 단항 연산자: unaryMinus',
+          html: `<p><code>operator fun unaryMinus()</code>를 정의하면, 그 타입의 값 앞에 <code>-</code>를 붙여서 "부호를 뒤집은" 새 값을 만들 수 있어요.</p>`,
+          code: {
+            label: 'unary_minus.kt',
+            lang: 'kotlin',
+            src: `data class Point(val x: Int, val y: Int) {
+    operator fun unaryMinus(): Point = Point(-x, -y)
+}
+
+val p = Point(3, 5)
+println(-p)`,
+            out: `Point(x=-3, y=-5)`
+          },
+          after: `<div class="note"><b>정리</b> — <code>+a</code>는 unaryPlus, <code>-a</code>는 unaryMinus, <code>!a</code>는 not에 대응돼요. plus/times처럼 단항 연산자도 정해진 함수 이름이 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const greeting = pick(['안녕', '반가워', '환영해']);
+          const name = pick(['민준', '지수', '서연', '하늘']);
+          return {
+            type: 'blank',
+            q: `<code>class Greeter(val greeting: String) { operator fun invoke(name: String): String = "$greeting, $name!" }</code>이고 <code>val g = Greeter("${greeting}")</code>일 때, <code>g("${name}")</code>의 결과는? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${greeting}, ${name}!`], placeholder: '결과 문자열',
+            why: `invoke가 호출되어 "${greeting}, ${name}!"이 반환돼요.`,
+            hint: 'g("${name}")는 g.invoke("${name}")과 같아요.'
+          };
+        },
+        () => makeChoice(
+          'operator fun invoke를 정의하면 가능해지는 일은?',
+          '그 클래스의 인스턴스를 마치 함수처럼 인스턴스(인자) 형태로 호출할 수 있다', ['그 클래스를 더 이상 인스턴스화할 수 없다', '모든 프로퍼티가 자동으로 val이 된다', '클래스를 상속할 수 없게 된다'],
+          'invoke를 정의하면 인스턴스 뒤에 괄호를 붙여 함수처럼 호출할 수 있어요.',
+          '"호출하다(invoke)"라는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `값 앞에 <code>-</code>를 붙였을 때의 동작(부호 뒤집기)을 정의하려면 재정의해야 하는 함수 이름을 쓰세요.`,
+          prefix: 'operator fun ', suffix: '(): Point = Point(-x, -y)', accept: ['unaryMinus'], placeholder: '함수 이름',
+          why: '<code>unaryMinus</code>는 <code>-</code> 단항 연산자에 대응돼요.',
+          hint: '"단항(unary)"과 "빼기(minus)"를 합친 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>data class Point(val x: Int, val y: Int) { operator fun unaryMinus() = Point(-x, -y) }</code>일 때, <code>-Point(2, 3)</code>의 결과는?',
+          'Point(x=-2, y=-3)', ['Point(x=2, y=3)', 'Point(x=0, y=0)', '컴파일 오류가 난다'],
+          'unaryMinus는 x와 y 각각의 부호를 뒤집은 새 Point를 반환해요.',
+          '-x, -y를 그대로 적용해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>class Multiplier(val factor: Int)</code>에, <code>Int</code>를 받아 <code>factor</code>를 곱한 값을 반환하는 <code>invoke</code> 연산자 함수를 작성하세요. (함수 정의만)',
+          starter: '',
+          placeholder: 'operator fun invoke(n: Int): Int = factor * n',
+          accept: ['operator fun invoke(n: Int): Int = factor * n'],
+          why: '<code>operator fun invoke(n: Int): Int</code> 형태로 정의하면 인스턴스를 함수처럼 호출해서 factor * n을 얻을 수 있어요.',
+          hint: 'operator fun invoke(n: Int): Int = factor * n 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const x = randInt(1, 20), y = randInt(1, 20);
+        return {
+          type: 'blank',
+          q: `<code>data class Point(val x: Int, val y: Int) { operator fun unaryMinus() = Point(-x, -y) }</code>이고 <code>val p = Point(${x}, ${y})</code>, <code>val result = -p</code>일 때, <code>result.x + result.y</code>의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(-x - y)], placeholder: '숫자',
+          why: `result는 Point(x=${-x}, y=${-y})이므로 x + y = ${-x - y}예요.`,
+          hint: 'unaryMinus는 x와 y 둘 다 부호를 뒤집어요.'
+        };
+      }
+    },
+    {
+      id: 'channelsBasics',
+      title: '채널(Channel)로 코루틴끼리 데이터 주고받기',
+      ready: true,
+      summary: '코루틴 사이에서 값을 안전하게 주고받는 통로인 Channel의 기본 사용법을 배워요.',
+      goals: ['Channel<T>로 값 보내고 받기', 'send/receive는 suspend 함수라는 것', 'close()로 채널 닫고 for문으로 순회하기'],
+      blocks: [
+        {
+          h: '채널이란: 코루틴 사이의 우편함',
+          html: `<p><code>Channel</code>은 코루틴 사이에서 값을 안전하게 주고받을 수 있는 통로예요. 한쪽 코루틴이 <code>send</code>로 값을 넣으면, 다른 쪽 코루틴이 <code>receive</code>로 그 값을 꺼낼 수 있어요.</p>`,
+          code: {
+            label: 'channel_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.*
+
+fun main() = runBlocking {
+    val channel = Channel<Int>()
+    launch {
+        for (x in 1..3) {
+            channel.send(x * x)
+        }
+        channel.close()
+    }
+    for (y in channel) {
+        println(y)
+    }
+}`,
+            out: `1\n4\n9`
+          }
+        },
+        {
+          h: '채널을 닫지 않으면 생기는 일',
+          html: `<p>채널의 <code>send</code>는 받는 쪽이 준비될 때까지 기다리고(suspend), <code>receive</code>는 보내는 쪽이 값을 줄 때까지 기다려요. 다 보낸 뒤 <code>close()</code>를 호출하지 않으면, 받는 쪽의 <code>for</code> 루프는 값이 더 안 온다는 걸 알 수 없어서 계속 기다리게 돼요.</p>`,
+          after: `<div class="note"><b>정리</b> — Channel은 send/receive라는 suspend 함수로 코루틴 사이에 값을 안전하게 전달하고, close()로 "더 이상 보낼 값이 없다"는 걸 알려줘야 받는 쪽의 for 루프가 끝나요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(2, 6);
+          return {
+            type: 'blank',
+            q: `<code>val channel = Channel<Int>(); launch { for (x in 1..${n}) channel.send(x * x); channel.close() }; for (y in channel) println(y)</code>를 실행하면 "y" 값이 총 몇 번 출력될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `1부터 ${n}까지 총 ${n}개의 값을 send하므로, 받는 쪽의 for 루프도 ${n}번 실행돼요.`,
+            hint: 'send를 몇 번 호출하는지 세어보세요.'
+          };
+        },
+        () => makeChoice(
+          '채널에서 close()를 호출하지 않으면 받는 쪽의 for 루프는 어떻게 될까요?',
+          '더 이상 값이 오지 않아도 끝나지 않고 계속 기다린다', ['자동으로 예외를 던지며 종료된다', '즉시 마지막 값을 반환하고 끝난다', '채널이 자동으로 닫힌다'],
+          'close()는 "더 이상 보낼 값이 없다"는 신호예요. 이 신호가 없으면 받는 쪽은 값이 더 올지 몰라 계속 기다려요.',
+          'for 루프가 끝나려면 "끝났다"는 신호가 필요해요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `코루틴 사이에서 값을 안전하게 주고받는 통로 역할을 하는 타입 이름을 쓰세요.`,
+          prefix: 'val channel = ', suffix: '<Int>()', accept: ['Channel'], placeholder: '타입 이름',
+          why: '<code>Channel</code>은 send/receive로 값을 주고받는 코루틴 간 통로예요.',
+          hint: '영어로 "통로", "채널"이라는 뜻이에요.'
+        }),
+        () => makeChoice(
+          'Channel의 send와 receive에 대한 설명으로 옳은 것은?',
+          '둘 다 suspend 함수라서 코루틴 안에서만 호출할 수 있다', ['send는 즉시 반환되는 일반 함수다', 'receive는 값이 없으면 항상 null을 즉시 반환한다', 'send와 receive는 같은 코루틴에서만 호출 가능하다'],
+          'send는 받는 쪽이 준비될 때까지, receive는 값이 올 때까지 각각 suspend되며 기다려요.',
+          '둘 다 이름 앞에 suspend가 붙는다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Channel<String>()</code>을 만들고, launch 블록 안에서 "A", "B"를 순서대로 send한 뒤 close()하는 코드를 작성하세요. (launch 블록 내부만)',
+          starter: '',
+          rows: 4,
+          placeholder: 'channel.send("A")\nchannel.send("B")\nchannel.close()',
+          accept: ['channel.send("A")\nchannel.send("B")\nchannel.close()'],
+          why: 'send를 순서대로 호출한 뒤 close()로 채널을 닫아, 받는 쪽의 for 루프가 끝날 수 있게 해줘요.',
+          hint: 'channel.send("A"), channel.send("B") 다음에 channel.close()를 호출하세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(4, 8);
+        return {
+          type: 'blank',
+          q: `<code>val channel = Channel<Int>(); launch { for (x in 1..${n}) channel.send(x * x); channel.close() }; for (y in channel) println(y)</code>를 실행할 때, 마지막으로 출력되는 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(n * n)], placeholder: '숫자',
+          why: `마지막 x는 ${n}이므로 마지막으로 출력되는 값은 ${n} * ${n} = ${n * n}이에요.`,
+          hint: '가장 마지막에 send되는 x 값의 제곱을 계산해보세요.'
+        };
+      }
+    },
+    {
+      id: 'sharedFlowBasics',
+      title: 'SharedFlow로 이벤트 방송하기',
+      ready: true,
+      summary: '값 하나를 저장하는 StateFlow와 달리, 값을 저장하지 않고 여러 구독자에게 그 순간 흘려보내는 SharedFlow의 기본 개념을 배워요.',
+      goals: ['MutableSharedFlow로 이벤트 흘려보내기', 'emit으로 값 보내고 collect로 받기', 'StateFlow와 SharedFlow의 차이 이해하기'],
+      blocks: [
+        {
+          h: 'StateFlow와 다른 점: 값을 저장하지 않아요',
+          html: `<p><code>StateFlow</code>는 항상 최신 값 하나를 들고 있지만, <code>SharedFlow</code>는 기본적으로 값을 저장하지 않고 그 순간 구독 중인 곳에만 이벤트를 "방송"해요. 그래서 알림이나 클릭 이벤트처럼 "한 번 발생하고 끝나는 일"을 표현하는 데 적합해요.</p>`,
+          code: {
+            label: 'sharedflow_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+
+fun main() = runBlocking {
+    val events = MutableSharedFlow<String>()
+    val job = launch {
+        events.collect { println("받음: $it") }
+    }
+    delay(10)
+    events.emit("클릭")
+    events.emit("드래그")
+    delay(10)
+    job.cancel()
+}`,
+            out: `받음: 클릭\n받음: 드래그`
+          }
+        },
+        {
+          h: 'replay로 지나간 값도 다시 받기',
+          html: `<p><code>MutableSharedFlow(replay = n)</code>처럼 replay 값을 주면, 새로 구독을 시작한 곳도 최근 n개의 이벤트를 다시 받을 수 있어요. replay가 0(기본값)이면 구독을 시작한 이후의 이벤트만 받아요.</p>`,
+          after: `<div class="note"><b>정리</b> — StateFlow는 "현재 상태" 하나를 항상 보관하고, SharedFlow는 "이벤트"를 그 순간 구독자들에게 흘려보내요. replay로 지나간 이벤트를 얼마나 다시 보여줄지 조절할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const a = randInt(1, 50), b = randInt(51, 99);
+          return {
+            type: 'blank',
+            q: `<code>val events = MutableSharedFlow<Int>(); launch { events.collect { println(it) } }; delay(10); events.emit(${a}); events.emit(${b})</code>를 실행하면 가장 먼저 출력되는 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(a)], placeholder: '숫자',
+            why: `emit은 호출한 순서대로 실행되므로, 먼저 emit한 ${a}가 먼저 출력돼요.`,
+            hint: '먼저 emit한 값을 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          'StateFlow와 SharedFlow의 가장 큰 차이는?',
+          'StateFlow는 항상 최신 값 하나를 저장하지만, SharedFlow는 기본적으로 값을 저장하지 않고 방송만 한다', ['SharedFlow는 코루틴 없이도 collect할 수 있다', 'StateFlow는 여러 구독자를 가질 수 없다', 'SharedFlow는 emit 없이 자동으로 값을 생성한다'],
+          'StateFlow는 .value로 항상 꺼내볼 수 있는 "현재 상태"를 저장하지만, SharedFlow는 저장 없이 이벤트를 흘려보내는 데 초점이 있어요.',
+          '"상태(state)"와 "이벤트"의 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `SharedFlow에 값을 흘려보낼 때 호출하는 suspend 함수 이름을 쓰세요.`,
+          prefix: 'events.', suffix: '(value)', accept: ['emit'], placeholder: '함수 이름',
+          why: '<code>emit</code>은 SharedFlow(및 Flow)에 값을 흘려보내는 suspend 함수예요.',
+          hint: '"내보내다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>MutableSharedFlow<Int>(replay = 2)</code>로 만들면?',
+          '새로 구독을 시작해도 최근 2개의 이벤트를 다시 받을 수 있다', ['이벤트를 최대 2번만 보낼 수 있다', '구독자가 최대 2명까지만 가능하다', 'replay는 collect 속도를 2배로 만든다'],
+          'replay는 "새 구독자에게 다시 보여줄 지나간 이벤트의 개수"를 뜻해요.',
+          '"다시(re) 재생(play)"라는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>MutableSharedFlow<String>()</code> 타입의 프로퍼티 events가 있을 때, launch 블록 안에서 events를 collect하며 받은 값을 그대로 println하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'events.collect { println(it) }',
+          accept: ['events.collect { println(it) }'],
+          why: 'collect는 흘러오는 값을 계속 받아서, 람다 안에서 그 값(it)으로 원하는 동작을 할 수 있어요.',
+          hint: 'events.collect { println(it) } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(1, 20), b = randInt(21, 40), c = randInt(41, 60);
+        return {
+          type: 'blank',
+          q: `<code>val events = MutableSharedFlow<Int>(); launch { events.collect { println(it) } }; delay(10); events.emit(${a}); events.emit(${b}); events.emit(${c})</code>를 실행하면 마지막으로 출력되는 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(c)], placeholder: '숫자',
+          why: `emit은 순서대로 실행되므로, 가장 마지막에 emit한 ${c}가 마지막으로 출력돼요.`,
+          hint: '가장 나중에 emit한 값을 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'coroutineExceptionHandler',
+      title: 'CoroutineExceptionHandler와 supervisorScope',
+      ready: true,
+      summary: '코루틴에서 발생한 예외를 한 곳에서 처리하는 CoroutineExceptionHandler와, 자식의 실패가 다른 자식에게 번지지 않게 막는 supervisorScope를 배워요.',
+      goals: ['CoroutineExceptionHandler로 처리되지 않은 예외 잡기', 'supervisorScope로 형제 코루틴 보호하기', 'coroutineScope와의 차이 이해하기'],
+      blocks: [
+        {
+          h: '처리되지 않은 예외를 한 곳에서 잡기',
+          html: `<p>코루틴 안에서 던져진 예외를 try-catch로 잡지 않으면, 그 예외는 부모 Job을 타고 올라가요. <code>CoroutineExceptionHandler</code>를 코루틴의 최상위 컨텍스트에 넣어두면, 처리되지 않은 예외가 발생했을 때 한 곳에서 잡아 처리할 수 있어요.</p>`,
+          code: {
+            label: 'exception_handler.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.*
+
+fun main() = runBlocking {
+    val handler = CoroutineExceptionHandler { _, e ->
+        println("잡음: \${e.message}")
+    }
+    val scope = CoroutineScope(SupervisorJob() + handler)
+    val job = scope.launch {
+        throw RuntimeException("문제 발생")
+    }
+    job.join()
+    println("끝")
+}`,
+            out: `잡음: 문제 발생\n끝`
+          }
+        },
+        {
+          h: '형제를 지켜주는 supervisorScope',
+          html: `<p>일반 <code>coroutineScope</code>에서는 자식 코루틴 하나가 실패하면 다른 형제 코루틴도 함께 취소돼요. 반면 <code>supervisorScope</code> 안에서는 자식 하나가 실패해도 다른 형제는 영향받지 않고 계속 실행돼요.</p>`,
+          code: {
+            label: 'supervisor_scope.kt',
+            lang: 'kotlin',
+            src: `import kotlinx.coroutines.*
+
+fun main() = runBlocking {
+    val handler = CoroutineExceptionHandler { _, e ->
+        println("child1 실패: \${e.message}")
+    }
+    supervisorScope {
+        launch(handler) {
+            throw RuntimeException("문제")
+        }
+        launch {
+            delay(50)
+            println("child2 계속 실행됨")
+        }
+    }
+    println("끝")
+}`,
+            out: `child1 실패: 문제\nchild2 계속 실행됨\n끝`
+          },
+          after: `<div class="note"><b>정리</b> — 일반 coroutineScope였다면 child1이 실패하는 즉시 child2도 함께 취소되지만, supervisorScope는 자식들을 서로 독립적으로 다루기 때문에 child2가 끝까지 실행돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const msg = pick(['문제 발생', '전송 실패', '연결 끊김', '잘못된 값']);
+          return {
+            type: 'blank',
+            q: `<code>val handler = CoroutineExceptionHandler { _, e -> println("잡음: \${e.message}") }; val scope = CoroutineScope(SupervisorJob() + handler); scope.launch { throw RuntimeException("${msg}") }.join(); println("끝")</code>을 실행하면 첫 줄에 무엇이 출력될까요?`,
+            prefix: '잡음: ', suffix: '', accept: [msg], placeholder: '메시지',
+            why: `핸들러가 예외의 메시지(e.message)를 그대로 출력하므로 "${msg}"가 출력돼요.`,
+            hint: 'CoroutineExceptionHandler의 e.message는 던진 예외의 메시지 그대로예요.'
+          };
+        },
+        () => makeChoice(
+          'CoroutineExceptionHandler는 언제 호출될까요?',
+          '처리되지 않은 예외가 코루틴 계층의 최상위까지 전파되었을 때', ['try-catch로 이미 잡은 예외에 대해서도 항상 호출된다', 'async로 만든 코루틴이 실패했을 때도 await 없이 자동으로 호출된다', '일반 함수에서 예외가 발생했을 때도 호출된다'],
+          'CoroutineExceptionHandler는 launch처럼 결과를 기다리지 않는 코루틴이 실패했을 때, 그 예외가 잡히지 않고 최상위까지 올라오면 호출돼요. async의 예외는 await()에서 다시 던져져요.',
+          '이미 잡힌 예외나 async의 예외는 handler가 관여하지 않아요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `coroutineScope와 달리, 자식 코루틴 하나가 실패해도 다른 형제 코루틴이 취소되지 않게 만드는 함수 이름을 쓰세요.`,
+          prefix: '', suffix: ' { launch { ... }; launch { ... } }', accept: ['supervisorScope'], placeholder: '함수 이름',
+          why: '<code>supervisorScope</code>는 자식들의 실패를 서로 독립적으로 다뤄, 하나가 실패해도 다른 자식은 계속 실행돼요.',
+          hint: '"감독하다(supervise)"라는 뜻의 단어가 들어가요.'
+        }),
+        () => makeChoice(
+          'supervisorScope 안에서 child1이 예외를 던지고, child2는 정상적으로 delay 후 값을 출력한다면?',
+          'child2는 취소되지 않고 끝까지 실행되어 값을 출력한다', ['child1이 실패하는 즉시 child2도 함께 취소된다', 'supervisorScope 자체가 즉시 예외를 던지며 종료된다', 'child2는 실행되지만 값은 출력되지 않는다'],
+          'supervisorScope는 자식들의 실패를 서로 전파하지 않으므로, child1이 실패해도 child2는 영향받지 않아요.',
+          '"형제를 지켜준다"는 supervisorScope의 역할을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'handler라는 CoroutineExceptionHandler가 이미 정의되어 있을 때, SupervisorJob()과 handler를 합쳐서 scope라는 CoroutineScope를 만드는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'val scope = CoroutineScope(SupervisorJob() + handler)',
+          accept: ['val scope = CoroutineScope(SupervisorJob() + handler)'],
+          why: 'CoroutineScope(SupervisorJob() + handler) 형태로, 자식 실패가 전파되지 않는 SupervisorJob과 예외를 처리할 handler를 함께 컨텍스트로 넣어줘요.',
+          hint: 'CoroutineScope(...) 안에 SupervisorJob() + handler를 넣어보세요.'
+        }),
+      ],
+      boss: () => {
+        const msg2 = pick(['타임아웃', '권한 없음', '데이터 없음', '네트워크 오류']);
+        return {
+          type: 'blank',
+          q: `<code>val handler = CoroutineExceptionHandler { _, e -> println("잡음: \${e.message}") }; val scope = CoroutineScope(SupervisorJob() + handler); scope.launch { throw RuntimeException("${msg2}") }.join(); println("끝")</code>을 실행하면 첫 줄에 무엇이 출력될까요?`,
+          prefix: '잡음: ', suffix: '', accept: [msg2], placeholder: '메시지',
+          why: `핸들러가 예외 메시지를 그대로 출력하므로 "${msg2}"가 출력돼요.`,
+          hint: '핸들러의 e.message는 던진 예외의 메시지 그대로예요.'
+        };
+      }
+    },
+    {
+      id: 'contractsSmartCast',
+      title: 'contract로 커스텀 스마트캐스트 만들기',
+      ready: true,
+      summary: '내가 만든 함수도 스마트캐스트가 되도록 컴파일러에게 알려주는 contract 블록의 기본 사용법을 배워요.',
+      goals: ['contract 블록과 returns()/implies 조합 이해하기', '커스텀 null 검사 함수에서 스마트캐스트 되게 만들기', '@OptIn(ExperimentalContracts::class) 사용법'],
+      blocks: [
+        {
+          h: '왜 내가 만든 함수는 스마트캐스트가 안 될까요',
+          html: `<p>Kotlin은 <code>if (x != null)</code> 같은 검사 뒤에는 자동으로 스마트캐스트를 해주지만, 내가 만든 <code>fun isNotNull(x: Any?): Boolean</code> 같은 함수 안에서 null을 검사해도 컴파일러는 그 사실을 모르기 때문에, 호출하는 쪽에서는 스마트캐스트가 되지 않아요.</p>`,
+          code: {
+            label: 'no_contract.kt',
+            lang: 'kotlin',
+            src: `fun isNotNull(x: Any?): Boolean {
+    return x != null
+}
+
+fun printLength(x: String?) {
+    if (isNotNull(x)) {
+        // x는 여전히 String?로 취급되어 x.length는 컴파일 오류
+        println(x?.length)
+    }
+}
+
+fun main() {
+    printLength("안녕")
+}`,
+            out: `2`
+          }
+        },
+        {
+          h: 'contract로 컴파일러에게 알려주기',
+          html: `<p>함수 안에 <code>contract { returns(true) implies (x != null) }</code>를 써주면, "이 함수가 true를 반환했다면 x는 null이 아니다"라는 사실을 컴파일러에게 알려줄 수 있어요. 이 기능은 아직 실험적(Experimental)이라 <code>@OptIn(ExperimentalContracts::class)</code>가 필요해요.</p>`,
+          code: {
+            label: 'with_contract.kt',
+            lang: 'kotlin',
+            src: `import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
+
+@OptIn(ExperimentalContracts::class)
+fun isNotNull(x: Any?): Boolean {
+    contract {
+        returns(true) implies (x != null)
+    }
+    return x != null
+}
+
+@OptIn(ExperimentalContracts::class)
+fun printLength(x: String?) {
+    if (isNotNull(x)) {
+        println(x.length)
+    }
+}
+
+fun main() {
+    printLength("안녕하세요")
+}`,
+            out: `5`
+          },
+          after: `<div class="note"><b>정리</b> — contract는 함수의 반환값과 매개변수 상태(null 아님 등) 사이의 관계를 컴파일러에게 알려주는 선언이에요. requireNotNull이나 check 같은 표준 라이브러리 함수도 내부적으로 contract를 사용해서 스마트캐스트를 가능하게 만들어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `contract 블록에서 "이 함수가 true를 반환했다면 x는 null이 아니다"라는 뜻을 표현할 때는 <code>returns(true) ____ (x != null)</code> 형태를 써요. 빈칸에 들어갈 단어를 쓰세요.`,
+          prefix: 'returns(true) ', suffix: ' (x != null)', accept: ['implies'], placeholder: '단어',
+          why: '<code>implies</code>는 "~라면 ...이다"라는 뜻으로, 반환값과 조건 사이의 관계를 표현해요.',
+          hint: '"암시하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'contract 기능을 사용하려면 함수 위에 어떤 어노테이션을 붙여야 할까요?',
+          '@OptIn(ExperimentalContracts::class)', ['@JvmStatic', '@Suppress("UNCHECKED_CAST")', '@Deprecated'],
+          'contract는 아직 실험적 기능이라 @OptIn(ExperimentalContracts::class)로 명시적으로 동의해야 사용할 수 있어요.',
+          '실험적(Experimental) 기능임을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'contract 없이 만든 fun isNotNull(x: Any?): Boolean = x != null을 호출해 true를 확인해도, 그 함수 밖에서 x는 어떻게 취급될까요?',
+          '여전히 원래의 nullable 타입으로 취급되어 스마트캐스트가 되지 않는다', ['자동으로 non-null 타입으로 스마트캐스트된다', '컴파일 오류가 발생한다', 'x가 자동으로 String으로 변환된다'],
+          'contract가 없으면 컴파일러는 함수의 반환값과 매개변수 사이의 관계를 알 수 없어서, 스마트캐스트를 해주지 않아요.',
+          'contract 없이는 컴파일러가 "관계"를 알 방법이 없어요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `contract 블록 안에서 "이 함수가 반환한 값이 true일 때"를 표현하는 함수 이름을 쓰세요.`,
+          prefix: '', suffix: '(true) implies (x != null)', accept: ['returns'], placeholder: '함수 이름',
+          why: '<code>returns(true)</code>는 "이 함수가 true를 반환했다면"이라는 조건을 나타내요.',
+          hint: '"반환하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: 'x가 null이 아닐 때 true를 반환한다는 것을 나타내는 contract 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'contract { returns(true) implies (x != null) }',
+          accept: ['contract { returns(true) implies (x != null) }'],
+          why: 'contract { returns(true) implies (x != null) } 형태로, "true를 반환했다면 x는 null이 아니다"를 컴파일러에게 알려줘요.',
+          hint: 'contract { returns(true) implies (x != null) } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => ({
+        type: 'blank',
+        q: `contract 기능을 사용할 때 <code>@OptIn(____::class)</code> 형태로 동의해야 하는, 실험적 기능임을 표시하는 클래스 이름을 쓰세요.`,
+        prefix: '@OptIn(', suffix: '::class)', accept: ['ExperimentalContracts'], placeholder: '클래스 이름',
+        why: 'contract 관련 API는 아직 실험적이라 ExperimentalContracts에 대한 OptIn이 필요해요.',
+        hint: '"실험적인 계약(contract)"이라는 뜻의 이름이에요.'
+      })
+    },
+    {
+      id: 'propertyDelegatesStdlib',
+      title: '표준 위임 프로퍼티: observable과 vetoable',
+      ready: true,
+      summary: 'Delegates.observable과 Delegates.vetoable을 이용해, 값이 바뀔 때 자동으로 반응하거나 특정 변경을 거부하는 프로퍼티를 만드는 법을 배워요.',
+      goals: ['Delegates.observable로 값 변경 감지하기', 'Delegates.vetoable로 특정 변경 막기', '커스텀 getValue/setValue 없이 표준 위임 쓰는 이유'],
+      blocks: [
+        {
+          h: '값이 바뀔 때마다 알려주는 observable',
+          html: `<p><code>kotlin.properties.Delegates.observable(초기값) { property, old, new -> ... }</code>을 쓰면, 프로퍼티 값이 바뀔 때마다 그 변화를 콜백으로 자동으로 알려줘요. 매번 커스텀 setter를 직접 쓰지 않아도 돼요.</p>`,
+          code: {
+            label: 'observable_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlin.properties.Delegates
+
+class User {
+    var name: String by Delegates.observable("이름없음") { _, old, new ->
+        println("$old -> $new")
+    }
+}
+
+fun main() {
+    val user = User()
+    user.name = "지민"
+    user.name = "서연"
+}`,
+            out: `이름없음 -> 지민\n지민 -> 서연`
+          }
+        },
+        {
+          h: '특정 변경을 거부하는 vetoable',
+          html: `<p><code>Delegates.vetoable(초기값) { property, old, new -> 조건 }</code>은 콜백이 <code>true</code>를 반환할 때만 실제로 값을 바꾸고, <code>false</code>를 반환하면 변경을 거부(veto)하고 이전 값을 그대로 유지해요.</p>`,
+          code: {
+            label: 'vetoable_basic.kt',
+            lang: 'kotlin',
+            src: `import kotlin.properties.Delegates
+
+class Account {
+    var balance: Int by Delegates.vetoable(0) { _, old, new ->
+        new >= 0
+    }
+}
+
+fun main() {
+    val acc = Account()
+    acc.balance = 100
+    println(acc.balance)
+    acc.balance = -50
+    println(acc.balance)
+}`,
+            out: `100\n100`
+          },
+          after: `<div class="note"><b>정리</b> — observable은 항상 변경을 허용하면서 "알려만" 주고, vetoable은 콜백의 반환값에 따라 변경 자체를 "막을 수도" 있어요. 둘 다 by lazy처럼 kotlin.properties.Delegates가 미리 만들어둔 위임이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const a = pick(['민준', '지우', '하은', '도윤']);
+          return {
+            type: 'blank',
+            q: `<code>var name: String by Delegates.observable("이름없음") { _, old, new -> println("$old -> $new") }</code>이고 <code>user.name = "${a}"</code>를 실행하면 무엇이 출력될까요?`,
+            prefix: '', suffix: '', accept: [`이름없음 -> ${a}`], placeholder: '이전값 -> 새값',
+            why: `초기값 "이름없음"에서 "${a}"로 바뀌었으므로 "이름없음 -> ${a}"가 출력돼요.`,
+            hint: '콜백은 old -> new 형태로 출력해요.'
+          };
+        },
+        () => makeChoice(
+          'Delegates.vetoable의 콜백이 false를 반환하면 어떻게 될까요?',
+          '값 변경이 거부되고 이전 값이 그대로 유지된다', ['프로그램이 예외를 던지며 종료된다', '값이 강제로 null이 된다', '콜백이 다시 한 번 더 호출된다'],
+          'vetoable은 콜백이 false를 반환하면 "거부권(veto)"을 행사한 것으로 보고, 대입 자체를 무시하고 이전 값을 유지해요.',
+          '"거부하다(veto)"라는 이름 뜻 그대로예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `값이 바뀔 때마다 콜백으로 알려주기만 하고, 항상 변경을 허용하는 표준 위임 함수 이름을 쓰세요.`,
+          prefix: 'Delegates.', suffix: '(초기값) { _, old, new -> ... }', accept: ['observable'], placeholder: '함수 이름',
+          why: '<code>observable</code>은 값이 바뀔 때마다 콜백을 호출하지만, 변경 자체를 막지는 않아요.',
+          hint: '"관찰 가능한"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>Delegates.vetoable(0) { _, old, new -> new >= 0 }</code>로 만든 프로퍼티에 -10을 대입하면?',
+          '조건(new >= 0)이 false이므로 대입이 거부되고 값은 그대로 유지된다', ['값이 -10으로 바뀐다', '즉시 컴파일 오류가 발생한다', '값이 0으로 초기화된다'],
+          '-10은 new >= 0을 만족하지 못하므로 콜백이 false를 반환하고, vetoable은 이 변경을 거부해요.',
+          '조건을 만족하지 못하는 값은 거부돼요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'Delegates.observable(0) { _, old, new -> println("$old -> $new") }로 위임되는 count라는 Int 프로퍼티 선언(var)을 작성하세요.',
+          starter: '',
+          placeholder: 'var count: Int by Delegates.observable(0) { _, old, new -> println("$old -> $new") }',
+          accept: ['var count: Int by Delegates.observable(0) { _, old, new -> println("$old -> $new") }'],
+          why: 'var 프로퍼티명: 타입 by Delegates.observable(초기값) { ... } 형태로 선언해요.',
+          hint: 'var count: Int by Delegates.observable(0) { _, old, new -> println("$old -> $new") } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const first = randInt(10, 200);
+        return {
+          type: 'blank',
+          q: `<code>var balance: Int by Delegates.vetoable(0) { _, old, new -> new >= 0 }</code>이고, <code>acc.balance = ${first}</code> 다음 <code>acc.balance = -1</code>을 실행한 뒤 <code>println(acc.balance)</code>를 하면 무엇이 출력될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(first)], placeholder: '숫자',
+          why: `-1은 new >= 0 조건을 만족하지 못해 거부되므로, balance는 여전히 ${first}예요.`,
+          hint: '조건을 만족하지 못하는 변경은 거부되고 이전 값이 유지돼요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({

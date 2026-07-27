@@ -3102,7 +3102,2012 @@ public int maxHealth = 100;`
           hint: '슬라이더 자체가 [Range]로 정한 범위를 벗어날 수 없어요.'
         };
       }
-    }],
+    },
+    {
+      id: 'scriptableObjectEventChannel',
+      title: 'ScriptableObject 이벤트 채널',
+      ready: true,
+      summary: '스크립트끼리 서로 직접 참조하지 않고, ScriptableObject를 매개로 이벤트를 주고받는 느슨한 결합 구조를 배워요.',
+      goals: ['이벤트 채널 SO 만들기', '발행자·구독자 분리하기', 'null 조건부 연산자로 안전하게 Invoke하기'],
+      blocks: [
+        {
+          h: '문제: 스크립트끼리 서로 직접 참조하기',
+          html: `<p>플레이어가 죽었을 때 UI를 갱신하려고, <code>Player</code> 스크립트가 <code>UIManager</code>를 직접 찾아 참조하면 두 스크립트가 강하게 얽혀요(강한 결합). UI를 하나 더 추가하거나 UIManager 이름이 바뀌면 Player 코드까지 고쳐야 하는 문제가 생겨요.</p>`,
+          code: {
+            label: 'TightCoupling.cs',
+            lang: 'csharp',
+            src: `public class Player : MonoBehaviour
+{
+    void Die()
+    {
+        UIManager ui = FindObjectOfType<UIManager>();
+        ui.ShowGameOverScreen();
+    }
+}`
+          }
+        },
+        {
+          h: '해결: ScriptableObject를 이벤트 채널로 쓰기',
+          html: `<p><code>ScriptableObject</code>에 <code>event Action</code>을 하나 두고, 그걸 <b>애셋 파일</b>로 만들어 두면 여러 스크립트가 서로 몰라도 그 애셋만 공유해서 신호를 주고받을 수 있어요. Player는 "이벤트를 울리기만" 하고, UIManager는 "그 이벤트를 듣기만" 해요.</p>`,
+          code: {
+            label: 'GameEventChannel.cs',
+            lang: 'csharp',
+            src: `using UnityEngine;
+using System;
+
+[CreateAssetMenu(menuName = "Events/Game Event Channel")]
+public class GameEventChannel : ScriptableObject
+{
+    public event Action OnEventRaised;
+
+    public void Raise()
+    {
+        OnEventRaised?.Invoke();
+    }
+}`
+          }
+        },
+        {
+          h: '구독과 구독 해제: OnEnable / OnDisable',
+          html: `<p>이벤트 채널을 듣는 쪽은 <code>OnEnable()</code>에서 <code>+=</code>로 구독하고, <code>OnDisable()</code>에서 <code>-=</code>로 구독을 해제해요. 이렇게 짝을 맞추지 않으면 오브젝트가 사라진 뒤에도 구독이 남아 문제가 생길 수 있어요.</p>`,
+          code: {
+            label: 'UIManager.cs',
+            lang: 'csharp',
+            src: `public class UIManager : MonoBehaviour
+{
+    public GameEventChannel onPlayerDied;
+
+    void OnEnable()
+    {
+        onPlayerDied.OnEventRaised += ShowGameOverScreen;
+    }
+
+    void OnDisable()
+    {
+        onPlayerDied.OnEventRaised -= ShowGameOverScreen;
+    }
+
+    void ShowGameOverScreen()
+    {
+        Debug.Log("게임 오버 화면 표시");
+    }
+}`
+          },
+          after: `<div class="note"><b>정리</b> — Player와 UIManager는 서로의 클래스 이름조차 몰라요. 둘 다 같은 <code>GameEventChannel</code> 애셋을 참조할 뿐이라, 나중에 구독자를 늘리거나 줄여도 발행자 코드는 전혀 손댈 필요가 없어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>Raise()</code> 메서드에서, 구독자가 하나도 없어도(<code>OnEventRaised</code>가 null이어도) 에러 없이 안전하게 이벤트를 호출하는 코드를 완성하세요.`,
+          prefix: 'public void Raise() { OnEventRaised', suffix: '; }', accept: ['?.Invoke()'], placeholder: '?.Invoke()',
+          why: '<code>?.</code>(null 조건부 연산자)를 쓰면 OnEventRaised가 null이어도 예외 없이 그냥 아무 일도 일어나지 않아요.',
+          hint: '델리게이트가 null일 수도 있으니 물음표를 붙여서 안전하게 호출해요.'
+        }),
+        () => makeChoice(
+          'ScriptableObject 이벤트 채널 패턴에서 Player와 UIManager가 서로 직접 참조하지 않고도 통신할 수 있는 이유는?',
+          '둘 다 같은 이벤트 채널 SO 애셋을 공유해서 참조하기 때문에', ['UIManager가 Player를 상속받기 때문에', 'Player가 static 변수로 UIManager를 저장하기 때문에', 'Unity가 자동으로 모든 스크립트를 서로 연결해주기 때문에'],
+          '두 스크립트 모두 같은 GameEventChannel 애셋을 인스펙터에서 참조하고 있을 뿐, 서로의 존재는 몰라요.',
+          '"공통의 매개체를 통해 통신한다"는 게 이 패턴의 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `구독은 <code>OnEnable()</code>에서 <code>+=</code>로 하고, 구독 해제는 짝을 맞춰 <code>___()</code>에서 <code>-=</code>로 해야 안전해요.`,
+          prefix: '', suffix: '', accept: ['OnDisable'], placeholder: '메서드 이름',
+          why: 'OnEnable에서 구독하면, 그 오브젝트가 비활성화될 때 실행되는 OnDisable에서 구독을 해제하는 게 짝이 맞아요.',
+          hint: 'OnEnable의 반대 개념인, 꺼질 때 호출되는 메서드예요.'
+        }),
+        () => makeChoice(
+          '<code>GameEventChannel</code> 클래스 위의 <code>[CreateAssetMenu(...)]</code> 어트리뷰트의 역할은?',
+          '프로젝트 창의 Create 메뉴에서 이 ScriptableObject의 애셋 인스턴스를 만들 수 있게 해준다', ['이 클래스를 MonoBehaviour로 자동 변환한다', '이 이벤트를 씬이 바뀌어도 자동으로 초기화한다', '이 스크립트를 컴파일 순서상 가장 먼저 실행한다'],
+          '[CreateAssetMenu]를 붙이면 프로젝트 창에서 우클릭 → Create 메뉴로 이 SO의 애셋 파일을 만들 수 있어요.',
+          '"애셋 메뉴를 만든다(Create Asset Menu)"는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>OnEnable()</code>에서 <code>onPlayerDied</code> 채널의 <code>OnEventRaised</code>에 <code>ShowGameOverScreen</code> 메서드를 구독하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'void OnEnable()\n{\n    onPlayerDied.OnEventRaised += ShowGameOverScreen;\n}',
+          accept: ['void OnEnable()\n{\n    onPlayerDied.OnEventRaised += ShowGameOverScreen;\n}'],
+          why: 'OnEnable() 안에서 이벤트 채널의 OnEventRaised에 += 로 메서드를 구독해요.',
+          hint: 'void OnEnable() { } 안에 onPlayerDied.OnEventRaised += ShowGameOverScreen; 한 줄을 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(2, 5);
+        return {
+          type: 'blank',
+          q: `${n}개의 서로 다른 스크립트가 모두 같은 <code>onPlayerDied</code> 채널의 <code>OnEventRaised</code>에 구독했어요. <code>Raise()</code>를 한 번 호출하면, 몇 개의 메서드가 실행될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+          why: `구독한 ${n}개의 메서드가 모두 OnEventRaised에 연결되어 있으므로, Raise() 한 번으로 ${n}개 전부가 순서대로 호출돼요.`,
+          hint: 'event에 구독된 메서드는 Invoke() 한 번에 전부 순서대로 실행돼요.'
+        };
+      }
+    },
+    {
+      id: 'nestedCoroutines',
+      title: '중첩·연쇄 코루틴',
+      ready: true,
+      summary: '코루틴 안에서 다른 코루틴이 끝나길 기다렸다가 순서대로 이어지는 연출을 만드는 법을 배워요.',
+      goals: ['yield return StartCoroutine()', '코루틴 체이닝(연쇄)', '기다리지 않을 때 생기는 실수'],
+      blocks: [
+        {
+          h: '코루틴 안에서 코루틴 부르기',
+          html: `<p>코루틴 안에서 <code>yield return StartCoroutine(다른코루틴())</code>을 쓰면, 그 코루틴이 완전히 끝날 때까지 기다렸다가 다음 줄로 넘어가요. 이렇게 하면 여러 연출을 순서대로 이어붙일 수 있어요.</p>`,
+          code: {
+            label: 'DoorSequence.cs',
+            lang: 'csharp',
+            src: `IEnumerator OpenDoorSequence()
+{
+    yield return StartCoroutine(FadeOut());
+    Debug.Log("문 열림");
+    yield return StartCoroutine(FadeIn());
+    Debug.Log("연출 종료");
+}
+
+IEnumerator FadeOut()
+{
+    Debug.Log("페이드 아웃 시작");
+    yield return new WaitForSeconds(1f);
+    Debug.Log("페이드 아웃 끝");
+}
+
+IEnumerator FadeIn()
+{
+    Debug.Log("페이드 인 시작");
+    yield return new WaitForSeconds(1f);
+    Debug.Log("페이드 인 끝");
+}`,
+            out: `페이드 아웃 시작
+(1초 후) 페이드 아웃 끝
+문 열림
+페이드 인 시작
+(1초 후) 페이드 인 끝
+연출 종료`
+          }
+        },
+        {
+          h: '실수하기 쉬운 부분: yield return을 빼먹기',
+          html: `<p><code>yield return</code> 없이 그냥 <code>StartCoroutine(FadeOut());</code>만 쓰면, FadeOut이 끝나길 <b>기다리지 않고</b> 바로 다음 줄이 실행돼요. 그러면 FadeOut과 그다음 코드가 동시에 진행되어 의도한 순서가 깨져요.</p>`,
+          code: {
+            label: 'Mistake.cs',
+            lang: 'csharp',
+            src: `IEnumerator OpenDoorSequence()
+{
+    StartCoroutine(FadeOut()); // yield return이 없어서 기다리지 않음!
+    Debug.Log("문 열림"); // FadeOut이 끝나기도 전에 바로 실행됨
+}`
+          },
+          after: `<div class="note"><b>정리</b> — <code>yield return StartCoroutine(...)</code>은 "끝날 때까지 기다림", <code>StartCoroutine(...)</code>만 쓰면 "동시에 따로 실행"이라는 차이를 꼭 기억하세요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `코루틴 A 안에서 코루틴 B가 완전히 끝날 때까지 기다리려면 <code>yield return ___(B());</code>를 써야 해요.`,
+          prefix: '', suffix: '', accept: ['StartCoroutine'], placeholder: '메서드 이름',
+          why: 'yield return StartCoroutine(B())는 B가 끝날 때까지 기다렸다가 다음 줄로 넘어가요.',
+          hint: '코루틴을 시작할 때 쓰는 그 메서드예요.'
+        }),
+        () => makeChoice(
+          '<code>yield return StartCoroutine(FadeOut());</code> 대신 <code>yield return</code> 없이 <code>StartCoroutine(FadeOut());</code>만 쓰면?',
+          'FadeOut이 끝나길 기다리지 않고 바로 다음 줄이 실행된다', ['FadeOut이 두 번 실행된다', '컴파일 에러가 난다', 'FadeOut이 끝날 때까지 게임 전체가 멈춘다'],
+          'yield return이 없으면 그 코루틴을 "시작"만 시켜두고 기다리지 않아, 두 코루틴이 동시에 진행돼요.',
+          '"기다린다"는 뜻은 yield return에 담겨 있어요.'
+        ),
+        () => makeChoice(
+          '코루틴으로 쓰려는 메서드를 만들 때, 그 메서드가 가져야 하는 반환 타입은?',
+          '<code>IEnumerator</code>', ['<code>void</code>', '<code>Coroutine</code>', '<code>IEnumerable</code>'],
+          '코루틴 메서드는 IEnumerator를 반환해야 StartCoroutine으로 실행할 수 있어요.',
+          '"열거할 수 있는 것(Enumerator)"이라는 이름의 인터페이스예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>IEnumerator</code> 메서드를 실제로 코루틴으로 실행을 시작하려면 <code>___(메서드이름())</code> 형태로 호출해야 해요.`,
+          prefix: '', suffix: '', accept: ['StartCoroutine'], placeholder: '메서드 이름',
+          why: 'IEnumerator를 반환하는 메서드는 StartCoroutine(...)으로 감싸서 호출해야 코루틴으로 실행돼요.',
+          hint: '코루틴을 "시작"시키는 메서드 이름이에요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>OpenDoorSequence</code> 코루틴에서, <code>FadeOut()</code> 코루틴이 끝나길 기다린 뒤 <code>Debug.Log("문 열림");</code>을 실행하는 두 줄을 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'yield return StartCoroutine(FadeOut());\nDebug.Log("문 열림");',
+          accept: ['yield return StartCoroutine(FadeOut());\nDebug.Log("문 열림");'],
+          why: 'yield return StartCoroutine(FadeOut());으로 FadeOut이 끝나길 기다린 뒤에야 다음 줄이 실행돼요.',
+          hint: 'yield return StartCoroutine(...) 뒤에 Debug.Log를 이어서 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const wait1 = randInt(1, 3);
+        const wait2 = randInt(1, 3);
+        return {
+          type: 'blank',
+          q: `<code>yield return StartCoroutine(FadeOut());</code>이 ${wait1}초 걸리고, 그 뒤 <code>yield return StartCoroutine(FadeIn());</code>이 ${wait2}초 걸려요. "연출 종료"가 출력되기까지 총 몇 초가 걸릴까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(wait1 + wait2)], placeholder: '숫자',
+          why: `yield return으로 각 코루틴이 끝날 때까지 순서대로 기다리므로, 총 시간은 ${wait1} + ${wait2} = ${wait1 + wait2}초예요.`,
+          hint: 'yield return으로 이어진 코루틴은 순서대로(동시에 아니고) 실행돼서 시간이 더해져요.'
+        };
+      }
+    },
+    {
+      id: 'inputSystemBasics',
+      title: '새 Input System 기초',
+      ready: true,
+      summary: '기존 Input 클래스 대신, InputAction으로 여러 입력 기기를 하나의 행동으로 묶어 받는 새 Input System의 기본을 배워요.',
+      goals: ['InputAction과 콜백 구독', 'Enable()의 필요성', 'ReadValue로 연속값 읽기'],
+      blocks: [
+        {
+          h: '기존 방식과 다른 점',
+          html: `<p>기존 <code>Input.GetKeyDown</code>은 매 프레임 <code>Update()</code>에서 "눌렸나?"를 직접 확인(폴링)하는 방식이었어요. 새 Input System은 <code>InputAction</code>을 만들어두고, 입력이 들어오면 <b>이벤트(콜백)</b>로 알림을 받는 방식이에요. 키보드, 게임패드, 터치 등 여러 기기의 입력을 하나의 액션으로 묶을 수 있어요.</p>`,
+          code: {
+            label: 'PlayerInputSample.cs',
+            lang: 'csharp',
+            src: `using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class PlayerInputSample : MonoBehaviour
+{
+    public InputAction jumpAction;
+
+    void OnEnable()
+    {
+        jumpAction.Enable();
+        jumpAction.performed += OnJump;
+    }
+
+    void OnDisable()
+    {
+        jumpAction.performed -= OnJump;
+        jumpAction.Disable();
+    }
+
+    void OnJump(InputAction.CallbackContext context)
+    {
+        Debug.Log("점프!");
+    }
+}`
+          }
+        },
+        {
+          h: 'Enable()을 잊으면 생기는 일',
+          html: `<p><code>InputAction</code>은 기본적으로 <b>비활성화 상태</b>예요. <code>Enable()</code>을 호출하지 않으면 버튼을 아무리 눌러도 <code>performed</code> 콜백이 절대 실행되지 않아요. 반대로 필요 없어지면 <code>Disable()</code>로 꺼서 불필요한 입력 처리를 막을 수 있어요.</p>`
+        },
+        {
+          h: '연속적인 값 읽기: ReadValue',
+          html: `<p>이동처럼 "눌렸다/안 눌렸다"가 아니라 방향과 세기가 계속 필요한 입력은, <code>Update()</code>에서 <code>ReadValue&lt;T&gt;()</code>로 현재 값을 읽어요.</p>`,
+          code: {
+            label: 'MoveInput.cs',
+            lang: 'csharp',
+            src: `public InputAction moveAction;
+
+void Update()
+{
+    Vector2 move = moveAction.ReadValue<Vector2>();
+    transform.Translate(move.x, 0, move.y);
+}`
+          },
+          after: `<div class="note"><b>정리</b> — 순간적인 버튼 입력은 <code>performed</code> 이벤트 구독으로, 계속 이어지는 방향/세기 값은 <code>ReadValue&lt;T&gt;()</code>로 읽는 게 새 Input System의 기본 패턴이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `InputAction을 실제로 입력을 받을 수 있는 상태로 만들려면 <code>jumpAction.___();</code>을 호출해야 해요.`,
+          prefix: '', suffix: '', accept: ['Enable'], placeholder: '메서드 이름',
+          why: 'InputAction은 기본적으로 비활성화 상태라, Enable()을 호출해야 입력을 실제로 감지해요.',
+          hint: '"활성화하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '새 Input System에서, 특정 입력이 발생했을 때 실행할 함수를 등록하는 일반적인 방법은?',
+          '<code>jumpAction.performed += 콜백함수;</code>로 이벤트를 구독한다', ['Update()에서 매 프레임 if문으로 버튼 상태를 직접 확인해야만 한다', 'Awake()에 함수 이름을 문자열로 등록해야 한다', 'Unity가 자동으로 아무 함수나 호출해준다'],
+          'performed 이벤트에 콜백을 += 로 구독해두면, 그 입력이 발생할 때 Unity가 알아서 호출해줘요.',
+          '델리게이트/이벤트 구독 문법과 똑같은 방식이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `이동 입력처럼 계속 방향·세기 값을 읽고 싶을 때는 <code>moveAction.___&lt;Vector2&gt;()</code>를 써요.`,
+          prefix: '', suffix: '', accept: ['ReadValue'], placeholder: '메서드 이름',
+          why: 'ReadValue<T>()는 그 InputAction의 현재 값을 즉시 읽어와요(Vector2, float 등).',
+          hint: '"값을 읽는다"는 뜻 그대로의 이름이에요.'
+        }),
+        () => makeChoice(
+          'OnDisable()에서 <code>jumpAction.performed -= OnJump;</code>와 <code>jumpAction.Disable();</code>을 빼먹으면 생길 수 있는 문제는?',
+          '오브젝트가 비활성화되거나 사라져도 구독이 남아, 불필요한 호출이나 메모리 누수 위험이 생긴다', ['다음 프레임부터 게임이 강제 종료된다', 'jumpAction 자체가 자동으로 삭제된다', '아무 문제도 생기지 않으며 오히려 더 안전하다'],
+          '구독(+=)과 해제(-=)는 항상 짝을 맞춰야, 사라진 오브젝트의 메서드가 계속 호출되는 문제를 막을 수 있어요.',
+          'OnEnable에서 한 일은 OnDisable에서 반드시 되돌려야 해요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>OnEnable()</code>에서 <code>jumpAction</code>을 활성화(<code>Enable()</code>)하고, <code>performed</code>에 <code>OnJump</code>를 구독하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'void OnEnable()\n{\n    jumpAction.Enable();\n    jumpAction.performed += OnJump;\n}',
+          accept: ['void OnEnable()\n{\n    jumpAction.Enable();\n    jumpAction.performed += OnJump;\n}'],
+          why: 'Enable()로 입력 감지를 켜고, performed += OnJump로 콜백을 구독해요.',
+          hint: 'void OnEnable() { } 안에 Enable() 호출과 performed += OnJump; 를 순서대로 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const enabled = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `<code>jumpAction.performed += OnJump;</code>는 구독해뒀지만, <code>jumpAction.Enable();</code>은 ${enabled ? '호출했어요' : '호출하지 않았어요'}. 이 상태에서 점프 버튼을 누르면 OnJump가 호출될까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [enabled ? '예' : '아니오'], placeholder: '예 / 아니오',
+          why: enabled
+            ? 'Enable()로 활성화되어 있으므로, 구독해둔 performed 콜백이 정상적으로 호출돼요.'
+            : 'Enable()을 호출하지 않으면 InputAction이 비활성화 상태라 아무리 눌러도 콜백이 호출되지 않아요.',
+          hint: 'InputAction은 Enable() 전까지는 입력을 감지하지 않아요.'
+        };
+      }
+    },
+    {
+      id: 'navMeshBasics',
+      title: 'NavMesh 길찾기 기초',
+      ready: true,
+      summary: 'NavMeshAgent를 이용해 캐릭터가 장애물을 피해 목적지까지 자동으로 길을 찾아가게 만드는 법을 배워요.',
+      goals: ['NavMesh(내비게이션 메시)의 개념', 'SetDestination으로 이동시키기', 'remainingDistance로 도착 확인'],
+      blocks: [
+        {
+          h: 'NavMesh란?',
+          html: `<p><b>NavMesh(내비게이션 메시)</b>는 캐릭터가 걸어다닐 수 있는 바닥 영역을 미리 계산해둔 데이터예요. 에디터의 Navigation 창에서 바닥과 장애물을 지정하고 <b>Bake(굽기)</b>하면 NavMesh가 만들어져요. 이 위에서 <code>NavMeshAgent</code> 컴포넌트를 가진 오브젝트는 장애물을 자동으로 피해 길을 찾아가요.</p>`
+        },
+        {
+          h: '목적지로 이동시키기: SetDestination',
+          html: `<p><code>agent.SetDestination(목표위치)</code>를 호출하면, NavMeshAgent가 알아서 최단 경로를 계산해 장애물을 피해가며 이동시켜요. <code>transform.position</code>을 직접 바꾸는 것과 달리, 길찾기(pathfinding)가 자동으로 적용돼요.</p>`,
+          code: {
+            label: 'EnemyChaser.cs',
+            lang: 'csharp',
+            src: `using UnityEngine;
+using UnityEngine.AI;
+
+public class EnemyChaser : MonoBehaviour
+{
+    public NavMeshAgent agent;
+    public Transform target;
+
+    void Update()
+    {
+        agent.SetDestination(target.position);
+    }
+}`
+          }
+        },
+        {
+          h: '도착했는지 확인하기: remainingDistance',
+          html: `<p><code>agent.remainingDistance</code>는 목적지까지 남은 거리를 알려줘요. <code>agent.stoppingDistance</code>보다 남은 거리가 작아지면 "거의 도착했다"고 볼 수 있어요. <code>pathPending</code>은 경로 계산이 아직 끝나지 않았는지를 알려줘서, 계산 중일 때 잘못 판단하는 걸 막아줘요.</p>`,
+          code: {
+            label: 'ArrivalCheck.cs',
+            lang: 'csharp',
+            src: `if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+{
+    Debug.Log("도착!");
+}`
+          },
+          after: `<div class="note"><b>정리</b> — transform.position을 직접 다루던 이동과 달리, NavMeshAgent는 "목적지만 알려주면 알아서 길을 찾아가는" 방식이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `캐릭터를 목표 지점으로 자동 길찾기 이동시키려면 <code>agent.___(target.position);</code>을 호출해요.`,
+          prefix: '', suffix: '', accept: ['SetDestination'], placeholder: '메서드 이름',
+          why: 'SetDestination에 목표 좌표를 넘기면 NavMeshAgent가 경로를 계산해 이동시켜요.',
+          hint: '"목적지를 정한다"는 뜻의 영어 표현이에요.'
+        }),
+        () => makeChoice(
+          'NavMeshAgent를 쓰는 이동과 transform.position을 직접 바꾸는 이동의 차이는?',
+          'NavMeshAgent는 장애물을 피해 경로를 자동으로 계산해 이동한다', ['NavMeshAgent는 항상 순간이동만 한다', 'transform.position을 바꾸는 쪽이 장애물을 더 잘 피한다', '둘 다 완전히 똑같이 동작한다'],
+          'NavMeshAgent는 미리 구워둔 NavMesh 위에서 장애물을 피하는 경로를 스스로 계산해요.',
+          '"길찾기(pathfinding)"가 자동으로 되는지 여부가 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `목적지까지 남은 거리를 알려주는 NavMeshAgent의 프로퍼티는 agent.___ 예요.`,
+          prefix: '', suffix: '', accept: ['remainingDistance'], placeholder: '프로퍼티 이름',
+          why: 'remainingDistance는 현재 위치에서 목적지까지 남은 거리를 알려줘요.',
+          hint: '"남은(remaining) 거리(distance)"라는 뜻이에요.'
+        }),
+        () => makeChoice(
+          'NavMesh를 실제로 사용하려면 에디터에서 미리 해야 하는 작업은?',
+          '바닥/장애물을 표시하고 Navigation 창에서 Bake(굽기)해야 한다', ['스크립트로 NavMesh 데이터를 직접 계산해서 대입해야 한다', 'C# 코드만으로 충분하고 별도 설정이 필요 없다', '모든 오브젝트에 Rigidbody를 붙여야 한다'],
+          'NavMesh는 에디터에서 걸어다닐 영역을 지정하고 Bake해야 실제로 사용할 수 있는 데이터가 만들어져요.',
+          '"굽는다(Bake)"는 표현을 기억하세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Update()</code> 안에서 <code>agent.SetDestination(target.position);</code>을 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'void Update()\n{\n    agent.SetDestination(target.position);\n}',
+          accept: ['void Update()\n{\n    agent.SetDestination(target.position);\n}'],
+          why: '매 프레임 target의 최신 위치로 목적지를 갱신해서, 움직이는 대상도 계속 쫓아가게 해요.',
+          hint: 'void Update() { } 안에 agent.SetDestination(target.position); 한 줄을 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const remaining = randInt(1, 10);
+        const stopping = randInt(1, 5);
+        const arrived = remaining <= stopping;
+        return {
+          type: 'blank',
+          q: `<code>agent.pathPending</code>은 false이고, <code>agent.remainingDistance</code>는 ${remaining}, <code>agent.stoppingDistance</code>는 ${stopping}이에요. "도착!"이 출력될까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [arrived ? '예' : '아니오'], placeholder: '예 / 아니오',
+          why: arrived
+            ? `remainingDistance(${remaining})가 stoppingDistance(${stopping}) 이하이므로 도착 조건을 만족해요.`
+            : `remainingDistance(${remaining})가 stoppingDistance(${stopping})보다 커서 아직 도착 조건을 만족하지 않아요.`,
+          hint: 'remainingDistance가 stoppingDistance 이하인지 비교해보세요.'
+        };
+      }
+    },
+    {
+      id: 'layerMaskRaycast',
+      title: 'LayerMask로 레이캐스트 필터링',
+      ready: true,
+      summary: 'Physics.Raycast에 LayerMask를 지정해서, 원하는 레이어의 오브젝트만 골라 감지하는 법을 배워요.',
+      goals: ['LayerMask를 Raycast 인자로 넘기기', '1 << 연산으로 레이어 비트마스크 만들기', '~ 연산자로 특정 레이어 제외하기'],
+      blocks: [
+        {
+          h: '문제: 모든 레이어가 다 감지된다',
+          html: `<p>기본 <code>Physics.Raycast(origin, direction)</code>는 씬의 <b>모든 콜라이더</b>를 감지해요. 벽 뒤의 적을 맞히려는 총알이 UI용 콜라이더나 이펙트 콜라이더에 막히는 것처럼, 원치 않는 오브젝트까지 감지되는 문제가 생길 수 있어요.</p>`,
+          code: {
+            label: 'NoFilter.cs',
+            lang: 'csharp',
+            src: `if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, 100f))
+{
+    Debug.Log("뭔가에 맞음: " + hit.collider.name);
+}`
+          }
+        },
+        {
+          h: '해결: LayerMask로 원하는 레이어만 골라 감지하기',
+          html: `<p>인스펙터에서 지정한 <code>LayerMask</code> 변수를 <code>Physics.Raycast</code>의 마지막 인자로 넘기면, 그 레이어에 속한 콜라이더만 감지 대상이 돼요.</p>`,
+          code: {
+            label: 'LayerFilter.cs',
+            lang: 'csharp',
+            src: `public LayerMask enemyLayer;
+
+void Fire()
+{
+    if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, 100f, enemyLayer))
+    {
+        Debug.Log("적 명중: " + hit.collider.name);
+    }
+}`
+          }
+        },
+        {
+          h: '특정 레이어만 제외하기: ~ 연산자',
+          html: `<p><code>1 &lt;&lt; LayerMask.NameToLayer("UI")</code>는 "UI" 레이어 번호를 비트마스크로 바꿔요. 앞에 <code>~</code>(물결)를 붙이면 <b>그 레이어만 빼고 나머지 전부</b>를 의미하는 마스크로 반전돼요.</p>`,
+          code: {
+            label: 'ExcludeLayer.cs',
+            lang: 'csharp',
+            src: `int ignoreLayer = 1 << LayerMask.NameToLayer("UI");
+int mask = ~ignoreLayer;
+
+Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, 100f, mask);`
+          },
+          after: `<div class="note"><b>정리</b> — 특정 레이어"만" 감지하려면 그 레이어의 비트마스크를 그대로, 특정 레이어"만 제외"하려면 ~ 를 붙여 반전한 마스크를 Raycast에 넘겨요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>Physics.Raycast</code>에 특정 레이어만 감지 대상으로 넘길 때 쓰는 인자의 타입은 <code>___</code>예요.`,
+          prefix: '', suffix: '', accept: ['LayerMask'], placeholder: '타입 이름',
+          why: 'LayerMask 타입 변수를 Raycast의 마지막 인자로 넘기면 그 레이어만 감지해요.',
+          hint: '"레이어(layer)를 가리는 마스크(mask)"라는 뜻의 타입이에요.'
+        }),
+        () => makeChoice(
+          'LayerMask 인자 없이 <code>Physics.Raycast(origin, direction)</code>만 쓰면?',
+          '씬의 모든 레이어(콜라이더)가 감지 대상이 된다', ['아무 콜라이더도 감지하지 않는다', '기본적으로 Enemy 레이어만 감지한다', '컴파일 에러가 난다'],
+          'LayerMask를 지정하지 않으면 기본값이 모든 레이어를 포함하므로, 씬의 모든 콜라이더가 감지 대상이에요.',
+          '필터를 안 걸면 "전부 다"가 기본이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `레이어 번호를 비트마스크로 바꿀 때는 <code>1 ___ 레이어번호</code> 형태의 비트 시프트 연산을 써요.`,
+          prefix: '', suffix: '', accept: ['<<'], placeholder: '연산자',
+          why: '1 << n은 1을 왼쪽으로 n번 시프트해서, n번째 레이어를 나타내는 비트만 켜진 마스크를 만들어요.',
+          hint: '왼쪽으로 비트를 미는 연산자예요.'
+        }),
+        () => makeChoice(
+          '비트마스크 앞에 <code>~</code>(물결) 연산자를 붙이면?',
+          '그 레이어(들)만 빼고 나머지 전부를 의미하는 마스크로 반전된다', ['그 레이어의 값을 두 배로 늘린다', '그 마스크를 완전히 비워 아무 레이어도 없는 마스크로 만든다', '레이어 번호를 문자열로 바꾼다'],
+          '~ 연산자는 비트를 반전시켜서, 원래 마스크에 없던 레이어들만 남기는 마스크로 바꿔요.',
+          '"제외"는 반전(~)으로 표현해요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>enemyLayer</code>(LayerMask)만 감지하도록 <code>Physics.Raycast</code>를 호출하고, 맞았으면 <code>hit.collider.name</code>을 출력하는 <code>if</code>문을 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, 100f, enemyLayer))\n{\n    Debug.Log("적 명중: " + hit.collider.name);\n}',
+          accept: ['if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, 100f, enemyLayer))\n{\n    Debug.Log("적 명중: " + hit.collider.name);\n}'],
+          why: 'Raycast의 마지막 인자로 enemyLayer를 넘기면 그 레이어의 콜라이더만 감지해요.',
+          hint: 'Physics.Raycast(..., 100f, enemyLayer) 형태로 마지막 인자에 LayerMask를 넘기세요.'
+        }),
+      ],
+      boss: () => {
+        const layers = ['Enemy', 'Item', 'UI', 'Ground'];
+        const targetLayer = pick(layers);
+        const maskLayer = pick(layers);
+        const willHit = targetLayer === maskLayer;
+        return {
+          type: 'blank',
+          q: `총알이 <code>${maskLayer}</code> 레이어만 감지하는 LayerMask로 발사됐어요. 앞에 있는 오브젝트는 <code>${targetLayer}</code> 레이어예요. 레이캐스트가 이 오브젝트를 감지할까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [willHit ? '예' : '아니오'], placeholder: '예 / 아니오',
+          why: willHit
+            ? `LayerMask가 ${maskLayer} 레이어를 감지하도록 설정되어 있고, 오브젝트도 ${targetLayer}(=${maskLayer}) 레이어라 감지돼요.`
+            : `LayerMask는 ${maskLayer} 레이어만 감지하는데, 오브젝트는 ${targetLayer} 레이어라 감지되지 않아요.`,
+          hint: 'LayerMask에 지정된 레이어와 오브젝트의 레이어가 같은지 비교해보세요.'
+        };
+      }
+    },
+    {
+      id: 'animatorTransitionCode',
+      title: '코드로 애니메이터 상태 전이 제어',
+      ready: true,
+      summary: 'Animator의 파라미터를 코드에서 바꿔, 상태 머신의 전이(트랜지션)를 원하는 순간에 일으키는 법을 배워요.',
+      goals: ['SetTrigger/SetBool/SetFloat 구분', 'Animator 파라미터와 전이 조건', '현재 상태 확인하기'],
+      blocks: [
+        {
+          h: '애니메이터 파라미터로 전이 일으키기',
+          html: `<p>Animator 창에서 만든 상태들(Idle, Walk, Jump 등) 사이의 <b>전이(Transition)</b>는, 인스펙터에서 미리 정해둔 <b>파라미터 조건</b>이 맞을 때 자동으로 일어나요. 코드에서는 그 파라미터 값을 바꾸기만 하면 돼요.</p>`,
+          code: {
+            label: 'PlayerAnimator.cs',
+            lang: 'csharp',
+            src: `public Animator animator;
+
+void Update()
+{
+    float speed = Mathf.Abs(Input.GetAxis("Horizontal"));
+    animator.SetFloat("Speed", speed);
+
+    if (Input.GetButtonDown("Jump"))
+    {
+        animator.SetTrigger("Jump");
+    }
+}`
+          }
+        },
+        {
+          h: 'SetTrigger, SetBool, SetFloat의 차이',
+          html: `<p><code>SetTrigger</code>는 <b>한 번 신호를 보내면 자동으로 꺼지는</b> 파라미터라 "점프!"처럼 순간적인 전이에 알맞아요. <code>SetBool</code>은 true/false 값을 직접 유지해야 하는 상태(예: 달리는 중)에, <code>SetFloat</code>은 속도처럼 연속적인 값을 전달할 때 써요.</p>`,
+          code: {
+            label: 'ParamTypes.cs',
+            lang: 'csharp',
+            src: `animator.SetBool("IsRunning", true);   // 계속 유지되는 상태
+animator.SetTrigger("Jump");           // 한 번 쏘고 자동으로 꺼짐
+animator.SetFloat("Speed", 3.5f);      // 연속적인 값`
+          }
+        },
+        {
+          h: '현재 상태 확인하기',
+          html: `<p><code>animator.GetCurrentAnimatorStateInfo(0).IsName("Jump")</code>로, 특정 레이어(보통 0번)의 현재 상태 이름이 무엇인지 확인할 수 있어요. 착지 판정처럼 "지금 이 상태일 때만" 실행할 로직에 유용해요.</p>`,
+          code: {
+            label: 'StateCheck.cs',
+            lang: 'csharp',
+            src: `if (animator.GetCurrentAnimatorStateInfo(0).IsName("Jump"))
+{
+    Debug.Log("현재 점프 상태예요");
+}`
+          },
+          after: `<div class="note"><b>정리</b> — 애니메이션 자체는 Animator 창에서 시각적으로 설계하고, 코드는 그 전이를 일으키는 "파라미터"만 조작해요. 상태 이름을 직접 코드로 강제 전환하지 않는 게 기본 원칙이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `점프처럼 "한 번 신호를 보내면 자동으로 꺼지는" 순간적인 전이에 쓰는 파라미터 설정 메서드는 <code>animator.___("Jump");</code>예요.`,
+          prefix: '', suffix: '', accept: ['SetTrigger'], placeholder: '메서드 이름',
+          why: 'SetTrigger는 한 프레임 신호를 보낸 뒤 자동으로 다시 꺼지는 파라미터라 순간적인 전이에 알맞아요.',
+          hint: '"방아쇠를 당긴다"는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '달리는 중인지 아닌지처럼, 값을 계속 true/false로 유지해야 하는 상태에 알맞은 파라미터 타입은?',
+          'Bool', ['Trigger', 'Float', 'Int'],
+          'SetBool은 값이 스스로 꺼지지 않고, 명시적으로 바꾸기 전까지 계속 유지돼요.',
+          'Trigger는 자동으로 꺼지지만, 이 타입은 그렇지 않아요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `현재 0번 레이어의 애니메이터 상태 이름이 "Jump"인지 확인하려면 <code>animator.GetCurrentAnimatorStateInfo(0).___("Jump")</code>를 써요.`,
+          prefix: '', suffix: '', accept: ['IsName'], placeholder: '메서드 이름',
+          why: 'GetCurrentAnimatorStateInfo(레이어번호).IsName("상태이름")으로 현재 상태를 확인해요.',
+          hint: '"이름이 같은지(Is Name)"를 확인하는 메서드예요.'
+        }),
+        () => makeChoice(
+          '이동 속도처럼 연속적으로 변하는 값을 애니메이터에 전달할 때 쓰는 메서드는?',
+          '<code>animator.SetFloat("Speed", 값)</code>', ['<code>animator.SetTrigger("Speed")</code>', '<code>animator.SetBool("Speed", true)</code>', '<code>animator.SetInteger("Speed", 값)</code>'],
+          '연속적으로 변하는 실수 값은 SetFloat으로 전달해서, 블렌드 트리 등에서 부드럽게 반영할 수 있어요.',
+          '값이 정수가 아니라 소수점을 가지는 실수라는 점에 주목하세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Input.GetButtonDown("Jump")</code>가 true일 때 <code>animator.SetTrigger("Jump");</code>를 호출하는 <code>if</code>문을 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'if (Input.GetButtonDown("Jump"))\n{\n    animator.SetTrigger("Jump");\n}',
+          accept: ['if (Input.GetButtonDown("Jump"))\n{\n    animator.SetTrigger("Jump");\n}'],
+          why: '점프 버튼이 눌린 그 프레임에만 SetTrigger로 Jump 전이를 일으켜요.',
+          hint: 'if (Input.GetButtonDown("Jump")) { } 안에 animator.SetTrigger("Jump");를 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const stateName = pick(['Idle', 'Walk', 'Jump']);
+        const checkName = pick(['Idle', 'Walk', 'Jump']);
+        const matches = stateName === checkName;
+        return {
+          type: 'blank',
+          q: `현재 애니메이터의 상태 이름이 "${stateName}"이에요. <code>animator.GetCurrentAnimatorStateInfo(0).IsName("${checkName}")</code>의 결과는 true일까요, false일까요?`,
+          prefix: '', suffix: '', accept: [matches ? 'true' : 'false'], placeholder: 'true / false',
+          why: matches
+            ? `현재 상태 이름("${stateName}")과 확인하려는 이름("${checkName}")이 같아서 true예요.`
+            : `현재 상태 이름("${stateName}")과 확인하려는 이름("${checkName}")이 달라서 false예요.`,
+          hint: 'IsName은 현재 상태 이름과 괄호 안 문자열이 같은지 비교해요.'
+        };
+      }
+    },
+    {
+      id: 'canvasScalerAnchors',
+      title: 'Canvas Scaler와 앵커로 반응형 UI',
+      ready: true,
+      summary: '화면 크기가 달라져도 UI가 깨지지 않도록, Canvas Scaler와 RectTransform 앵커로 반응형 UI를 만드는 법을 배워요.',
+      goals: ['Scale With Screen Size 모드', 'Reference Resolution의 의미', '앵커(anchor)로 위치 기준 정하기'],
+      blocks: [
+        {
+          h: '문제: 화면 크기마다 UI 크기가 달라진다',
+          html: `<p>Canvas의 기본 렌더 모드는 픽셀 그대로 그리는 방식이라, 해상도가 다른 기기에서는 버튼이 너무 크거나 작게 보일 수 있어요. 이 문제를 해결하려면 <code>Canvas Scaler</code> 컴포넌트의 UI Scale Mode를 <b>Scale With Screen Size</b>로 설정해요.</p>`
+        },
+        {
+          h: '기준 해상도: Reference Resolution',
+          html: `<p><code>Reference Resolution</code>(예: 1920×1080)을 기준으로 잡아두면, 실제 화면 해상도가 달라져도 Unity가 비율을 계산해서 <b>UI 전체를 그 비율만큼 확대/축소</b>해줘요. 그래서 어떤 기기에서도 상대적인 크기 관계가 유지돼요.</p>`,
+          code: {
+            label: 'canvas_scaler_setting.txt',
+            lang: 'csharp',
+            src: `UI Scale Mode: Scale With Screen Size
+Reference Resolution: X=1920, Y=1080
+Match: 0.5 (너비와 높이 절반씩 반영)`
+          }
+        },
+        {
+          h: '앵커(anchor)로 위치 기준 정하기',
+          html: `<p><code>RectTransform</code>의 <b>앵커</b>는 부모(보통 Canvas)의 어느 모서리/구역을 기준으로 위치를 잡을지 정해요. 예를 들어 체력바를 화면 <b>좌측 상단</b>에 고정하려면 앵커를 좌측 상단(0, 1)으로 맞추면, 화면 크기가 바뀌어도 항상 좌측 상단에서의 거리(anchoredPosition)가 유지돼요.</p>`,
+          code: {
+            label: 'AnchorExample.cs',
+            lang: 'csharp',
+            src: `RectTransform rt = healthBarUI.GetComponent<RectTransform>();
+rt.anchorMin = new Vector2(0, 1);
+rt.anchorMax = new Vector2(0, 1);
+rt.anchoredPosition = new Vector2(20, -20);`
+          },
+          after: `<div class="note"><b>정리</b> — Canvas Scaler는 "전체 UI 크기"를 화면에 맞춰 조정하고, 앵커는 "각 UI 요소가 어디를 기준으로 붙어있을지"를 정해요. 두 개념을 함께 써야 다양한 화면 비율에서도 UI가 안 깨져요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `화면 해상도가 달라져도 UI 전체 크기를 비율에 맞춰 조정하려면, Canvas Scaler의 UI Scale Mode를 "Scale With ___ Size"로 설정해요.`,
+          prefix: '', suffix: '', accept: ['Screen'], placeholder: '영어 단어',
+          why: '"Scale With Screen Size" 모드는 화면 해상도에 비례해 UI 전체를 확대/축소해요.',
+          hint: '"화면"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'Canvas Scaler의 Reference Resolution의 역할은?',
+          'UI 크기를 계산할 때 기준으로 삼을 해상도를 정한다', ['게임이 실행될 최대 해상도를 강제로 고정한다', '카메라의 시야각(FOV)을 설정한다', '텍스트의 폰트 크기를 자동으로 정한다'],
+          'Reference Resolution을 기준으로, 실제 화면 해상도와의 비율을 계산해 UI를 확대/축소해요.',
+          '"기준이 되는 해상도"라는 뜻 그대로예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `UI 요소가 부모의 어느 모서리/구역을 기준으로 위치를 잡을지 정하는 RectTransform의 개념은 ___ 예요.`,
+          prefix: '', suffix: '', accept: ['앵커', 'anchor'], placeholder: '한글 또는 영어',
+          why: '앵커(anchor)는 UI가 부모 영역의 어느 지점을 기준으로 붙어있을지를 정해요.',
+          hint: '"닻"이라는 뜻의 영어 단어를 그대로 쓰기도 해요.'
+        }),
+        () => makeChoice(
+          '체력바를 화면 좌측 상단에 고정하고 싶을 때, RectTransform의 앵커를 어디로 맞추는 게 알맞을까요?',
+          '좌측 상단 (0, 1)', ['중앙 (0.5, 0.5)', '우측 하단 (1, 0)', '앵커는 UI 위치와 관련이 없다'],
+          '앵커를 좌측 상단(0, 1)으로 맞추면, 화면 크기가 바뀌어도 항상 좌측 상단 기준으로 거리가 유지돼요.',
+          '앵커 값은 (x, y) 모두 0~1 사이의 비율로, (0,1)은 좌측 상단을 뜻해요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>healthBarUI</code>의 RectTransform을 가져와서, 앵커를 좌측 상단(<code>Vector2(0, 1)</code>)의 anchorMin/anchorMax로 설정하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'RectTransform rt = healthBarUI.GetComponent<RectTransform>();\nrt.anchorMin = new Vector2(0, 1);\nrt.anchorMax = new Vector2(0, 1);',
+          accept: ['RectTransform rt = healthBarUI.GetComponent<RectTransform>();\nrt.anchorMin = new Vector2(0, 1);\nrt.anchorMax = new Vector2(0, 1);'],
+          why: 'GetComponent<RectTransform>()으로 가져온 뒤, anchorMin/anchorMax를 (0, 1)로 맞추면 좌측 상단 앵커가 돼요.',
+          hint: 'GetComponent<RectTransform>()으로 rt를 가져온 뒤 anchorMin, anchorMax를 순서대로 설정하세요.'
+        }),
+      ],
+      boss: () => {
+        const anchor = pick([['좌측 상단', '(0, 1)'], ['우측 상단', '(1, 1)'], ['중앙', '(0.5, 0.5)'], ['좌측 하단', '(0, 0)']]);
+        return {
+          type: 'blank',
+          q: `체력바를 화면 ${anchor[0]}에 고정하고 싶어요. anchorMin과 anchorMax에 넣어야 할 Vector2 값을 괄호 형태 그대로 쓰세요. (예: (0, 1))`,
+          prefix: '', suffix: '', accept: [anchor[1]], placeholder: '(x, y)',
+          why: `화면 ${anchor[0]}에 고정하려면 앵커 값을 ${anchor[1]}로 맞춰야 해요.`,
+          hint: '앵커 값은 (x, y) 모두 0 또는 1(또는 0.5)의 조합으로 표현돼요.'
+        };
+      }
+    },
+    {
+      id: 'jsonSaveLoad',
+      title: 'JSON 저장/불러오기 시스템',
+      ready: true,
+      summary: 'JsonUtility로 게임 데이터를 JSON 문자열로 바꿔 파일에 저장하고, 다시 불러오는 세이브 시스템을 배워요.',
+      goals: ['[Serializable] 클래스 설계', 'JsonUtility.ToJson/FromJson', 'File.WriteAllText/ReadAllText로 파일 다루기'],
+      blocks: [
+        {
+          h: '저장할 데이터 설계하기: [Serializable]',
+          html: `<p>저장하고 싶은 데이터를 담는 일반 클래스에 <code>[Serializable]</code>을 붙이면, <code>JsonUtility</code>가 그 안의 public 필드들을 JSON으로 바꿀 수 있어요. MonoBehaviour가 아니어도 되고, 순수 데이터만 담아요.</p>`,
+          code: {
+            label: 'SaveData.cs',
+            lang: 'csharp',
+            src: `[System.Serializable]
+public class SaveData
+{
+    public string playerName;
+    public int level;
+    public float playTime;
+}`
+          }
+        },
+        {
+          h: 'JSON으로 바꾸고 파일에 쓰기',
+          html: `<p><code>JsonUtility.ToJson(객체)</code>는 객체를 JSON 문자열로 바꿔줘요. 이 문자열을 <code>File.WriteAllText(경로, 내용)</code>으로 파일에 저장하면 세이브 파일이 완성돼요. 저장 경로는 보통 <code>Application.persistentDataPath</code>를 써요(기기마다 안전하게 쓸 수 있는 폴더).</p>`,
+          code: {
+            label: 'SaveSystem.cs',
+            lang: 'csharp',
+            src: `public void Save(SaveData data)
+{
+    string json = JsonUtility.ToJson(data);
+    string path = Application.persistentDataPath + "/save.json";
+    File.WriteAllText(path, json);
+}`
+          }
+        },
+        {
+          h: '파일에서 다시 읽어와 객체로 되돌리기',
+          html: `<p>저장할 때와 반대로, <code>File.ReadAllText(경로)</code>로 JSON 문자열을 읽고 <code>JsonUtility.FromJson&lt;SaveData&gt;(json)</code>으로 다시 객체로 바꿔요. 파일이 없을 수도 있으니 <code>File.Exists</code>로 먼저 확인하는 게 안전해요.</p>`,
+          code: {
+            label: 'LoadSystem.cs',
+            lang: 'csharp',
+            src: `public SaveData Load()
+{
+    string path = Application.persistentDataPath + "/save.json";
+    if (!File.Exists(path)) return null;
+
+    string json = File.ReadAllText(path);
+    return JsonUtility.FromJson<SaveData>(json);
+}`
+          },
+          after: `<div class="note"><b>정리</b> — "데이터 클래스 설계 → ToJson으로 문자열화 → 파일에 쓰기"가 저장, "파일 읽기 → FromJson으로 객체화"가 불러오기예요. PlayerPrefs보다 구조화된 여러 값을 한 번에 저장할 때 알맞아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `일반 데이터 클래스를 JsonUtility로 변환 가능하게 만들려면 클래스 위에 <code>[System.___]</code>를 붙여야 해요.`,
+          prefix: '', suffix: '', accept: ['Serializable'], placeholder: '어트리뷰트 이름',
+          why: '[System.Serializable]을 붙여야 JsonUtility가 그 클래스의 필드를 JSON으로 바꿀 수 있어요.',
+          hint: '"직렬화 가능한"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '객체를 JSON 문자열로 바꾸는 JsonUtility의 메서드는?',
+          '<code>JsonUtility.ToJson(객체)</code>', ['<code>JsonUtility.Serialize(객체)</code>', '<code>JsonUtility.Convert(객체)</code>', '<code>JsonUtility.Stringify(객체)</code>'],
+          'JsonUtility.ToJson(객체)는 [Serializable] 클래스의 인스턴스를 JSON 문자열로 바꿔줘요.',
+          '"JSON으로(To Json)"라는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `JSON 문자열을 다시 <code>SaveData</code> 객체로 되돌리려면 <code>JsonUtility.___&lt;SaveData&gt;(json)</code>을 써요.`,
+          prefix: '', suffix: '', accept: ['FromJson'], placeholder: '메서드 이름',
+          why: 'JsonUtility.FromJson<T>(json)은 JSON 문자열을 T 타입 객체로 되돌려줘요.',
+          hint: '"JSON으로부터(From Json)"라는 이름 그대로예요.'
+        }),
+        () => makeChoice(
+          '세이브 파일을 저장할 폴더 경로로 흔히 쓰이는, 기기마다 안전하게 쓸 수 있는 경로는?',
+          '<code>Application.persistentDataPath</code>', ['<code>Application.dataPath</code>', '<code>Application.streamingAssetsPath</code>', '<code>Application.temporaryCachePath</code>'],
+          'persistentDataPath는 앱을 지우지 않는 한 유지되는, 저장 데이터 전용 경로예요.',
+          '"영구적인(persistent) 데이터 경로"라는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>path</code>에 저장된 JSON 파일이 있는지 <code>File.Exists</code>로 확인하고, 없으면 <code>null</code>을 반환하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'if (!File.Exists(path))\n{\n    return null;\n}',
+          accept: ['if (!File.Exists(path))\n{\n    return null;\n}'],
+          why: 'File.Exists(path)가 false면 저장된 파일이 없다는 뜻이므로, 안전하게 null을 반환해요.',
+          hint: 'if (!File.Exists(path)) { return null; } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const fileExists = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `세이브 파일이 저장 경로에 ${fileExists ? '있어요' : '없어요'}. <code>Load()</code>를 호출하면 <code>null</code>이 반환될까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [fileExists ? '아니오' : '예'], placeholder: '예 / 아니오',
+          why: fileExists
+            ? 'File.Exists가 true이므로 JSON을 정상적으로 읽어 SaveData 객체를 반환해요(null이 아니에요).'
+            : 'File.Exists가 false이므로 File.Exists 체크에서 곧바로 null을 반환해요.',
+          hint: '파일이 없을 때 File.Exists 체크가 어떤 값을 반환하는지 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'genericSingletonBase',
+      title: '제네릭 싱글턴 베이스 클래스',
+      ready: true,
+      summary: '매번 싱글턴 코드를 반복해서 쓰지 않도록, 제네릭을 이용한 재사용 가능한 싱글턴 베이스 클래스를 만드는 법을 배워요.',
+      goals: ['제네릭 베이스 클래스 설계', ': MonoBehaviour where T : ...', '상속만으로 싱글턴 얻기'],
+      blocks: [
+        {
+          h: '문제: 싱글턴 코드를 매번 복사-붙여넣기',
+          html: `<p>GameManager, SoundManager, UIManager마다 <code>public static X Instance</code>와 <code>Awake()</code> 코드를 매번 똑같이 반복해서 쓰면 실수하기 쉽고 코드가 지저분해져요. 이 반복되는 패턴을 <b>제네릭 베이스 클래스</b> 하나로 뽑아낼 수 있어요.</p>`
+        },
+        {
+          h: '해결: Singleton&lt;T&gt; 베이스 클래스',
+          html: `<p><code>where T : MonoBehaviour</code> 제약을 건 제네릭 클래스를 만들고, 그 안에서 <code>static T Instance</code>와 <code>Awake()</code>를 한 번만 작성해요. 이제 다른 매니저들은 이 클래스를 상속만 받으면 싱글턴 기능을 그대로 얻어요.</p>`,
+          code: {
+            label: 'Singleton.cs',
+            lang: 'csharp',
+            src: `public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
+{
+    public static T Instance { get; private set; }
+
+    protected virtual void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this as T;
+    }
+}`
+          }
+        },
+        {
+          h: '상속만으로 싱글턴 완성하기',
+          html: `<p>실제 매니저 클래스는 <code>Singleton&lt;GameManager&gt;</code>를 상속받기만 하면 <code>GameManager.Instance</code>로 바로 접근할 수 있어요. 자기만의 초기화가 필요하면 <code>Awake()</code>를 <code>override</code>하고 <code>base.Awake()</code>를 호출해요.</p>`,
+          code: {
+            label: 'GameManager.cs',
+            lang: 'csharp',
+            src: `public class GameManager : Singleton<GameManager>
+{
+    protected override void Awake()
+    {
+        base.Awake();
+        Debug.Log("GameManager 초기화 완료");
+    }
+}`
+          },
+          after: `<div class="note"><b>정리</b> — 제네릭 베이스 클래스로 반복되는 싱글턴 코드를 한 곳에 모으면, 새 매니저를 추가할 때마다 <code>: Singleton&lt;클래스이름&gt;</code>만 쓰면 돼서 실수와 중복이 크게 줄어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>Singleton&lt;T&gt;</code> 클래스를 선언할 때, T가 MonoBehaviour여야 한다는 제약을 걸려면 <code>class Singleton&lt;T&gt; : MonoBehaviour ___ T : MonoBehaviour</code>라고 써요.`,
+          prefix: '', suffix: '', accept: ['where'], placeholder: '키워드',
+          why: 'where T : MonoBehaviour는 제네릭 타입 T가 MonoBehaviour(또는 그 자식)여야 한다는 제약이에요.',
+          hint: '제네릭 제약을 걸 때 쓰는 영어 단어예요("~인 경우에 한해").'
+        }),
+        () => makeChoice(
+          'GameManager가 <code>Singleton&lt;GameManager&gt;</code>를 상속받으면 얻는 가장 큰 이점은?',
+          'static Instance와 중복 방지 로직을 다시 작성하지 않아도 된다', ['자동으로 모든 필드가 public이 된다', 'Update()가 두 배 빠르게 실행된다', '다른 씬으로 넘어갈 때 자동으로 파괴된다'],
+          '싱글턴 패턴에 필요한 반복 코드가 베이스 클래스에 모여있어, 상속만으로 그 기능을 재사용해요.',
+          '"매번 복사-붙여넣기 하지 않아도 된다"가 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `자식 클래스에서 <code>Awake()</code>를 재정의하면서 부모의 초기화 로직도 실행하고 싶다면 <code>___.Awake();</code>를 호출해야 해요.`,
+          prefix: '', suffix: '', accept: ['base'], placeholder: '키워드',
+          why: 'base.Awake()를 호출해야 Singleton<T>의 Instance 설정 로직이 함께 실행돼요.',
+          hint: '부모 클래스를 가리키는 키워드예요.'
+        }),
+        () => makeChoice(
+          '자식 클래스에서 Awake()를 override하면서 <code>base.Awake();</code>를 호출하지 않으면?',
+          'Singleton<T>의 Instance 설정 로직이 실행되지 않아 Instance가 null로 남을 수 있다', ['컴파일 에러가 발생한다', 'Awake()가 두 번 호출된다', '아무 문제 없이 오히려 더 빠르게 동작한다'],
+          'override한 Awake()는 부모의 코드를 자동으로 실행해주지 않으므로, base.Awake()를 명시적으로 호출해야 해요.',
+          'override는 부모의 동작을 "대체"하는 것이지, 자동으로 이어붙여주지 않아요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Singleton&lt;T&gt;</code>의 <code>Awake()</code>에서, <code>Instance</code>가 이미 있고 자기 자신이 아니면 <code>Destroy(gameObject)</code> 후 <code>return</code>하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'if (Instance != null && Instance != this)\n{\n    Destroy(gameObject);\n    return;\n}',
+          accept: ['if (Instance != null && Instance != this)\n{\n    Destroy(gameObject);\n    return;\n}'],
+          why: '이미 다른 Instance가 존재하면 중복 오브젝트를 파괴해서 싱글턴이 하나만 유지되게 해요.',
+          hint: 'if (Instance != null && Instance != this) { Destroy(gameObject); return; } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const alreadyExists = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `씬에 GameManager 오브젝트가 이미 하나 있고 <code>Instance</code>가 그걸 가리키고 있어요. 이 상태에서 두 번째 GameManager 오브젝트가 <code>Awake()</code>를 실행하면, 두 번째 오브젝트는 파괴될까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: ['예'], placeholder: '예 / 아니오',
+          why: 'Instance != null && Instance != this 조건이 참이 되어(자기 자신이 아닌 기존 Instance가 있으므로), 새로 생긴 오브젝트는 Destroy(gameObject)로 파괴돼요.',
+          hint: '이미 Instance가 있고, this가 그 Instance와 다르면 어떤 코드가 실행되는지 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'genericObjectPoolClass',
+      title: '제네릭 오브젝트 풀 클래스',
+      ready: true,
+      summary: '어떤 컴포넌트 타입이든 재사용할 수 있는, 제네릭 기반의 범용 오브젝트 풀 클래스를 만드는 법을 배워요.',
+      goals: ['제네릭 Pool<T> 설계', 'Queue<T>로 재사용 목록 관리', 'Get/Release 패턴'],
+      blocks: [
+        {
+          h: '문제: 총알 전용 풀은 다른 곳에 못 쓴다',
+          html: `<p>이전에 만든 오브젝트 풀은 <code>GameObject</code> 전용이라, 이펙트나 적 오브젝트마다 비슷한 풀 코드를 또 만들어야 해요. <b>제네릭</b>을 쓰면 타입에 상관없이 재사용 가능한 풀을 딱 한 번만 만들 수 있어요.</p>`
+        },
+        {
+          h: '해결: 제네릭 ObjectPool&lt;T&gt;',
+          html: `<p><code>where T : Component</code> 제약을 걸어, 어떤 컴포넌트든 담을 수 있는 풀을 만들어요. 안에서는 <code>Queue&lt;T&gt;</code>로 "지금 쉬고 있는" 오브젝트 목록을 관리해요.</p>`,
+          code: {
+            label: 'ObjectPool.cs',
+            lang: 'csharp',
+            src: `public class ObjectPool<T> where T : Component
+{
+    readonly Queue<T> pool = new Queue<T>();
+    readonly T prefab;
+
+    public ObjectPool(T prefab)
+    {
+        this.prefab = prefab;
+    }
+
+    public T Get()
+    {
+        if (pool.Count > 0)
+        {
+            T item = pool.Dequeue();
+            item.gameObject.SetActive(true);
+            return item;
+        }
+        return Object.Instantiate(prefab);
+    }
+
+    public void Release(T item)
+    {
+        item.gameObject.SetActive(false);
+        pool.Enqueue(item);
+    }
+}`
+          }
+        },
+        {
+          h: '사용하는 쪽 코드',
+          html: `<p>총알용 풀도, 이펙트용 풀도 같은 클래스로 만들 수 있어요. 타입만 바꿔서 선언하면 돼요.</p>`,
+          code: {
+            label: 'BulletSpawner.cs',
+            lang: 'csharp',
+            src: `ObjectPool<Bullet> bulletPool = new ObjectPool<Bullet>(bulletPrefab);
+
+void Fire()
+{
+    Bullet bullet = bulletPool.Get();
+    bullet.transform.position = firePoint.position;
+}`
+          },
+          after: `<div class="note"><b>정리</b> — Queue&lt;T&gt;는 "먼저 반납한 걸 먼저 재사용"하는 자연스러운 순서를 줘요. 제네릭 덕분에 Bullet이든 Enemy든, Component만 상속받으면 같은 풀 클래스를 그대로 재사용할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>ObjectPool&lt;T&gt;</code>가 Component를 상속받은 타입만 담을 수 있게 제약을 걸려면 <code>class ObjectPool&lt;T&gt; ___ T : Component</code>라고 써요.`,
+          prefix: '', suffix: '', accept: ['where'], placeholder: '키워드',
+          why: 'where T : Component는 제네릭 타입 T가 Component(또는 그 자식)여야 한다는 제약이에요.',
+          hint: '제네릭 제약을 걸 때 쓰는 그 키워드예요.'
+        }),
+        () => makeChoice(
+          '이 풀 클래스 안에서 "쉬고 있는" 오브젝트 목록을 관리하는 데 <code>Queue&lt;T&gt;</code>를 쓰는 이유로 알맞은 것은?',
+          '먼저 반납된 오브젝트를 먼저 꺼내 쓰는 순서(선입선출)를 자연스럽게 관리할 수 있어서', ['Queue가 List보다 항상 메모리를 적게 써서', 'Queue만 제네릭을 지원해서', 'Queue에 담긴 순서를 무작위로 섞을 수 있어서'],
+          'Queue는 선입선출(FIFO) 구조라, 반납한 순서대로 자연스럽게 재사용 순서를 관리할 수 있어요.',
+          '"줄을 서는 구조"라는 의미의 자료구조예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `풀에서 오브젝트를 꺼내 쓸 때 호출하는 메서드는 <code>bulletPool.___();</code>예요.`,
+          prefix: '', suffix: '', accept: ['Get'], placeholder: '메서드 이름',
+          why: 'Get()은 풀에 남는 오브젝트가 있으면 재사용하고, 없으면 새로 Instantiate해서 반환해요.',
+          hint: '"가져온다"는 뜻의 짧은 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>Release(T item)</code> 메서드가 하는 일로 알맞은 것은?',
+          '아이템을 SetActive(false)로 끄고 Queue에 다시 넣어 재사용 대기 상태로 만든다', ['아이템을 즉시 Destroy한다', '아이템을 새로운 씬으로 옮긴다', '아이템의 위치를 원점(0,0,0)으로 강제 이동시킨다'],
+          'Release는 다 쓴 오브젝트를 꺼서 큐에 다시 넣어, 다음에 Get()으로 재사용할 수 있게 해요.',
+          '"반납한다"는 뜻의 이름이에요. Destroy가 아니에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Get()</code> 메서드에서, 풀(<code>pool</code>)에 남은 게 있으면 <code>Dequeue()</code>해서 활성화(<code>SetActive(true)</code>) 후 반환하는 코드를 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'if (pool.Count > 0)\n{\n    T item = pool.Dequeue();\n    item.gameObject.SetActive(true);\n    return item;\n}',
+          accept: ['if (pool.Count > 0)\n{\n    T item = pool.Dequeue();\n    item.gameObject.SetActive(true);\n    return item;\n}'],
+          why: 'pool.Count > 0이면 재사용할 오브젝트가 있다는 뜻이므로, Dequeue로 꺼내 활성화하고 반환해요.',
+          hint: 'if (pool.Count > 0) { ... } 안에 Dequeue, SetActive(true), return을 순서대로 넣으세요.'
+        }),
+      ],
+      boss: () => {
+        const count = randInt(0, 5);
+        const willInstantiate = count === 0;
+        return {
+          type: 'blank',
+          q: `<code>pool</code>(Queue)에 재사용 가능한 오브젝트가 ${count}개 남아있어요. 이 상태에서 <code>Get()</code>을 호출하면 새로 <code>Instantiate</code>가 일어날까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [willInstantiate ? '예' : '아니오'], placeholder: '예 / 아니오',
+          why: willInstantiate
+            ? 'pool.Count가 0이라 재사용할 오브젝트가 없으므로 새로 Instantiate해요.'
+            : `pool.Count가 ${count}(0보다 큼)라서 Dequeue로 기존 오브젝트를 재사용해요.`,
+          hint: 'pool.Count가 0인지 아닌지에 따라 Get()의 동작이 갈려요.'
+        };
+      }
+    },
+    {
+      id: 'customEditorInspector',
+      title: '커스텀 에디터로 인스펙터 확장하기',
+      ready: true,
+      summary: '[CustomEditor]와 OnInspectorGUI로 인스펙터에 나만의 버튼과 UI를 추가하는 법을 배워요.',
+      goals: ['[CustomEditor]로 에디터 스크립트 연결하기', 'OnInspectorGUI로 인스펙터 화면 그리기', 'DrawDefaultInspector와 GUILayout.Button 활용'],
+      blocks: [
+        {
+          h: '에디터 스크립트는 Editor 폴더에',
+          html: `<p>인스펙터를 커스터마이징하는 코드는 일반 스크립트와 달리 프로젝트 안의 <code>Editor</code>라는 이름의 폴더 안에 넣어야 해요. <code>Editor</code>를 상속받고 <code>[CustomEditor(typeof(대상타입))]</code>을 붙이면, 그 타입의 인스펙터를 대신 그려줄 수 있어요.</p>`,
+          code: {
+            label: 'EnemyEditor.cs',
+            lang: 'csharp',
+            src: `using UnityEditor;
+
+[CustomEditor(typeof(Enemy))]
+public class EnemyEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+    }
+}`
+          }
+        },
+        {
+          h: '버튼 추가하기: GUILayout.Button',
+          html: `<p><code>OnInspectorGUI</code> 안에 <code>GUILayout.Button("텍스트")</code>을 쓰면 인스펙터에 버튼이 생겨요. 이 버튼을 누른 프레임에만 <code>true</code>를 반환하므로, <code>if</code>문으로 감싸 원하는 동작을 실행할 수 있어요. <code>target</code>을 실제 타입으로 캐스팅하면 그 컴포넌트의 필드/메서드에 접근할 수 있어요.</p>`,
+          code: {
+            label: 'EnemyEditor.cs',
+            lang: 'csharp',
+            src: `using UnityEditor;
+using UnityEngine;
+
+[CustomEditor(typeof(Enemy))]
+public class EnemyEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+
+        Enemy enemy = (Enemy)target;
+        if (GUILayout.Button("체력 회복 테스트"))
+        {
+            enemy.Heal(50);
+        }
+    }
+}`
+          },
+          after: `<div class="note"><b>정리</b> — DrawDefaultInspector()로 원래 필드들은 그대로 보여주고, 그 아래에 버튼 같은 나만의 UI를 추가할 수 있어요. 에디터 스크립트는 빌드에는 포함되지 않고 에디터 안에서만 동작해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `커스텀 에디터 스크립트는 프로젝트 안의 <code>___</code>라는 이름의 폴더에 넣어야 해요.`,
+          prefix: '', suffix: '', accept: ['Editor'], placeholder: '폴더 이름',
+          why: 'Editor 폴더 안에 있어야 Unity가 그 스크립트를 에디터 전용 코드로 인식해서 빌드에서 제외해요.',
+          hint: '"편집기"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>[CustomEditor(typeof(Enemy))]</code>의 역할로 알맞은 것은?',
+          '이 클래스가 Enemy 컴포넌트의 인스펙터를 대신 그리는 커스텀 에디터임을 지정한다', ['Enemy 클래스에 새로운 필드를 추가한다', 'Enemy 오브젝트를 자동으로 생성한다', 'Enemy 스크립트를 빌드에서 제외한다'],
+          '[CustomEditor(typeof(대상))]은 이 Editor 클래스가 어떤 컴포넌트의 인스펙터를 대신 그릴지 연결해줘요.',
+          '"이 타입의 커스텀 에디터다"라고 선언하는 어트리뷰트예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>OnInspectorGUI</code> 안에서 원래 필드들을 그대로(기본 모습대로) 보여주고 싶을 때 <code>___();</code>을 호출해요.`,
+          prefix: '', suffix: '', accept: ['DrawDefaultInspector'], placeholder: '메서드 이름',
+          why: 'DrawDefaultInspector()는 커스터마이징 없이 기본 인스펙터 필드들을 그대로 그려줘요.',
+          hint: '"기본(default) 인스펙터를 그린다(draw)"는 뜻의 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>Enemy enemy = (Enemy)target;</code>에서 <code>target</code>을 캐스팅하는 이유는?',
+          'target은 기본적으로 Object 타입이라, Enemy의 필드나 메서드에 접근하려면 실제 타입으로 캐스팅해야 해서', ['캐스팅하지 않으면 컴파일 에러가 나지 않아서', 'target은 항상 GameObject 타입이라서', '캐스팅을 하면 인스펙터가 더 빨리 그려져서'],
+          'Editor의 target 프로퍼티는 Object 타입이라, Enemy 고유의 멤버에 접근하려면 (Enemy)로 캐스팅해야 해요.',
+          'target의 선언된 타입과 실제 필요한 타입이 달라서 캐스팅이 필요해요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>OnInspectorGUI</code> 안에서, "체력 회복 테스트" 버튼을 눌렀을 때 <code>enemy.Heal(50);</code>을 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'if (GUILayout.Button("체력 회복 테스트"))\n{\n    enemy.Heal(50);\n}',
+          accept: ['if (GUILayout.Button("체력 회복 테스트"))\n{\n    enemy.Heal(50);\n}'],
+          why: 'GUILayout.Button("텍스트")은 버튼을 그리고, 눌린 프레임에만 true를 반환해요.',
+          hint: 'if (GUILayout.Button("체력 회복 테스트")) { enemy.Heal(50); } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const pressed = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `인스펙터에서 "체력 회복 테스트" 버튼을 ${pressed ? '눌렀어요' : '누르지 않았어요'}. 이번 프레임에 <code>enemy.Heal(50);</code>이 호출될까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [pressed ? '예' : '아니오'], placeholder: '예 / 아니오',
+          why: pressed
+            ? 'GUILayout.Button이 눌린 프레임에는 true를 반환하므로 if문 안의 Heal(50)이 호출돼요.'
+            : '버튼을 누르지 않았으면 GUILayout.Button이 false를 반환하므로 if문 안의 코드는 실행되지 않아요.',
+          hint: 'GUILayout.Button은 눌린 그 프레임에만 true를 반환해요.'
+        };
+      }
+    },
+    {
+      id: 'gizmosDebugDraw',
+      title: 'Gizmos로 디버그 시각화하기',
+      ready: true,
+      summary: 'OnDrawGizmos와 OnDrawGizmosSelected로 씬 뷰에만 보이는 디버그용 도형을 그리는 법을 배워요.',
+      goals: ['OnDrawGizmos로 항상 보이는 디버그 도형 그리기', 'OnDrawGizmosSelected로 선택 시에만 표시하기', 'Gizmos.color와 DrawWireSphere/DrawLine 활용'],
+      blocks: [
+        {
+          h: '항상 보이는 디버그 도형: OnDrawGizmos',
+          html: `<p><code>OnDrawGizmos()</code>는 씬 뷰에서 매 프레임 호출되는 특수 메서드예요. 감지 범위처럼 눈에 안 보이는 값을 시각적으로 확인하고 싶을 때 유용해요. 씬 뷰(에디터)에서만 보이고, 실제 빌드된 게임 화면에는 나타나지 않아요.</p>`,
+          code: {
+            label: 'EnemyDetector.cs',
+            lang: 'csharp',
+            src: `public class EnemyDetector : MonoBehaviour
+{
+    public float detectRange = 5f;
+
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, detectRange);
+    }
+}`
+          }
+        },
+        {
+          h: '선택했을 때만 보이기: OnDrawGizmosSelected',
+          html: `<p>도형이 너무 많으면 씬 뷰가 복잡해 보일 수 있어요. <code>OnDrawGizmosSelected()</code>는 하이어라키에서 그 오브젝트를 선택했을 때만 그려져서, 필요할 때만 확인할 수 있어요.</p>`,
+          code: {
+            label: 'EnemyDetector.cs',
+            lang: 'csharp',
+            src: `void OnDrawGizmosSelected()
+{
+    Gizmos.color = Color.yellow;
+    Gizmos.DrawLine(transform.position, transform.position + transform.forward * 3f);
+}`
+          },
+          after: `<div class="note"><b>정리</b> — Gizmos.DrawWireSphere는 반지름을 눈으로 확인할 때, Gizmos.DrawLine은 방향/거리를 확인할 때 유용해요. 실제 감지 로직(Physics.OverlapSphere 등)을 짜기 전에 범위가 맞는지 시각적으로 먼저 확인하는 용도로 자주 써요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `씬 뷰에서 항상 디버그 도형을 그리려면 <code>___()</code>라는 이름의 메서드를 만들어야 해요.`,
+          prefix: '', suffix: '', accept: ['OnDrawGizmos'], placeholder: '메서드 이름',
+          why: 'OnDrawGizmos()는 씬 뷰에서 매 프레임 자동으로 호출되는 Unity 메시지예요.',
+          hint: '"기즈모를 그린다"는 뜻의 메서드 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>OnDrawGizmosSelected()</code>와 <code>OnDrawGizmos()</code>의 차이로 알맞은 것은?',
+          'OnDrawGizmosSelected는 그 오브젝트가 하이어라키에서 선택되었을 때만 그려진다', ['OnDrawGizmosSelected는 빌드된 게임 화면에서도 보인다', 'OnDrawGizmos는 선택된 오브젝트에서만 동작한다', '둘 다 완전히 동일하게 동작한다'],
+          'OnDrawGizmosSelected는 선택 시에만, OnDrawGizmos는 항상 씬 뷰에 그려져요.',
+          '이름의 "Selected"가 힌트예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `중심점과 반지름으로 철사 형태의 구를 그리는 메서드는 <code>Gizmos.___(중심, 반지름);</code>이에요.`,
+          prefix: '', suffix: '', accept: ['DrawWireSphere'], placeholder: '메서드 이름',
+          why: 'Gizmos.DrawWireSphere(중심, 반지름)은 채워지지 않은 철사 형태의 구를 씬 뷰에 그려요.',
+          hint: '"철사(wire) 구(sphere)를 그린다(draw)"는 뜻의 이름이에요.'
+        }),
+        () => makeChoice(
+          'Gizmos로 그린 도형이 실제로 빌드된 게임(플레이어 실행 파일) 화면에도 보일까요?',
+          '보이지 않는다. 에디터의 씬 뷰에서만 보이는 디버그용이다', ['보인다. 게임 화면에도 항상 나타난다', '빌드 설정에서 체크하면 게임 화면에도 보인다', 'Gizmos는 게임 화면 전용이라 씬 뷰에서는 안 보인다'],
+          'Gizmos는 에디터 전용 디버그 도구라, 빌드된 실제 게임 화면에는 나타나지 않아요.',
+          '개발할 때만 보는 "보조선" 같은 개념이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>OnDrawGizmos()</code> 안에서, 색을 빨간색으로 설정하고 <code>detectRange</code>를 반지름으로 하는 철사 구를 그리는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'Gizmos.color = Color.red;\nGizmos.DrawWireSphere(transform.position, detectRange);',
+          accept: ['Gizmos.color = Color.red;\nGizmos.DrawWireSphere(transform.position, detectRange);'],
+          why: 'Gizmos.color로 색을 정한 뒤 DrawWireSphere로 반지름 detectRange의 구를 그려요.',
+          hint: 'Gizmos.color = Color.red; 다음 줄에 Gizmos.DrawWireSphere(transform.position, detectRange);를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const selected = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `<code>OnDrawGizmosSelected()</code>만 구현되어 있어요. 이 오브젝트가 하이어라키에서 ${selected ? '선택된' : '선택되지 않은'} 상태예요. 씬 뷰에 노란 선이 보일까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [selected ? '예' : '아니오'], placeholder: '예 / 아니오',
+          why: selected
+            ? 'OnDrawGizmosSelected는 오브젝트가 선택된 상태일 때 씬 뷰에 그려져요.'
+            : 'OnDrawGizmosSelected는 선택되지 않은 상태에서는 그려지지 않아요.',
+          hint: 'OnDrawGizmosSelected는 이름 그대로 "선택됐을 때만" 그려져요.'
+        };
+      }
+    },
+    {
+      id: 'linqComponentQueries',
+      title: 'LINQ로 컴포넌트 컬렉션 쿼리하기',
+      ready: true,
+      summary: 'GetComponentsInChildren로 모은 컴포넌트 배열을 LINQ의 OrderBy, FirstOrDefault, Sum, Count로 다루는 법을 배워요.',
+      goals: ['GetComponentsInChildren로 여러 컴포넌트 가져오기', 'OrderBy/FirstOrDefault로 조건에 맞는 것 찾기', 'Sum/Count로 집계하기'],
+      blocks: [
+        {
+          h: '여러 자식 컴포넌트 한 번에 가져오기',
+          html: `<p><code>GetComponentsInChildren&lt;T&gt;()</code>로 자식들에 붙은 컴포넌트를 배열로 한 번에 가져올 수 있어요. 여기에 <code>using System.Linq;</code>를 추가하면, <code>OrderBy</code>로 정렬하고 <code>FirstOrDefault</code>로 조건에 맞는 첫 번째 것을 뽑아낼 수 있어요.</p>`,
+          code: {
+            label: 'EnemyQuery.cs',
+            lang: 'csharp',
+            src: `using System.Linq;
+
+Enemy[] enemies = GetComponentsInChildren<Enemy>();
+Enemy weakest = enemies.OrderBy(e => e.health).FirstOrDefault();`
+          }
+        },
+        {
+          h: '조건에 맞는 것 찾기: Where + OrderBy',
+          html: `<p><code>Where(조건)</code>으로 먼저 걸러내고, 그 결과를 <code>OrderBy</code>로 정렬한 뒤 <code>FirstOrDefault</code>로 첫 번째만 뽑는 식으로 조건을 이어 붙일 수 있어요. 예를 들어 "보스 중에서 가장 가까운 것"을 한 줄로 찾을 수 있어요.</p>`,
+          code: {
+            label: 'EnemyQuery.cs',
+            lang: 'csharp',
+            src: `Enemy nearestBoss = enemies
+    .Where(e => e.isBoss)
+    .OrderBy(e => Vector3.Distance(transform.position, e.transform.position))
+    .FirstOrDefault();`
+          }
+        },
+        {
+          h: '집계하기: Sum과 Count',
+          html: `<p><code>Sum(e =&gt; e.health)</code>은 모든 요소의 health 값을 더하고, <code>Count(조건)</code>은 조건에 맞는 개수만 세요. 반복문 없이 한 줄로 통계를 낼 수 있어요.</p>`,
+          code: {
+            label: 'EnemyQuery.cs',
+            lang: 'csharp',
+            src: `int totalHealth = enemies.Sum(e => e.health);
+int aliveCount = enemies.Count(e => e.health > 0);`
+          },
+          after: `<div class="note"><b>정리</b> — Where(조건) → OrderBy(기준) → FirstOrDefault()로 이어 붙이면 "조건에 맞으면서 기준으로 정렬했을 때 첫 번째"를 한 줄로 표현할 수 있어요. 다만 Update()처럼 매 프레임 실행되는 곳에서 큰 배열에 LINQ를 자주 쓰면 성능에 영향을 줄 수 있으니 주의하세요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `배열을 특정 값 기준으로 오름차순 정렬하는 LINQ 메서드는 <code>___(e => e.health)</code>예요.`,
+          prefix: '', suffix: '', accept: ['OrderBy'], placeholder: '메서드 이름',
+          why: 'OrderBy(키 선택 함수)는 그 값을 기준으로 오름차순 정렬한 결과를 만들어요.',
+          hint: '"순서(order)대로(by) 정렬한다"는 뜻의 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>enemies.Where(e => e.isBoss).FirstOrDefault();</code>에서 조건에 맞는 요소가 하나도 없으면 반환되는 값은?',
+          'null(참조 타입 기본값)', ['컴파일 에러가 발생한다', '배열의 첫 번째 요소를 그대로 반환한다', '0(정수 기본값)이 항상 반환된다'],
+          'FirstOrDefault()는 조건에 맞는 요소가 없으면 그 타입의 기본값(참조 타입은 null)을 반환해요.',
+          '"Or Default"라는 이름처럼, 없으면 기본값을 줘요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `배열에서 조건에 맞는 요소의 개수만 세고 싶을 때 <code>enemies.___(e => e.health > 0)</code>을 써요.`,
+          prefix: '', suffix: '', accept: ['Count'], placeholder: '메서드 이름',
+          why: 'Count(조건)은 조건을 만족하는 요소의 개수를 세어 반환해요.',
+          hint: '"개수를 센다"는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>enemies.Sum(e => e.health)</code>이 하는 일로 알맞은 것은?',
+          '배열의 모든 요소의 health 값을 더한 합계를 구한다', ['배열 요소의 개수를 센다', 'health가 가장 큰 요소 하나를 반환한다', 'health 값을 모두 0으로 초기화한다'],
+          'Sum(값 선택 함수)은 모든 요소에서 그 값을 뽑아 전부 더한 합계를 반환해요.',
+          '"합계(sum)"라는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>enemies</code> 배열에서 <code>isBoss</code>가 true인 것만 걸러 첫 번째(없으면 null)를 가져오는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'Enemy boss = enemies.Where(e => e.isBoss).FirstOrDefault();',
+          accept: ['Enemy boss = enemies.Where(e => e.isBoss).FirstOrDefault();'],
+          why: 'Where로 조건에 맞는 것만 남긴 뒤 FirstOrDefault로 첫 번째(없으면 null)를 가져와요.',
+          hint: 'enemies.Where(e => e.isBoss).FirstOrDefault(); 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const healths = [randInt(1, 50), 0, randInt(1, 50), 0];
+        const aliveCount = healths.filter(h => h > 0).length;
+        return {
+          type: 'blank',
+          q: `<code>enemies</code> 4마리의 health가 각각 [${healths.join(', ')}]예요. <code>enemies.Count(e => e.health > 0)</code>의 결과는 몇일까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(aliveCount)], placeholder: '숫자',
+          why: `health가 0보다 큰 요소는 [${healths.join(', ')}] 중 ${aliveCount}개예요.`,
+          hint: 'health > 0인 요소가 몇 개인지 하나씩 세어보세요.'
+        };
+      }
+    },
+    {
+      id: 'eventsVsUnityEvent',
+      title: 'C# event와 UnityEvent 비교',
+      ready: true,
+      summary: '코드로만 구독하는 C# event와, 인스펙터에서 연결할 수 있는 UnityEvent의 차이와 각각의 쓰임새를 배워요.',
+      goals: ['UnityEvent를 인스펙터에서 연결하기', 'C# event와 UnityEvent의 장단점 비교', '상황에 맞는 선택 기준'],
+      blocks: [
+        {
+          h: '인스펙터에서 연결 가능한 UnityEvent',
+          html: `<p><code>public UnityEvent</code> 필드는 인스펙터에 목록으로 나타나서, 코드를 몰라도 오브젝트와 함수를 드래그로 연결할 수 있어요. 버튼의 OnClick()과 같은 방식이에요.</p>`,
+          code: {
+            label: 'Door.cs',
+            lang: 'csharp',
+            src: `using UnityEngine.Events;
+
+public class Door : MonoBehaviour
+{
+    public UnityEvent onOpened;
+
+    public void Open()
+    {
+        Debug.Log("문이 열렸어요");
+        onOpened.Invoke();
+    }
+}`
+          }
+        },
+        {
+          h: 'C# event는 코드에서만',
+          html: `<p><code>event</code> 키워드는 인스펙터에 노출되지 않고, 오직 코드에서 <code>+=</code>로만 구독할 수 있어요. 리플렉션 없이 컴파일 타임에 타입이 확정되어 UnityEvent보다 빠르고, 클래스 밖에서 함부로 Invoke하거나 통째로 덮어쓰는 것도 막아줘요.</p>`,
+          code: {
+            label: 'Door2.cs',
+            lang: 'csharp',
+            src: `public class Door2 : MonoBehaviour
+{
+    public event System.Action onOpened;
+
+    public void Open()
+    {
+        Debug.Log("문이 열렸어요");
+        onOpened?.Invoke();
+    }
+}`
+          },
+          after: `<div class="note"><b>정리</b> — 디자이너가 코드 없이 인스펙터에서 반응을 연결해야 하면 UnityEvent, 코드끼리만 통신하고 성능/타입 안전성이 중요하면 C# event가 알맞아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `인스펙터 창에서 드래그로 오브젝트와 함수를 연결할 수 있는 이벤트 타입은 <code>___</code>예요.`,
+          prefix: '', suffix: '', accept: ['UnityEvent'], placeholder: '타입 이름',
+          why: 'UnityEvent는 인스펙터에 노출되어, 코드 없이도 함수를 드래그로 연결할 수 있어요.',
+          hint: 'Button의 OnClick()에 쓰이는 그 타입이에요.'
+        }),
+        () => makeChoice(
+          'UnityEvent와 C# event의 가장 큰 차이로 알맞은 것은?',
+          'UnityEvent는 인스펙터에서 코드 없이 연결할 수 있지만, event는 오직 코드에서만 구독할 수 있다', ['UnityEvent는 Invoke할 수 없다', 'event는 인스펙터에서만 구독할 수 있다', '둘은 완전히 동일하게 동작한다'],
+          'UnityEvent는 인스펙터 연결이 강점이고, event는 코드 전용이라 더 빠르고 타입 안전해요.',
+          '"인스펙터에서 보이는지"가 핵심 차이예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>onOpened</code>가 UnityEvent든 event든, 등록된 함수들을 실행할 때는 공통적으로 <code>___()</code>를 호출해요.`,
+          prefix: '', suffix: '', accept: ['Invoke'], placeholder: '메서드 이름',
+          why: 'UnityEvent와 event(delegate) 둘 다 Invoke()로 등록된 함수들을 실행해요.',
+          hint: '"호출한다"는 뜻의 메서드예요.'
+        }),
+        () => makeChoice(
+          '디자이너가 코드를 몰라도, 문이 열릴 때 실행할 함수를 인스펙터에서 자유롭게 바꾸고 싶다면 어떤 방식이 더 알맞을까요?',
+          'UnityEvent를 필드로 노출하고 인스펙터에서 연결한다', ['C# event를 쓰고 코드를 직접 수정하게 한다', 'delegate 없이 하드코딩한다', '아무 방식이나 상관없다'],
+          'UnityEvent는 인스펙터에서 시각적으로 연결할 수 있어 비개발자도 다룰 수 있어요.',
+          '"인스펙터에서 드래그로 연결"이 가능한 쪽을 골라야 해요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Door</code> 클래스에 인스펙터에서 연결 가능한 <code>onOpened</code> UnityEvent 필드를 선언하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'public UnityEvent onOpened;',
+          accept: ['public UnityEvent onOpened;'],
+          why: 'public UnityEvent 필드는 인스펙터에 목록 UI로 나타나 함수를 연결할 수 있어요.',
+          hint: 'public UnityEvent onOpened; 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const needsInspectorWiring = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `이 기능은 ${needsInspectorWiring ? '디자이너가 인스펙터에서 반응을 자유롭게 바꿔야' : '코드끼리만 통신하고 성능이 중요해야'} 해요. UnityEvent와 event 중 더 알맞은 것은?`,
+          prefix: '', suffix: '', accept: [needsInspectorWiring ? 'UnityEvent' : 'event'], placeholder: 'UnityEvent 또는 event',
+          why: needsInspectorWiring
+            ? '인스펙터에서 연결해야 하는 상황에는 UnityEvent가 알맞아요.'
+            : '코드 전용이고 성능/타입 안전성이 중요하면 C# event가 알맞아요.',
+          hint: '"인스펙터에서 보여야 하는지"를 기준으로 생각해보세요.'
+        };
+      }
+    },
+    {
+      id: 'eventUnsubscribeMemoryLeak',
+      title: '이벤트 구독 해제와 메모리 누수 방지',
+      ready: true,
+      summary: 'OnDisable에서 -=로 이벤트 구독을 해제하지 않으면 생기는 메모리 누수와 오류를 막는 법을 배워요.',
+      goals: ['+=로 구독한 이벤트는 -=로 해제하기', 'OnEnable/OnDisable 짝 맞추기', '구독 해제를 안 하면 생기는 문제'],
+      blocks: [
+        {
+          h: '문제: 구독 해제를 안 하면?',
+          html: `<p>정적(static)이거나 오래 사는 객체의 이벤트에 <code>+=</code>로 구독만 하고 해제하지 않으면, 그 이벤트가 이미 파괴된 오브젝트의 함수 참조를 계속 붙들고 있어요. 나중에 이벤트가 Invoke되면 <b>파괴된 오브젝트의 메서드를 호출</b>하려다 오류가 나거나, 가비지 컬렉터가 그 오브젝트를 정리하지 못해 메모리 누수가 생겨요.</p>`,
+          code: {
+            label: 'UIHealthBar.cs',
+            lang: 'csharp',
+            src: `public class UIHealthBar : MonoBehaviour
+{
+    void OnEnable()
+    {
+        GameManager.onGameOver += ShowGameOverUI;
+    }
+
+    void ShowGameOverUI()
+    {
+        Debug.Log("게임 오버 UI 표시");
+    }
+}`
+          }
+        },
+        {
+          h: '해결: OnDisable에서 -=로 해제하기',
+          html: `<p><code>OnEnable</code>에서 구독했다면, 짝을 맞춰 <code>OnDisable</code>에서 <code>-=</code>로 해제해요. 이렇게 하면 오브젝트가 비활성화되거나 파괴될 때 이벤트가 더 이상 이 오브젝트를 참조하지 않아요.</p>`,
+          code: {
+            label: 'UIHealthBar.cs',
+            lang: 'csharp',
+            src: `public class UIHealthBar : MonoBehaviour
+{
+    void OnEnable()
+    {
+        GameManager.onGameOver += ShowGameOverUI;
+    }
+
+    void OnDisable()
+    {
+        GameManager.onGameOver -= ShowGameOverUI;
+    }
+
+    void ShowGameOverUI()
+    {
+        Debug.Log("게임 오버 UI 표시");
+    }
+}`
+          },
+          after: `<div class="note"><b>정리</b> — "OnEnable에서 구독, OnDisable에서 해제"를 짝으로 맞추는 습관을 들이면, 오브젝트가 사라져도 이벤트가 계속 붙들고 있는 메모리 누수와 MissingReferenceException을 예방할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>+=</code>로 구독한 이벤트를 더 이상 필요 없을 때 해제하는 연산자는 <code>___</code>예요.`,
+          prefix: '', suffix: '', accept: ['-='], placeholder: '연산자',
+          why: '+=로 구독했다면 -=로 해제해서 짝을 맞춰야 해요.',
+          hint: '구독(+=)의 반대 동작이에요.'
+        }),
+        () => makeChoice(
+          '<code>OnDisable</code>에서 구독 해제를 하지 않으면 생길 수 있는 문제는?',
+          '파괴된 오브젝트를 이벤트가 계속 참조해 메모리 누수나 오류가 날 수 있다', ['프로그램이 더 빨라진다', 'Unity가 자동으로 구독을 해제해줘서 아무 문제 없다', '컴파일이 안 된다'],
+          '해제하지 않으면 이벤트가 죽은 오브젝트의 참조를 계속 들고 있어 메모리 누수와 오류의 원인이 돼요.',
+          '가비지 컬렉터가 정리하지 못하는 이유를 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `보통 <code>OnEnable</code>에서 구독하면, 해제는 <code>___()</code>에서 짝을 맞추는 게 안전해요.`,
+          prefix: '', suffix: '', accept: ['OnDisable'], placeholder: '메서드 이름',
+          why: 'OnEnable과 OnDisable은 활성화/비활성화될 때마다 짝으로 호출되어, 구독/해제를 맞추기 좋아요.',
+          hint: 'OnEnable의 반대 타이밍에 호출되는 메서드예요.'
+        }),
+        () => makeChoice(
+          '구독 해제를 안 한 상태에서 오브젝트가 파괴된 뒤 이벤트가 Invoke되면 흔히 어떤 문제가 생기나요?',
+          'MissingReferenceException처럼 이미 파괴된 오브젝트에 접근하려다 오류가 날 수 있다', ['항상 아무 문제 없이 정상 동작한다', '이벤트가 자동으로 구독자를 정리해서 문제 없다', '컴파일 에러가 발생한다'],
+          '파괴된 오브젝트의 메서드를 호출하려다 MissingReferenceException 같은 런타임 오류가 날 수 있어요.',
+          '파괴된 오브젝트에 접근하려는 상황을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>OnDisable()</code> 안에서 <code>GameManager.onGameOver</code> 구독을 해제하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'void OnDisable()\n{\n    GameManager.onGameOver -= ShowGameOverUI;\n}',
+          accept: ['void OnDisable()\n{\n    GameManager.onGameOver -= ShowGameOverUI;\n}'],
+          why: 'OnDisable 안에서 -=로 구독을 해제해 OnEnable에서의 구독과 짝을 맞춰요.',
+          hint: 'void OnDisable() { GameManager.onGameOver -= ShowGameOverUI; } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const hasUnsubscribe = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `<code>UIHealthBar</code>에 <code>OnDisable</code>에서의 구독 해제 코드가 ${hasUnsubscribe ? '있어요' : '없어요'}. 이 오브젝트가 파괴된 뒤 <code>GameManager.onGameOver</code>가 Invoke되면, 파괴된 오브젝트를 참조하려다 문제가 생길까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [hasUnsubscribe ? '아니오' : '예'], placeholder: '예 / 아니오',
+          why: hasUnsubscribe
+            ? 'OnDisable에서 이미 구독을 해제했으므로, 파괴 후에는 이벤트가 이 오브젝트를 참조하지 않아 문제가 없어요.'
+            : '구독 해제 코드가 없으므로, 이벤트가 파괴된 오브젝트를 계속 참조해 문제가 생길 수 있어요.',
+          hint: 'OnDisable에서 -=를 했는지 여부가 핵심이에요.'
+        };
+      }
+    },
+    {
+      id: 'cameraFollowScript',
+      title: '부드러운 카메라 추적 스크립트',
+      ready: true,
+      summary: 'LateUpdate와 Vector3.SmoothDamp로 카메라가 플레이어를 부드럽게 따라가게 만드는 법을 배워요.',
+      goals: ['LateUpdate에서 카메라 위치 갱신하기', 'Vector3.Lerp로 부드럽게 따라가기', 'Vector3.SmoothDamp로 더 자연스러운 감속 만들기'],
+      blocks: [
+        {
+          h: '왜 LateUpdate에서?',
+          html: `<p>카메라는 플레이어가 이번 프레임의 이동을 다 마친 <b>뒤에</b> 위치를 갱신해야 떨림(지터) 없이 자연스러워요. <code>LateUpdate()</code>는 그 프레임의 모든 <code>Update()</code>가 끝난 뒤 호출되는 메서드라, 카메라 추적 로직을 넣기에 알맞아요.</p>`,
+          code: {
+            label: 'CameraFollow.cs',
+            lang: 'csharp',
+            src: `public class CameraFollow : MonoBehaviour
+{
+    public Transform target;
+    public Vector3 offset = new Vector3(0, 5, -10);
+
+    void LateUpdate()
+    {
+        transform.position = target.position + offset;
+    }
+}`
+          }
+        },
+        {
+          h: '부드럽게 따라가기: Vector3.Lerp',
+          html: `<p>위 코드는 카메라가 항상 정확히 같은 위치를 유지해서 딱딱해 보여요. <code>Vector3.Lerp(현재, 목표, 비율)</code>로 매 프레임 목표 위치 쪽으로 조금씩 다가가게 하면 더 부드러워 보여요.</p>`,
+          code: {
+            label: 'CameraFollow.cs',
+            lang: 'csharp',
+            src: `public float smoothSpeed = 5f;
+
+void LateUpdate()
+{
+    Vector3 desiredPosition = target.position + offset;
+    transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
+}`
+          }
+        },
+        {
+          h: '더 자연스러운 감속: Vector3.SmoothDamp',
+          html: `<p><code>Vector3.SmoothDamp</code>는 스프링-감쇠 방식으로 목표에 부드럽게 도달하는 전문적인 카메라 추적 방법이에요. 현재 속도를 저장할 <code>ref Vector3 velocity</code> 변수가 필요하고, <code>smoothTime</code>이 클수록 더 느리고 부드럽게 따라가요.</p>`,
+          code: {
+            label: 'CameraFollow.cs',
+            lang: 'csharp',
+            src: `private Vector3 velocity = Vector3.zero;
+public float smoothTime = 0.3f;
+
+void LateUpdate()
+{
+    Vector3 desiredPosition = target.position + offset;
+    transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime);
+}`
+          },
+          after: `<div class="note"><b>정리</b> — Lerp는 간단하지만 프레임레이트에 따라 느낌이 조금씩 달라질 수 있고, SmoothDamp는 ref velocity로 감속 과정을 추적해 프레임레이트와 무관하게 일정하고 자연스러운 감속을 만들어줘요. 실무 카메라 추적에서 자주 쓰는 방식이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `카메라 추적 로직은 플레이어 이동 이후에 실행되도록 <code>Update</code> 대신 <code>___()</code>에 작성해요.`,
+          prefix: '', suffix: '', accept: ['LateUpdate'], placeholder: '메서드 이름',
+          why: 'LateUpdate는 그 프레임의 모든 Update가 끝난 뒤 호출되어, 카메라가 최신 위치를 기준으로 따라갈 수 있어요.',
+          hint: '"늦게(late) 갱신(update)한다"는 뜻의 이름이에요.'
+        }),
+        () => makeChoice(
+          'Vector3.SmoothDamp가 Vector3.Lerp보다 카메라 추적에서 더 자연스럽다고 여겨지는 이유는?',
+          'ref velocity로 감속 과정을 추적해 프레임레이트와 무관하게 일정한 감속을 만들어줘서', ['SmoothDamp는 목표 위치로 순간이동시켜서', 'Lerp는 카메라에 쓸 수 없어서', 'SmoothDamp가 항상 더 빠르게 도착해서'],
+          'SmoothDamp는 속도 변수를 추적하며 스프링-감쇠 방식으로 부드럽게 감속해요.',
+          'ref로 넘기는 velocity 변수가 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>Vector3.SmoothDamp</code>는 감속 속도를 계산하기 위해 <code>ref</code>로 넘기는 <code>___</code> 타입 변수가 필요해요.`,
+          prefix: '', suffix: '', accept: ['Vector3'], placeholder: '타입 이름',
+          why: 'SmoothDamp는 현재 속도를 저장/갱신할 Vector3 타입의 ref 변수를 필요로 해요.',
+          hint: '위치와 같은 3차원 벡터 타입이에요.'
+        }),
+        () => makeChoice(
+          '<code>offset</code> 필드의 역할로 알맞은 것은?',
+          '카메라가 target으로부터 얼마나 떨어진 위치를 유지할지 정하는 상대 위치', ['카메라의 회전 각도를 정한다', 'target의 이동 속도를 정한다', '카메라의 시야각(FOV)을 정한다'],
+          'offset은 target 위치에 더해지는 상대 위치로, 카메라가 유지할 거리와 높이를 정해요.',
+          'target.position + offset의 offset이 하는 역할을 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>LateUpdate</code> 안에서, <code>target.position + offset</code>을 목표 위치로 삼아 <code>Vector3.SmoothDamp</code>로 카메라 위치를 갱신하는 코드를 작성하세요. (<code>velocity</code>, <code>smoothTime</code> 필드는 이미 있다고 가정)',
+          starter: '',
+          rows: 3,
+          placeholder: 'Vector3 desiredPosition = target.position + offset;\ntransform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime);',
+          accept: ['Vector3 desiredPosition = target.position + offset;\ntransform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime);'],
+          why: '목표 위치를 구한 뒤, SmoothDamp로 현재 위치에서 목표 위치까지 부드럽게 이동시켜요.',
+          hint: 'desiredPosition을 구하고, Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime)를 대입하세요.'
+        }),
+      ],
+      boss: () => {
+        const bigSmoothTime = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `<code>smoothTime</code>이 ${bigSmoothTime ? '아주 큰 값(예: 2.0)' : '아주 작은 값(예: 0.01)'}이에요. 카메라가 목표 위치에 ${bigSmoothTime ? '더 느리게' : '더 빠르게'} 따라갈까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: ['예'], placeholder: '예 / 아니오',
+          why: bigSmoothTime
+            ? 'smoothTime이 클수록 목표에 도달하는 데 걸리는 시간이 늘어나 더 느리게 따라가요.'
+            : 'smoothTime이 작을수록 목표에 더 빨리 도달해요.',
+          hint: 'smoothTime은 "목표에 도달하는 데 걸리는 대략적인 시간"이에요.'
+        };
+      }
+    },
+    {
+      id: 'physicsLayerCollisionMatrix',
+      title: '물리 레이어 충돌 매트릭스',
+      ready: true,
+      summary: 'Project Settings의 Layer Collision Matrix와 Physics.IgnoreLayerCollision으로 특정 레이어끼리 충돌하지 않게 만드는 법을 배워요.',
+      goals: ['Layer Collision Matrix의 역할 이해하기', 'Physics.IgnoreLayerCollision으로 런타임에 충돌 끄기', 'LayerMask 필터링과의 차이'],
+      blocks: [
+        {
+          h: '충돌 매트릭스: 어떤 레이어끼리 부딪힐지',
+          html: `<p><b>Edit &gt; Project Settings &gt; Physics</b> 안의 <b>Layer Collision Matrix</b>는 레이어 쌍마다 서로 물리적으로 충돌할지를 체크박스로 정하는 표예요. 예를 들어 "PlayerBullet" 레이어와 "Player" 레이어의 체크를 꺼두면, 플레이어가 쏜 총알이 플레이어 자신의 콜라이더와 아예 물리적으로 부딪히지 않아요.</p>`,
+          code: {
+            label: 'LayerCollisionMatrix.txt',
+            lang: 'csharp',
+            src: `        Player   Enemy   PlayerBullet
+Player     -       v          x
+Enemy      v       v          v`
+          }
+        },
+        {
+          h: '코드로 런타임에 끄기: Physics.IgnoreLayerCollision',
+          html: `<p>게임이 실행되는 도중에도 특정 두 레이어끼리의 충돌을 껐다 켰다 할 수 있어요. <code>Physics.IgnoreLayerCollision(레이어1, 레이어2, true)</code>는 그 두 레이어끼리 충돌을 무시하게 하고, <code>false</code>를 넘기면 다시 충돌하게 해요.</p>`,
+          code: {
+            label: 'BulletSetup.cs',
+            lang: 'csharp',
+            src: `void Start()
+{
+    int playerLayer = LayerMask.NameToLayer("Player");
+    int bulletLayer = LayerMask.NameToLayer("PlayerBullet");
+    Physics.IgnoreLayerCollision(playerLayer, bulletLayer, true);
+}`
+          },
+          after: `<div class="note"><b>정리</b> — Layer Collision Matrix(또는 IgnoreLayerCollision)는 "물리적으로 부딪힐지"를 결정하는 전역 설정이고, Raycast의 LayerMask는 "무엇을 감지할지"를 결정하는 필터예요. 충돌 자체를 원천 차단하려면 매트릭스를, 특정 로직에서만 걸러내려면 LayerMask를 사용해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `두 레이어가 물리적으로 서로 충돌할지를 미리 정해두는 설정은 Project Settings의 Physics 안 Layer Collision <code>___</code>예요.`,
+          prefix: '', suffix: '', accept: ['Matrix'], placeholder: '영어 단어',
+          why: 'Layer Collision Matrix는 레이어 쌍마다 충돌 여부를 표(matrix) 형태로 관리해요.',
+          hint: '행렬/표라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>Physics.IgnoreLayerCollision(playerLayer, bulletLayer, true);</code>를 호출하면 어떻게 될까요?',
+          'playerLayer와 bulletLayer에 속한 콜라이더끼리 물리적으로 충돌하지 않게 된다', ['두 레이어에 속한 오브젝트가 모두 파괴된다', 'bulletLayer의 모든 콜라이더가 비활성화된다', '두 레이어가 하나로 합쳐진다'],
+          'IgnoreLayerCollision(a, b, true)는 a와 b 레이어끼리의 물리 충돌을 끄는 역할을 해요.',
+          '"이 두 레이어의 충돌을 무시(ignore)한다"는 뜻이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `코드에서 레이어 이름으로 레이어 번호를 얻을 때 <code>LayerMask.___("이름")</code>을 써요.`,
+          prefix: '', suffix: '', accept: ['NameToLayer'], placeholder: '메서드 이름',
+          why: 'LayerMask.NameToLayer("이름")은 레이어 이름에 해당하는 레이어 번호(int)를 돌려줘요.',
+          hint: '"이름(Name)을 레이어(Layer) 번호로(To) 바꾼다"는 뜻이에요.'
+        }),
+        () => makeChoice(
+          'Layer Collision Matrix와 Physics.Raycast의 LayerMask 필터링의 차이로 알맞은 것은?',
+          'Matrix는 물리적으로 부딪힐지를, LayerMask는 Raycast 등에서 무엇을 감지할지를 결정한다', ['둘은 완전히 같은 기능이다', 'LayerMask는 물리 충돌 자체를 막는 유일한 방법이다', 'Matrix는 코드에서만 설정할 수 있다'],
+          'Matrix는 물리 충돌 여부(전역), LayerMask는 감지 대상 필터링(로직별)이라는 서로 다른 역할을 해요.',
+          '"충돌할지"와 "감지할지"는 다른 개념이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '"Player" 레이어와 "PlayerBullet" 레이어의 번호를 각각 구한 뒤, 두 레이어끼리 충돌을 끄는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'int playerLayer = LayerMask.NameToLayer("Player");\nint bulletLayer = LayerMask.NameToLayer("PlayerBullet");\nPhysics.IgnoreLayerCollision(playerLayer, bulletLayer, true);',
+          accept: ['int playerLayer = LayerMask.NameToLayer("Player");\nint bulletLayer = LayerMask.NameToLayer("PlayerBullet");\nPhysics.IgnoreLayerCollision(playerLayer, bulletLayer, true);'],
+          why: 'NameToLayer로 레이어 번호를 구한 뒤 IgnoreLayerCollision에 넘겨 충돌을 꺼요.',
+          hint: '두 레이어 번호를 각각 변수에 담고, IgnoreLayerCollision(a, b, true)를 호출하세요.'
+        }),
+      ],
+      boss: () => {
+        const ignore = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `<code>Physics.IgnoreLayerCollision(a, b, ${ignore});</code>가 호출됐어요. 이제 a와 b 레이어에 속한 콜라이더끼리 물리적으로 충돌할까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [ignore ? '아니오' : '예'], placeholder: '예 / 아니오',
+          why: ignore
+            ? 'true를 넘기면 두 레이어끼리의 충돌을 무시하게 되어 더 이상 충돌하지 않아요.'
+            : 'false를 넘기면 두 레이어끼리 다시 정상적으로 충돌해요.',
+          hint: '세 번째 인자가 true면 무시(충돌 안 함), false면 다시 충돌해요.'
+        };
+      }
+    },
+    {
+      id: 'prefabVariantConcept',
+      title: '프리팹 변형(Prefab Variant) 개념',
+      ready: true,
+      summary: '원본 프리팹은 그대로 두고, 일부 속성만 다르게 바꾼 변형 프리팹(Prefab Variant)을 만드는 개념을 배워요.',
+      goals: ['Prefab Variant와 원본 프리팹의 관계', '변형에서 덮어쓴 값과 원본 값의 차이', '변형을 활용한 재사용 전략'],
+      blocks: [
+        {
+          h: '문제: 비슷하지만 조금 다른 프리팹이 여러 개 필요할 때',
+          html: `<p>기본 <code>Enemy</code> 프리팹을 복사해서 "빠른 적", "탱커 적"을 각각 따로 만들면, 나중에 원본의 스크립트나 컴포넌트 구성을 고칠 때마다 복사된 프리팹을 전부 하나하나 따로 수정해야 해요.</p>`
+        },
+        {
+          h: '해결: Prefab Variant',
+          html: `<p>하이어라키에서 원본 프리팹을 기반으로 <b>Create &gt; Prefab Variant</b>를 만들면, 변형은 원본을 "상속"하는 것처럼 동작해요. 변형에서 실제로 바꾼 값(예: 속도)만 변형 자체에 저장되고, 나머지 값과 컴포넌트 구성은 원본을 그대로 따라가요.</p>`,
+          code: {
+            label: 'PrefabStructure.txt',
+            lang: 'csharp',
+            src: `// EnemyBase (원본 프리팹)
+//   Health = 100, Speed = 3, Script = Enemy.cs
+
+// EnemyFast (EnemyBase의 Prefab Variant)
+//   Speed = 8   <- 변형에서 덮어쓴 값
+//   Health = 100 (원본 값을 그대로 상속)`
+          }
+        },
+        {
+          h: '원본을 고치면 변형도 함께 바뀐다',
+          html: `<p><code>EnemyBase</code>의 스크립트를 바꾸거나 새 컴포넌트를 추가하면, 변형에서 따로 덮어쓰지 않은 모든 값과 구성요소는 자동으로 함께 바뀌어요. 공통 로직은 원본 한 곳에서 관리하고, 차이점만 변형에 남기는 게 핵심이에요.</p>`,
+          after: `<div class="note"><b>정리</b> — Prefab Variant는 "복사해서 따로 관리"가 아니라 "원본을 기반으로 차이점만 저장"하는 구조라, 공통 부분을 고치면 모든 변형에 한 번에 반영돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `원본 프리팹을 기반으로 일부 값만 다르게 만든 프리팹을 Prefab <code>___</code>라고 불러요.`,
+          prefix: '', suffix: '', accept: ['Variant'], placeholder: '영어 단어',
+          why: 'Prefab Variant는 원본 프리팹을 기반으로 일부 값/구성만 다르게 만든 파생 프리팹이에요.',
+          hint: '"변형"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '원본 프리팹(EnemyBase)에 새 컴포넌트를 추가하면, 그 변형들(Prefab Variant)은 어떻게 될까요?',
+          '변형에서 따로 덮어쓰지 않았다면, 변형에도 그 컴포넌트가 자동으로 함께 추가된다', ['변형과는 아무 관계가 없어 변형에는 반영되지 않는다', '변형이 모두 깨져서 다시 만들어야 한다', '변형이 원본과 자동으로 분리(unlink)된다'],
+          '변형은 원본을 상속하듯 따라가므로, 따로 덮어쓰지 않은 구성 요소는 원본의 변경이 그대로 반영돼요.',
+          '"차이점만 저장한다"는 개념을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `변형(Variant)에서 따로 덮어쓰지 않은 값은 <code>___</code> 프리팹의 값을 그대로 따라가요.`,
+          prefix: '', suffix: '', accept: ['원본'], placeholder: '한글 단어',
+          why: '변형은 덮어쓴 값만 자체적으로 저장하고, 나머지는 원본 프리팹의 값을 그대로 상속해요.',
+          hint: '변형이 "기반으로 삼는" 그 프리팹이에요.'
+        }),
+        () => makeChoice(
+          '비슷한 프리팹을 여러 개 각각 복사해서 만드는 방식과 비교했을 때, Prefab Variant의 장점은?',
+          '원본의 공통 로직을 한 번만 고치면 모든 변형에 자동으로 반영된다', ['각 변형의 용량이 항상 더 커진다', '변형끼리는 서로 완전히 독립적이라 원본을 고쳐도 영향이 없다', '복사 방식보다 항상 더 느리게 로드된다'],
+          'Variant는 원본과 연결되어 있어, 공통 부분을 한 곳에서 고치면 모든 변형에 자동으로 반영돼요.',
+          '"복사"와 "변형"의 핵심 차이는 원본과의 연결 여부예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>EnemyFast</code>가 <code>EnemyBase</code>의 Prefab Variant로서, Speed만 8로 덮어쓰고 Health는 원본 값을 그대로 따르는 상황을 주석으로 표현한 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: '// EnemyFast (EnemyBase의 Prefab Variant)\n//   Speed = 8',
+          accept: ['// EnemyFast (EnemyBase의 Prefab Variant)\n//   Speed = 8'],
+          why: '변형에는 실제로 덮어쓴 값(Speed)만 저장되고, Health 같은 나머지는 원본을 그대로 따라가요.',
+          hint: '// EnemyFast (EnemyBase의 Prefab Variant) 다음 줄에 // Speed = 8 을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const overridden = pick(['Speed', 'Color', 'AttackDamage']);
+        return {
+          type: 'blank',
+          q: `<code>EnemyFast</code> Variant에서 <code>${overridden}</code> 값만 덮어썼어요. 원본 <code>EnemyBase</code>의 <code>${overridden}</code>이 아닌 다른 값(예: Health)을 나중에 원본에서 바꾸면, <code>EnemyFast</code>에도 그 변경이 반영될까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: ['예'], placeholder: '예 / 아니오',
+          why: `${overridden}만 변형에서 덮어썼을 뿐, 나머지 값은 원본을 그대로 따르므로 원본의 다른 값을 바꾸면 EnemyFast에도 반영돼요.`,
+          hint: '변형에서 직접 덮어쓰지 않은 값은 원본을 계속 따라가요.'
+        };
+      }
+    },
+    {
+      id: 'animationCurveTuning',
+      title: 'AnimationCurve로 값 곡선 조정하기',
+      ready: true,
+      summary: 'AnimationCurve 필드와 Evaluate로, 시간이나 거리에 따라 변하는 값을 인스펙터에서 그래프로 튜닝하는 법을 배워요.',
+      goals: ['AnimationCurve 필드를 인스펙터에 노출하기', 'Evaluate로 곡선 값 읽기', '점프 궤적이나 데미지 감소 곡선에 활용하기'],
+      blocks: [
+        {
+          h: '왜 곡선이 필요할까',
+          html: `<p>단순한 선형 증가/감소로는 "빠르게 올라갔다가 서서히 정점에 도달하는" 같은 느낌을 표현하기 어려워요. <code>public AnimationCurve</code> 필드를 만들면 인스펙터에 그래프 편집기가 나타나서, 코드를 고치지 않고도 곡선의 모양을 직접 그려 조정할 수 있어요.</p>`,
+          code: {
+            label: 'JumpArc.cs',
+            lang: 'csharp',
+            src: `public class JumpArc : MonoBehaviour
+{
+    public AnimationCurve heightCurve;
+    public float duration = 1f;
+
+    private float elapsed;
+
+    void Update()
+    {
+        elapsed += Time.deltaTime;
+        float t = elapsed / duration;
+        float height = heightCurve.Evaluate(t);
+        transform.position = new Vector3(transform.position.x, height, transform.position.z);
+    }
+}`
+          }
+        },
+        {
+          h: '거리에 따른 데미지 감소 곡선',
+          html: `<p>같은 방식으로, 거리에 따라 데미지가 줄어드는 곡선도 만들 수 있어요. 거리를 0~1 사이 비율(<code>t</code>)로 바꾼 뒤 <code>Evaluate(t)</code>로 감소 배율을 얻어 기본 데미지에 곱해요.</p>`,
+          code: {
+            label: 'DamageFalloff.cs',
+            lang: 'csharp',
+            src: `public AnimationCurve damageFalloff;
+public float maxRange = 10f;
+public float baseDamage = 50f;
+
+float GetDamage(float distance)
+{
+    float t = Mathf.Clamp01(distance / maxRange);
+    return baseDamage * damageFalloff.Evaluate(t);
+}`
+          },
+          after: `<div class="note"><b>정리</b> — heightCurve.Evaluate(t)는 t(보통 0~1)에 대응하는 곡선의 y값을 돌려줘요. 코드는 그대로 두고 인스펙터의 곡선 모양만 바꿔서 점프감이나 데미지 감소 느낌을 직접 튜닝할 수 있는 게 핵심 장점이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `AnimationCurve에서 특정 위치(t)에 해당하는 값을 읽어올 때 <code>curve.___(t)</code>를 써요.`,
+          prefix: '', suffix: '', accept: ['Evaluate'], placeholder: '메서드 이름',
+          why: 'Evaluate(t)는 곡선에서 t 위치에 해당하는 y값을 계산해서 돌려줘요.',
+          hint: '"평가/계산한다"는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'AnimationCurve 필드를 쓰는 주된 이유로 알맞은 것은?',
+          '코드를 고치지 않고도 인스펙터의 그래프 편집기로 값의 변화 곡선을 직접 튜닝할 수 있어서', ['AnimationCurve가 다른 타입보다 항상 계산이 빨라서', '인스펙터에 값을 노출하지 않기 위해서', '오직 애니메이션 클립에만 사용할 수 있어서'],
+          'AnimationCurve는 인스펙터에서 그래프 형태로 값을 직접 조정할 수 있게 해주는 필드예요.',
+          '"그래프로 직접 그려서 조정"할 수 있다는 점이 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `값을 0~1 사이로 강제로 제한할 때 자주 쓰는 메서드는 <code>Mathf.___01(값)</code>이에요.`,
+          prefix: '', suffix: '', accept: ['Clamp'], placeholder: '메서드 이름',
+          why: 'Mathf.Clamp01(값)은 값을 0~1 범위로 제한해줘요.',
+          hint: '"고정/제한한다"는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '코드는 그대로 두고 점프 궤적의 "느낌"만 바꾸고 싶을 때 가장 알맞은 방법은?',
+          '인스펙터에서 AnimationCurve의 그래프 모양만 조정한다', ['Update() 코드를 매번 다시 작성한다', 'duration 값을 무조건 0으로 만든다', 'Time.deltaTime의 값을 직접 바꾼다'],
+          'AnimationCurve를 쓰면 코드를 고치지 않고도 그래프만 조정해서 느낌을 바꿀 수 있어요.',
+          '곡선 자체가 "느낌"을 결정하는 데이터라는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>distance</code>를 <code>maxRange</code>로 나눈 비율(0~1로 clamp)을 구해, <code>damageFalloff.Evaluate</code>로 계산한 배율을 <code>baseDamage</code>에 곱해 반환하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'float t = Mathf.Clamp01(distance / maxRange);\nreturn baseDamage * damageFalloff.Evaluate(t);',
+          accept: ['float t = Mathf.Clamp01(distance / maxRange);\nreturn baseDamage * damageFalloff.Evaluate(t);'],
+          why: '거리 비율 t를 구한 뒤, 곡선에서 얻은 배율을 baseDamage에 곱해 최종 데미지를 계산해요.',
+          hint: 'Mathf.Clamp01(distance / maxRange)로 t를 구하고, baseDamage * damageFalloff.Evaluate(t)를 반환하세요.'
+        }),
+      ],
+      boss: () => {
+        const pair = pick([[2, 1], [4, 1], [4, 3], [2, 2]]);
+        const duration = pair[0];
+        const elapsed = pair[1];
+        const t = elapsed / duration;
+        return {
+          type: 'blank',
+          q: `<code>duration</code>이 ${duration}이고 <code>elapsed</code>가 ${elapsed}일 때, <code>heightCurve.Evaluate(t)</code>에 넘겨지는 <code>t</code> 값은 얼마일까요? (소수로, 예: 0.5)`,
+          prefix: '', suffix: '', accept: [String(t)], placeholder: '소수',
+          why: `t = elapsed / duration = ${elapsed} / ${duration} = ${t}예요.`,
+          hint: 't는 elapsed를 duration으로 나눈 값이에요.'
+        };
+      }
+    },
+    {
+      id: 'audioMixerSnapshots',
+      title: 'AudioMixer로 볼륨 그룹 제어하기',
+      ready: true,
+      summary: 'Audio Mixer의 그룹과 노출된 파라미터(Exposed Parameter)를 SetFloat으로 조정해 배경음/효과음 볼륨을 따로 제어하는 법을 배워요.',
+      goals: ['Audio Mixer 그룹과 Exposed Parameter 개념', 'SetFloat으로 볼륨 조정하기', '데시벨(dB)과 슬라이더 값(0~1) 변환'],
+      blocks: [
+        {
+          h: '왜 AudioMixer가 필요할까',
+          html: `<p>AudioSource 여러 개의 볼륨을 각각 따로 관리하면, 배경음(BGM)과 효과음(SFX)을 한꺼번에 묶어 조절하기 어려워요. <b>Audio Mixer</b>는 여러 AudioSource를 그룹(BGM, SFX 등)으로 묶고, 그룹 단위로 볼륨을 한 번에 조절할 수 있게 해줘요.</p>`
+        },
+        {
+          h: '노출된 파라미터: Exposed Parameter',
+          html: `<p>Mixer 안의 볼륨 슬라이더를 우클릭 &gt; <b>Expose</b>하면, 그 파라미터에 이름(예: "BGMVolume")을 붙여서 코드에서 접근할 수 있게 돼요.</p>`,
+          code: {
+            label: 'VolumeController.cs',
+            lang: 'csharp',
+            src: `using UnityEngine.Audio;
+
+public class VolumeController : MonoBehaviour
+{
+    public AudioMixer mixer;
+
+    public void SetBGMVolume(float sliderValue)
+    {
+        float dB = Mathf.Log10(Mathf.Clamp(sliderValue, 0.0001f, 1f)) * 20f;
+        mixer.SetFloat("BGMVolume", dB);
+    }
+}`
+          }
+        },
+        {
+          h: '왜 로그 변환이 필요할까',
+          html: `<p>Mixer의 볼륨은 데시벨(dB) 단위인데, 사람의 귀는 소리 크기를 선형이 아니라 <b>로그 스케일</b>로 인식해요. UI 슬라이더 값(0~1)을 그대로 dB에 넣으면 부자연스럽게 들리므로, <code>Log10</code> 변환을 거쳐 dB 값으로 바꿔 <code>SetFloat</code>에 넘겨요.</p>`,
+          after: `<div class="note"><b>정리</b> — 그룹으로 묶어 한 번에 조절, Exposed Parameter로 이름 붙여 코드에서 SetFloat 호출, 로그 변환으로 자연스러운 볼륨 곡선 만들기. 이 세 가지가 AudioMixer 볼륨 제어의 핵심이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `Mixer 안의 파라미터를 코드에서 쓸 수 있게 이름을 붙이는 것을 ___ Parameter라고 해요.`,
+          prefix: '', suffix: '', accept: ['Exposed'], placeholder: '영어 단어',
+          why: 'Expose(노출)한 파라미터에 이름을 붙이면 코드에서 SetFloat으로 접근할 수 있어요.',
+          hint: '"드러낸다/노출한다"는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'AudioMixer의 SetFloat에 슬라이더 값(0~1)을 그대로 넣지 않고 로그 변환을 거치는 이유는?',
+          '사람의 귀가 소리 크기를 선형이 아니라 로그 스케일로 인식하기 때문에', ['SetFloat이 정수만 받기 때문에', '로그 변환을 하지 않으면 컴파일 에러가 나기 때문에', 'Mixer는 0~1 범위의 값을 받을 수 없기 때문에'],
+          '사람의 청각은 로그 스케일에 가깝게 소리 크기를 느끼므로, dB 단위로 변환해야 자연스러운 볼륨 조절이 돼요.',
+          '데시벨(dB) 자체가 로그 단위라는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `AudioMixer의 노출된 파라미터 값을 코드에서 바꿀 때 <code>mixer.___("이름", 값)</code>을 써요.`,
+          prefix: '', suffix: '', accept: ['SetFloat'], placeholder: '메서드 이름',
+          why: 'mixer.SetFloat("파라미터 이름", 값)으로 노출된 파라미터의 값을 바꿔요.',
+          hint: '실수(float) 값을 설정(Set)한다는 뜻의 이름이에요.'
+        }),
+        () => makeChoice(
+          '여러 AudioSource의 볼륨을 하나로 묶어 관리하고 싶을 때 Audio Mixer의 어떤 개념을 사용하나요?',
+          '그룹(Group)으로 묶어서 관리한다', ['각 AudioSource의 스크립트를 하나로 합친다', 'Scene을 하나로 합친다', 'Prefab Variant로 묶는다'],
+          'Audio Mixer의 그룹은 여러 AudioSource의 출력을 묶어 한 번에 볼륨을 조절할 수 있게 해줘요.',
+          'BGM, SFX처럼 종류별로 묶는 단위예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>sliderValue</code>(0~1)를 0.0001~1 사이로 clamp한 뒤 로그 변환하여 dB로 바꾸고, <code>mixer.SetFloat("BGMVolume", dB);</code>를 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'float dB = Mathf.Log10(Mathf.Clamp(sliderValue, 0.0001f, 1f)) * 20f;\nmixer.SetFloat("BGMVolume", dB);',
+          accept: ['float dB = Mathf.Log10(Mathf.Clamp(sliderValue, 0.0001f, 1f)) * 20f;\nmixer.SetFloat("BGMVolume", dB);'],
+          why: 'Clamp로 0을 피한 뒤 Log10 변환해 dB 값을 구하고, SetFloat으로 Mixer에 반영해요.',
+          hint: 'Mathf.Log10(Mathf.Clamp(sliderValue, 0.0001f, 1f)) * 20f로 dB를 구한 뒤 mixer.SetFloat에 넘기세요.'
+        }),
+      ],
+      boss: () => {
+        const pair = pick([[1, 0], [0.1, -20], [0.01, -40]]);
+        const sliderValue = pair[0];
+        const dB = pair[1];
+        return {
+          type: 'blank',
+          q: `<code>sliderValue</code>가 <code>${sliderValue}</code>일 때, <code>Mathf.Log10(${sliderValue}) * 20f</code>의 결과(dB)는 얼마일까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(dB)], placeholder: '숫자',
+          why: `Log10(${sliderValue}) * 20 = ${dB}예요.`,
+          hint: 'Log10(1)=0, Log10(0.1)=-1, Log10(0.01)=-2 라는 사실에 20을 곱해보세요.'
+        };
+      }
+    },
+],
   tierBoss: {
     beginner: () => ({
       type: 'code',

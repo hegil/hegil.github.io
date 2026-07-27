@@ -3052,6 +3052,2337 @@ $s = new Student(); // Student.php를 자동으로 찾아서 불러옴`
         why: '오토로더가 등록되어 있으므로, Student 클래스가 필요한 순간 자동으로 models/Student.php를 찾아 불러와요.',
         hint: '오토로딩이 등록되어 있으면, 클래스가 필요할 때 자동으로 파일을 찾아줘요.'
       })
+    },
+    {
+      id: 'abstractClasses',
+      title: '추상 클래스와 추상 메서드',
+      ready: true,
+      summary: '직접 객체를 만들 수 없고, 자식 클래스가 반드시 구현해야 할 메서드를 정하는 abstract 클래스를 배워요.',
+      goals: ['abstract class는 직접 인스턴스화할 수 없음', 'abstract 메서드는 자식이 반드시 구현해야 함', '공통 로직과 강제 규칙을 함께 담기'],
+      blocks: [
+        {
+          h: '직접 만들 수 없는 클래스: abstract class',
+          html: `<p><code>abstract</code>가 붙은 클래스는 설계도일 뿐, <code>new</code>로 직접 객체를 만들 수 없어요. 오직 이 클래스를 상속한 자식 클래스만 객체로 만들어질 수 있어요.</p>`,
+          code: {
+            label: 'abstract_error.php',
+            lang: 'php',
+            src: `<?php
+abstract class Shape {
+    abstract public function area();
+}
+
+$s = new Shape(); // 오류! 추상 클래스는 직접 만들 수 없음`
+          }
+        },
+        {
+          h: '자식이 반드시 구현해야 하는 메서드',
+          html: `<p><code>abstract public function area();</code>처럼 본문 없이 선언만 된 메서드는, 이 클래스를 상속하는 자식 클래스가 반드시 직접 구현해야 해요. 대신 <code>describe()</code>처럼 본문이 있는 일반 메서드는 그대로 공통 로직으로 물려줄 수 있어요.</p>`,
+            code: {
+            label: 'abstract_impl.php',
+            lang: 'php',
+            src: `<?php
+abstract class Shape {
+    abstract public function area();
+
+    public function describe() {
+        return "넓이: " . $this->area();
+    }
+}
+
+class Rectangle extends Shape {
+    public $w;
+    public $h;
+
+    public function __construct($w, $h) {
+        $this->w = $w;
+        $this->h = $h;
+    }
+
+    public function area() {
+        return $this->w * $this->h;
+    }
+}
+
+$r = new Rectangle(4, 5);
+echo $r->describe();`,
+            out: `넓이: 20`
+          },
+          after: `<div class="note"><b>정리</b> — abstract 메서드는 "이 이름과 형태의 메서드는 자식이 반드시 채워 넣어라"는 강제 규칙이고, 일반 메서드는 그대로 공통 로직으로 재사용돼요. 자식이 구현을 빼먹으면 치명적 오류가 발생해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const w = randInt(2, 9);
+          const h = randInt(2, 9);
+          const area = w * h;
+          return {
+            type: 'blank',
+            q: `<code>abstract class Shape { abstract public function area(); public function describe() { return "넓이: " . $this->area(); } } class Rectangle extends Shape { public $w; public $h; public function __construct($w, $h) { $this->w = $w; $this->h = $h; } public function area() { return $this->w * $this->h; } }</code>이고 <code>$r = new Rectangle(${w}, ${h}); echo $r->describe();</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`넓이: ${area}`], placeholder: '출력 결과',
+            why: `Rectangle의 area()는 w * h를 반환하므로 ${w} * ${h} = ${area}가 되어 "넓이: ${area}"가 출력돼요.`,
+            hint: 'describe()는 부모의 공통 로직이고, area()는 자식이 구현한 값을 그대로 가져다 써요.'
+          };
+        },
+        () => makeChoice(
+          'abstract class의 특징으로 알맞은 것은?',
+          '직접 new로 인스턴스를 만들 수 없고, 자식 클래스가 상속해서 사용해야 한다', ['private 메서드만 가질 수 있다', '인터페이스보다 항상 메서드 수가 적어야 한다', '생성자를 가질 수 없다'],
+          'abstract class는 설계도 역할만 하고, 실제 객체는 이를 상속한 자식 클래스로만 만들 수 있어요.',
+          '"추상적인(abstract)"이라는 이름처럼, 그 자체로는 구체적인 실체가 될 수 없어요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>abstract class Shape { ___ public function area(); }</code>에서 빈칸에 들어갈, "이 메서드는 자식이 반드시 구현해야 한다"는 뜻의 키워드를 쓰세요.`,
+          prefix: '', suffix: '', accept: ['abstract'], placeholder: '키워드',
+          why: '<code>abstract</code> 키워드가 붙은 메서드는 본문 없이 선언만 하고, 실제 구현은 자식 클래스의 몫이에요.',
+          hint: '클래스 앞에 붙이는 키워드와 똑같은 단어예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>Shape</code> 추상 클래스 안에, 본문 없이 <code>area()</code>를 반드시 구현하도록 강제하는 추상 메서드 선언을 작성하세요.',
+          starter: '',
+          placeholder: 'abstract public function area();',
+          accept: ['abstract public function area();'],
+          why: 'abstract 메서드는 본문(중괄호) 없이 세미콜론으로 끝나는 선언만 써요.',
+          hint: 'abstract public function area(); 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '자식 클래스가 부모의 추상 메서드를 구현하지 않으면?',
+          '치명적 오류(Fatal error)가 발생해서 실행이 멈춘다', ['빈 문자열을 자동으로 반환한다', '부모 클래스의 기본 동작을 그대로 물려받는다', '경고만 뜨고 정상적으로 실행된다'],
+          '추상 메서드는 반드시 구현해야 하는 규칙이라서, 빼먹으면 오류로 즉시 드러나요.',
+          '구현을 빼먹었다는 걸 실행 전에(치명적 오류로) 알 수 있게 해주는 게 abstract의 핵심이에요.'
+        ),
+      ],
+      boss: () => {
+        const w = randInt(3, 10);
+        const h = randInt(3, 10);
+        const area = w * h;
+        return {
+          type: 'blank',
+          q: `<code>abstract class Shape { abstract public function area(); } class Rectangle extends Shape { public $w; public $h; public function __construct($w, $h) { $this->w = $w; $this->h = $h; } public function area() { return $this->w * $this->h; } } function printArea(Shape $shape) { echo $shape->area(); }</code>이고 <code>printArea(new Rectangle(${w}, ${h}));</code>를 실행하면? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(area)], placeholder: '숫자',
+          why: `printArea의 매개변수 타입은 Shape이지만, 실제로 넘어온 건 Rectangle 객체라서 그 area() 구현이 호출되어 ${w} * ${h} = ${area}가 출력돼요.`,
+          hint: '타입은 Shape이지만, 실제로 호출되는 area()는 넘겨받은 객체(Rectangle)의 구현이에요.'
+        };
+      }
+    },
+    {
+      id: 'lateStaticBinding',
+      title: '늦은 정적 바인딩: static::',
+      ready: true,
+      summary: 'self::와 달리, 실제로 호출된 자식 클래스를 기준으로 동작하는 static::를 배워요.',
+      goals: ['self::의 한계(항상 정의된 클래스 기준)', 'static::는 실제 호출 시점의 클래스를 기준으로 함', 'static::를 이용한 팩토리 메서드 패턴'],
+      blocks: [
+        {
+          h: '문제: self::의 한계',
+          html: `<p><code>self::</code>는 그 메서드가 <b>정의된</b> 클래스를 항상 가리켜요. 자식 클래스에서 호출해도 결과는 바뀌지 않아요.</p>`,
+          code: {
+            label: 'self_limit.php',
+            lang: 'php',
+            src: `<?php
+class Model {
+    public static function create() {
+        return new self();
+    }
+}
+
+class User extends Model {
+}
+
+$u = User::create();
+echo get_class($u);`,
+            out: `Model`
+          }
+        },
+        {
+          h: '해결: static::',
+          html: `<p><code>static::</code>는 실제로 <b>호출된</b> 클래스를 기준으로 동작해요. 어떤 클래스를 가리킬지가 코드를 작성하는 시점이 아니라 실제로 호출되는 시점에 "늦게" 결정되기 때문에 "늦은 정적 바인딩(late static binding)"이라고 불러요.</p>`,
+          code: {
+            label: 'late_static.php',
+            lang: 'php',
+            src: `<?php
+class Model {
+    public static function create() {
+        return new static();
+    }
+}
+
+class User extends Model {
+}
+
+$u = User::create();
+echo get_class($u);`,
+            out: `User`
+          },
+          after: `<div class="note"><b>정리</b> — static::는 부모 클래스에 공통 로직을 두면서도, 실제로는 호출한 자식 클래스의 객체를 만들어주고 싶을 때(예: 팩토리 메서드) 아주 유용해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const child = pick(['Product', 'Order', 'Invoice']);
+          return {
+            type: 'blank',
+            q: `<code>class Model { public static function create() { return new self(); } } class ${child} extends Model {}</code>이고 <code>$x = ${child}::create(); echo get_class($x);</code>를 실행하면? (클래스 이름만 입력)`,
+            prefix: '', suffix: '', accept: ['Model'], placeholder: '클래스 이름',
+            why: 'self::는 항상 그 메서드가 정의된 클래스(Model)를 가리키므로, 어떤 자식으로 호출하든 결과는 Model이에요.',
+            hint: 'self::는 호출한 클래스가 무엇이든 상관없이 항상 같은 클래스를 가리켜요.'
+          };
+        },
+        () => makeChoice(
+          'static::와 self::의 차이는?',
+          'static::는 실제로 호출된 자식 클래스를 기준으로 하고, self::는 항상 그 메서드가 정의된 클래스를 기준으로 한다', ['static::는 private 멤버에만 쓸 수 있다', 'self::가 static::보다 항상 최신 문법이다', '둘은 완전히 같은 의미라서 구분할 필요가 없다'],
+          'self::는 정적으로(코드를 쓴 위치 기준) 결정되고, static::는 실제 호출 시점(런타임)에 결정돼요.',
+          '"늦은(late)"이라는 이름처럼, static::는 결정되는 시점이 더 늦어요(호출 시점).'
+        ),
+        () => {
+          const child = pick(['Product', 'Order', 'Invoice']);
+          return {
+            type: 'blank',
+            q: `<code>class Model { public static function create() { return new static(); } } class ${child} extends Model {}</code>이고 <code>$x = ${child}::create(); echo get_class($x);</code>를 실행하면? (클래스 이름만 입력)`,
+            prefix: '', suffix: '', accept: [child], placeholder: '클래스 이름',
+            why: `static::는 실제로 호출된 클래스(${child})를 기준으로 동작하므로 결과는 ${child}예요.`,
+            hint: 'static::는 어디서 호출했는지에 따라 가리키는 클래스가 달라져요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Model</code> 클래스 안에, static::를 이용해 "실제로 호출된 클래스"의 새 객체를 만들어 반환하는 static 메서드 <code>create</code>를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'public static function create() {\n    return new static();\n}',
+          accept: ['public static function create() {\n    return new static();\n}'],
+          why: 'new static()은 실제로 호출된 클래스의 객체를 만들어줘요.',
+          hint: 'public static function create() { return new static(); } 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '"늦은 정적 바인딩(late static binding)"이라는 이름이 붙은 이유는?',
+          '어떤 클래스를 가리킬지가 코드를 작성하는 시점이 아니라, 실제로 호출되는 시점에 결정되기 때문', ['static 프로퍼티가 항상 늦게 초기화되기 때문', '이 기능이 PHP에서 가장 나중에 만들어진 기능이라서', '함수 실행 속도가 느려지기 때문'],
+          'static::가 가리킬 클래스는 코드를 쓸 때 정해지는 게 아니라, 실제 호출이 일어나는 순간에 "늦게" 결정돼요.',
+          '이름 자체가 핵심 동작 원리를 설명해요: "늦게(late)" "정적으로(static)" "묶인다(binding)".'
+        ),
+      ],
+      boss: () => {
+        const grandChild = pick(['Admin', 'SuperUser', 'Manager']);
+        return {
+          type: 'blank',
+          q: `<code>class Model { public static function create() { return new static(); } } class User extends Model {} class ${grandChild} extends User {}</code>이고 <code>$x = ${grandChild}::create(); echo get_class($x);</code>를 실행하면? (클래스 이름만 입력)`,
+          prefix: '', suffix: '', accept: [grandChild], placeholder: '클래스 이름',
+          why: `static::는 실제로 호출된 클래스(${grandChild})를 기준으로 하므로, 상속 단계가 여러 개(Model → User → ${grandChild})여도 마지막에 호출한 클래스가 만들어져요.`,
+          hint: 'static::는 상속 단계와 상관없이, 실제로 메서드를 호출한 클래스를 가리켜요.'
+        };
+      }
+    },
+    {
+      id: 'enumsPhp',
+      title: '이넘(enum): 정해진 값의 집합',
+      ready: true,
+      summary: 'PHP 8.1부터 등장한 enum으로, 정해진 값들 중 하나만 가지도록 제한하는 타입을 배워요.',
+      goals: ['enum으로 정해진 값의 집합 정의하기', 'match와 함께 enum 다루기', '값이 연결된 backed enum과 from()/tryFrom()'],
+      blocks: [
+        {
+          h: '정해진 값만 담는 타입: enum',
+          html: `<p><code>enum</code>은 "이 값들 중 하나만 될 수 있다"는 걸 타입으로 표현해요. 문자열을 아무렇게나 쓰는 것과 달리, 오타나 잘못된 값이 들어올 여지를 원천적으로 막아줘요.</p>`,
+          code: {
+            label: 'enum_basic.php',
+            lang: 'php',
+            src: `<?php
+enum Status {
+    case Pending;
+    case Done;
+    case Cancelled;
+}
+
+$s = Status::Pending;
+echo $s->name;`,
+            out: `Pending`
+          }
+        },
+        {
+          h: 'enum과 match를 함께',
+          html: `<p>enum의 각 case는 <code>match</code>와 아주 잘 어울려요. 모든 case를 다 처리했는지 실수 없이 확인하며 분기할 수 있어요.</p>`,
+          code: {
+            label: 'enum_match.php',
+            lang: 'php',
+            src: `<?php
+enum Status {
+    case Pending;
+    case Done;
+    case Cancelled;
+}
+
+function label(Status $s) {
+    return match ($s) {
+        Status::Pending => "대기중",
+        Status::Done => "완료",
+        Status::Cancelled => "취소됨",
+    };
+}
+
+echo label(Status::Done);`,
+            out: `완료`
+          }
+        },
+        {
+          h: '값이 연결된 backed enum',
+          html: `<p><code>enum Status: string</code>처럼 타입을 지정하면, 각 case에 실제 값(문자열/정수)을 연결할 수 있어요. <code>::from(값)</code>으로 값을 가진 case를 찾을 수 있고, 값이 유효하지 않으면 오류가 나요(반대로 <code>::tryFrom()</code>은 오류 대신 null을 반환해요).</p>`,
+          code: {
+            label: 'enum_backed.php',
+            lang: 'php',
+            src: `<?php
+enum Status: string {
+    case Pending = 'pending';
+    case Done = 'done';
+    case Cancelled = 'cancelled';
+}
+
+$s = Status::from('done');
+echo $s->value;`,
+            out: `done`
+          },
+          after: `<div class="note"><b>정리</b> — 일반 enum은 이름(name)만 가지고, backed enum은 이름과 값(value)을 함께 가져요. DB나 API처럼 문자열/숫자로 값을 주고받아야 할 때 backed enum이 유용해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const c = pick(['Pending', 'Done', 'Cancelled']);
+          return {
+            type: 'blank',
+            q: `<code>enum Status { case Pending; case Done; case Cancelled; }</code>이고 <code>$s = Status::${c}; echo $s->name;</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [c], placeholder: '출력 결과',
+            why: `->name은 그 case의 이름을 그대로 반환하므로 "${c}"가 출력돼요.`,
+            hint: '일반 enum의 ->name은 case의 이름 그 자체를 문자열로 돌려줘요.'
+          };
+        },
+        () => {
+          const map = { Pending: '대기중', Done: '완료', Cancelled: '취소됨' };
+          const c = pick(Object.keys(map));
+          return makeChoice(
+            `<code>function label(Status $s) { return match ($s) { Status::Pending => "대기중", Status::Done => "완료", Status::Cancelled => "취소됨", }; }</code>이고 <code>label(Status::${c})</code>의 결과는?`,
+            map[c], Object.values(map).filter(v => v !== map[c]),
+            `match는 넘겨받은 case(Status::${c})와 일치하는 분기의 값을 반환하므로 "${map[c]}"예요.`,
+            'match는 enum의 각 case를 정확히 비교해서 해당하는 분기를 찾아요.'
+          );
+        },
+        () => {
+          const map = { pending: 'Pending', done: 'Done', cancelled: 'Cancelled' };
+          const v = pick(Object.keys(map));
+          return {
+            type: 'blank',
+            q: `<code>enum Status: string { case Pending = 'pending'; case Done = 'done'; case Cancelled = 'cancelled'; }</code>이고 <code>$s = Status::from('${v}'); echo $s->name;</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [map[v]], placeholder: '출력 결과',
+            why: `Status::from('${v}')는 값이 '${v}'인 case를 찾아 반환하므로, 그 이름인 "${map[v]}"가 출력돼요.`,
+            hint: 'from()은 값을 보고 일치하는 case를 찾아 그 case 자체를 반환해요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>enum Status: string { case Pending = \'pending\'; case Done = \'done\'; }</code>에 값 <code>\'archived\'</code>를 가지는 <code>Archived</code> case를 추가하는 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: "case Archived = 'archived';",
+          accept: ["case Archived = 'archived';"],
+          why: 'backed enum의 각 case는 case 이름 = 값; 형태로 값을 연결해요.',
+          hint: "case Archived = 'archived'; 형태를 그대로 써보세요."
+        }),
+        () => makeChoice(
+          'tryFrom()과 from()의 차이는?',
+          'tryFrom은 일치하는 값이 없으면 null을 반환하고, from은 오류를 던진다', ['tryFrom은 항상 첫 번째 case를 반환한다', 'from은 문자열만, tryFrom은 정수만 받는다', '둘은 완전히 같은 동작을 한다'],
+          'tryFrom은 실패를 오류 대신 null로 알려줘서, 값이 유효한지 안전하게 확인할 때 유용해요.',
+          '"시도해본다(try)"는 이름처럼, 실패해도 프로그램이 멈추지 않아요.'
+        ),
+      ],
+      boss: () => {
+        const invalid = Math.random() < 0.5;
+        const map = { pending: 'Pending', done: 'Done', cancelled: 'Cancelled' };
+        const v = invalid ? 'unknown' : pick(Object.keys(map));
+        const result = invalid ? '없음' : map[v];
+        return {
+          type: 'blank',
+          q: `<code>enum Status: string { case Pending = 'pending'; case Done = 'done'; case Cancelled = 'cancelled'; }</code>이고 <code>$s = Status::tryFrom('${v}'); echo $s === null ? "없음" : $s->name;</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [result], placeholder: '출력 결과',
+          why: invalid
+            ? `'${v}'은 어떤 case의 값과도 일치하지 않으므로 tryFrom은 null을 반환해서 "없음"이 출력돼요.`
+            : `'${v}'은 ${result} case의 값이므로 tryFrom이 그 case를 반환하고, 이름은 "${result}"예요.`,
+          hint: 'tryFrom은 일치하는 값이 없으면 null을, 있으면 해당 case를 반환해요.'
+        };
+      }
+    },
+    {
+      id: 'readonlyProperties',
+      title: 'readonly 프로퍼티: 한 번만 정해지는 값',
+      ready: true,
+      summary: '한 번 값이 정해지면 다시는 바꿀 수 없는 readonly 프로퍼티로, 불변 객체를 만드는 법을 배워요.',
+      goals: ['readonly 프로퍼티는 딱 한 번만 값을 설정 가능', '이후에 값을 바꾸려 하면 오류가 발생', '불변(immutable) 객체를 쓰는 이유'],
+      blocks: [
+        {
+          h: '한 번만 정해지는 값: readonly',
+          html: `<p><code>readonly</code>가 붙은 프로퍼티는 타입을 반드시 지정해야 하고, 보통 생성자 안에서 딱 한 번 값을 채워요.</p>`,
+          code: {
+            label: 'readonly_basic.php',
+            lang: 'php',
+            src: `<?php
+class Point {
+    public readonly int $x;
+    public readonly int $y;
+
+    public function __construct(int $x, int $y) {
+        $this->x = $x;
+        $this->y = $y;
+    }
+}
+
+$p = new Point(3, 5);
+echo $p->x . ", " . $p->y;`,
+            out: `3, 5`
+          }
+        },
+        {
+          h: '다시 바꾸려 하면 오류',
+          html: `<p>이미 값이 설정된 readonly 프로퍼티에 다시 대입하려 하면, 그곳이 생성자 안이든 밖이든 상관없이 오류가 발생해요.</p>`,
+          code: {
+            label: 'readonly_error.php',
+            lang: 'php',
+            src: `<?php
+class Point {
+    public readonly int $x;
+
+    public function __construct(int $x) {
+        $this->x = $x;
+    }
+}
+
+$p = new Point(3);
+$p->x = 10; // 오류! readonly 프로퍼티는 재할당할 수 없음`
+          },
+          after: `<div class="note"><b>정리</b> — 불변(immutable) 객체는 어딘가에서 예상치 못하게 값이 바뀌는 버그를 막아주고, "이 값은 절대 안 변한다"는 걸 코드로 보장해줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const x = randInt(1, 20);
+          const y = randInt(1, 20);
+          return {
+            type: 'blank',
+            q: `<code>class Point { public readonly int $x; public readonly int $y; public function __construct(int $x, int $y) { $this->x = $x; $this->y = $y; } }</code>이고 <code>$p = new Point(${x}, ${y}); echo $p->x . ", " . $p->y;</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${x}, ${y}`], placeholder: '출력 결과',
+            why: `생성자에서 받은 값이 그대로 readonly 프로퍼티에 저장되어 "${x}, ${y}"가 출력돼요.`,
+            hint: 'readonly여도 처음 한 번 값을 넣는 건 정상적으로 동작해요.'
+          };
+        },
+        () => makeChoice(
+          'readonly 프로퍼티의 특징으로 알맞은 것은?',
+          '한 번 값이 설정되면 이후에는 다시 대입할 수 없다', ['private 프로퍼티와 완전히 같은 의미다', '항상 static이어야 한다', '생성자 안에서는 값을 못 넣는다'],
+          'readonly는 값을 "한 번만" 쓸 수 있게 해서, 이미 값이 있으면 다시 대입 시 오류가 나요.',
+          '"읽기 전용(readonly)"이라는 이름처럼, 한 번 쓰이고 나면 그 뒤로는 읽기만 가능해요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>class Point { public readonly int $x; public function __construct(int $x) { $this->x = $x; } } $p = new Point(3); $p->x = 10;</code>를 실행하면 어떻게 될까요? ("오류"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['오류'], placeholder: '결과',
+          why: '$p->x는 이미 생성자에서 값이 설정된 readonly 프로퍼티라서, 다시 대입하려 하면 오류가 발생해요.',
+          hint: 'readonly 프로퍼티는 이미 값이 있으면 두 번째 대입을 허용하지 않아요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '타입이 int이고, 한 번만 값을 설정할 수 있는 readonly 프로퍼티 <code>$id</code>를 선언하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'public readonly int $id;',
+          accept: ['public readonly int $id;'],
+          why: 'readonly 프로퍼티는 반드시 타입을 지정해야 해요.',
+          hint: 'public readonly int $id; 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          'readonly 프로퍼티를 쓰는 이유로 알맞은 것은?',
+          '객체가 생성된 후 값이 실수로 바뀌는 것을 막아 불변성을 보장하기 위해', ['코드 실행 속도를 항상 더 빠르게 만들기 위해', '메모리를 자동으로 절약해주기 때문에', 'private보다 접근 범위를 넓히기 위해'],
+          'readonly는 "값이 절대 바뀌지 않는다"는 걸 코드로 보장해서, 예상치 못한 변경으로 인한 버그를 막아줘요.',
+          '값 객체(Value Object)처럼 "한 번 만들어지면 그대로여야 하는" 데이터에 잘 어울려요.'
+        ),
+      ],
+      boss: () => {
+        const x = randInt(1, 20);
+        return {
+          type: 'blank',
+          q: `<code>class Point { public readonly int $x; public function __construct(int $x) { $this->x = $x; } public function reset() { $this->x = 0; } }</code>이고 <code>$p = new Point(${x}); $p->reset();</code>를 실행하면 오류가 발생할까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: ['예'], placeholder: '예 / 아니오',
+          why: 'reset() 안에서도 readonly 프로퍼티에 두 번째로 값을 대입하려 하고 있으므로, 생성자 밖이라도 오류가 발생해요.',
+          hint: 'readonly는 "생성자에서만" 허용되는 게 아니라 "단 한 번만" 값을 대입할 수 있다는 뜻이에요.'
+        };
+      }
+    },
+    {
+      id: 'firstClassCallableSyntax',
+      title: '1급 callable 문법: 함수이름(...)',
+      ready: true,
+      summary: 'PHP 8.1부터 지원하는 함수이름(...) 문법으로, 함수나 메서드를 간단히 클로저로 만드는 법을 배워요.',
+      goals: ['기존 방식(문자열 콜러블)의 번거로움', '함수이름(...)으로 클로저 만들기', '정적/인스턴스 메서드에도 똑같이 적용하기'],
+      blocks: [
+        {
+          h: '기존 방식: 문자열로 콜러블 만들기',
+          html: `<p>예전에는 함수를 값처럼 다루려면 함수 이름을 문자열로 쓰거나 <code>Closure::fromCallable()</code>을 써야 했어요. 오타가 나도 실행 전까지는 알기 어렵다는 단점이 있었어요.</p>`,
+          code: {
+            label: 'callable_old.php',
+            lang: 'php',
+            src: `<?php
+$upper = Closure::fromCallable('strtoupper');
+echo $upper("hello");`,
+            out: `HELLO`
+          }
+        },
+        {
+          h: '더 간단하게: 함수이름(...)',
+          html: `<p>PHP 8.1부터는 함수 이름 뒤에 <code>(...)</code>만 붙이면 그 함수를 가리키는 클로저가 바로 만들어져요. 함수를 호출하는 게 아니라 "가리키기만" 하는 거예요.</p>`,
+          code: {
+            label: 'callable_new.php',
+            lang: 'php',
+            src: `<?php
+$upper = strtoupper(...);
+echo $upper("hello");`,
+            out: `HELLO`
+          }
+        },
+        {
+          h: '메서드에도 똑같이',
+          html: `<p>이 문법은 정적 메서드(<code>ClassName::method(...)</code>)와 인스턴스 메서드(<code>$obj-&gt;method(...)</code>)에도 그대로 쓸 수 있어요.</p>`,
+          code: {
+            label: 'callable_method.php',
+            lang: 'php',
+            src: `<?php
+class Greeter {
+    public function greet($name) {
+        return "안녕, " . $name . "!";
+    }
+}
+
+$g = new Greeter();
+$greetFn = $g->greet(...);
+echo $greetFn("지수");`,
+            out: `안녕, 지수!`
+          },
+          after: `<div class="note"><b>정리</b> — 함수이름(...)은 문자열/배열 기반 콜러블보다 IDE 자동완성과 정적 분석이 잘 되고, 오타를 미리(파싱 시점에) 잡아낼 수 있어서 실무에서 선호돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(2, 9);
+          return {
+            type: 'blank',
+            q: `<code>function times2($n) { return $n * 2; } $fn = times2(...); echo $fn(${n});</code>를 실행하면? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n * 2)], placeholder: '숫자',
+            why: `times2(...)는 times2 함수를 가리키는 클로저를 만들고, $fn(${n})은 그 함수를 호출한 것과 같아서 ${n} * 2 = ${n * 2}예요.`,
+            hint: 'times2(...)는 함수를 즉시 호출하는 게 아니라, 그 함수를 가리키는 클로저를 만들어요.'
+          };
+        },
+        () => makeChoice(
+          '함수이름(...) 문법(1급 callable)의 의미는?',
+          '그 함수를 호출하지 않고, 그 함수를 가리키는 클로저를 만든다', ['함수를 즉시 호출하고 결과를 클로저로 감싼다', '가변 인자(...)를 받는 함수로 정의를 바꾼다', '배열의 요소를 모두 펼쳐서 전달한다'],
+          '(...)는 함수를 호출하는 괄호가 아니라, "이 함수를 가리키는 클로저를 만들어라"는 문법이에요.',
+          '변수에 담긴 결과가 아니라 "함수 자체"를 다루고 싶을 때 쓰는 문법이에요.'
+        ),
+        () => {
+          const n = randInt(2, 9);
+          return {
+            type: 'blank',
+            q: `<code>class MathUtil { public static function square($n) { return $n * $n; } } $fn = MathUtil::square(...); echo $fn(${n});</code>를 실행하면? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n * n)], placeholder: '숫자',
+            why: `MathUtil::square(...)는 그 static 메서드를 가리키는 클로저를 만들어서, $fn(${n})은 ${n} * ${n} = ${n * n}이 돼요.`,
+            hint: '클래스이름::메서드(...) 형태로도 1급 callable을 만들 수 있어요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>$g</code>는 <code>Greeter</code> 객체예요. 그 인스턴스 메서드 <code>greet</code>를 호출하지 않고, 가리키기만 하는 클로저를 만들어 <code>$greetFn</code>에 담는 코드를 한 줄로 작성하세요.',
+          starter: '',
+          placeholder: '$greetFn = $g->greet(...);',
+          accept: ['$greetFn = $g->greet(...);'],
+          why: '$g->greet(...)는 greet 메서드를 즉시 호출하지 않고, 그 메서드를 가리키는 클로저를 만들어요.',
+          hint: '$greetFn = $g->greet(...); 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '1급 callable 문법(...)의 장점으로 알맞은 것은?',
+          '문자열이나 배열로 콜러블을 표현할 때보다 IDE 자동완성이 잘 되고, 오타를 미리 잡아낼 수 있다', ['실행 속도가 다른 모든 문법보다 항상 빠르다', '함수의 매개변수 개수를 자동으로 줄여준다', '반환 타입을 항상 문자열로 강제한다'],
+          '함수를 실제 코드 요소로 다루기 때문에, 문자열 오타로 인한 실수를 파싱 시점에 미리 잡아낼 수 있어요.',
+          '문자열 "함수이름" 방식은 오타가 나도 실행 전까지 모르지만, (...)는 그렇지 않아요.'
+        ),
+      ],
+      boss: () => {
+        const nums = [randInt(1, 5), randInt(1, 5), randInt(1, 5)];
+        const doubled = nums.map(n => n * 2);
+        return {
+          type: 'blank',
+          q: `<code>function times2($n) { return $n * 2; } $fn = times2(...); $result = array_map($fn, [${nums.join(', ')}]); echo implode(', ', $result);</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [doubled.join(', ')], placeholder: '출력 결과',
+          why: `times2(...)로 만든 클로저를 array_map에 넘기면 배열의 각 원소에 함수가 적용되어, [${nums.join(', ')}]의 각 값이 2배가 되어 ${doubled.join(', ')}가 돼요.`,
+          hint: 'times2(...)는 times2 함수를 가리키는 클로저를 만들고, array_map은 그 클로저를 배열의 각 원소에 적용해요.'
+        };
+      }
+    },
+    {
+      id: 'arrowFunctionsPhp',
+      title: '화살표 함수: fn()',
+      ready: true,
+      summary: '짧은 표현식 하나만 계산하는 함수를 간결하게 쓰는 화살표 함수(fn)와, 바깥 변수를 자동으로 가져오는 특징을 배워요.',
+      goals: ['fn(매개변수) => 표현식 문법', '바깥 변수를 use() 없이 자동으로 캡처', '표현식 하나만 담을 수 있다는 제약'],
+      blocks: [
+        {
+          h: '기존 클로저: function과 use',
+          html: `<p>바깥 변수를 클로저 안에서 쓰려면 <code>use ($변수)</code>로 명시적으로 가져와야 했어요.</p>`,
+          code: {
+            label: 'closure_use.php',
+            lang: 'php',
+            src: `<?php
+$bonus = 10;
+$addBonus = function ($score) use ($bonus) {
+    return $score + $bonus;
+};
+echo $addBonus(50);`,
+            out: `60`
+          }
+        },
+        {
+          h: '더 짧게: 화살표 함수 fn',
+          html: `<p><code>fn(매개변수) => 표현식</code> 형태의 화살표 함수는 <code>use()</code> 없이도 바깥 스코프의 변수를 자동으로(값으로) 가져와요.</p>`,
+          code: {
+            label: 'arrow_fn.php',
+            lang: 'php',
+            src: `<?php
+$bonus = 10;
+$addBonus = fn($score) => $score + $bonus;
+echo $addBonus(50);`,
+            out: `60`
+          }
+        },
+        {
+          h: '주의: 표현식 하나만 담을 수 있어요',
+          html: `<p>화살표 함수의 본문은 <code>=&gt;</code> 뒤에 딱 하나의 표현식만 올 수 있어요. if문, 반복문, 여러 줄의 코드가 필요하다면 일반 클로저(<code>function</code>)를 써야 해요.</p>`,
+          after: `<div class="note"><b>정리</b> — 화살표 함수는 <code>array_map</code>, <code>usort</code> 같은 곳에 넘기는 짧은 콜백을 쓸 때 특히 편리해요. 단, 바깥 변수는 정의되는 "그 순간의 값"을 캡처한다는 점(use($var)와 같은 방식)을 기억해두세요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const bonus = randInt(5, 20);
+          const score = randInt(10, 50);
+          return {
+            type: 'blank',
+            q: `<code>$bonus = ${bonus}; $addBonus = fn($score) => $score + $bonus; echo $addBonus(${score});</code>를 실행하면? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(bonus + score)], placeholder: '숫자',
+            why: `fn은 바깥의 $bonus(${bonus})를 자동으로 캡처하므로 ${score} + ${bonus} = ${bonus + score}예요.`,
+            hint: 'fn 화살표 함수는 use() 없이도 바깥 변수를 자동으로 가져와요.'
+          };
+        },
+        () => makeChoice(
+          'fn() 화살표 함수의 특징으로 알맞은 것은?',
+          '바깥 스코프의 변수를 use() 없이 자동으로 값으로 캡처한다', ['본문에 여러 줄의 문장을 자유롭게 쓸 수 있다', '바깥 변수를 항상 참조(reference)로 캡처한다', 'function 키워드보다 항상 실행 속도가 빠르다'],
+          '화살표 함수는 use()를 쓰지 않아도 바깥 변수를 자동으로(값으로) 가져와서 쓸 수 있어요.',
+          '일반 클로저의 use($var)를 자동으로 해주는 셈이라고 생각하면 쉬워요.'
+        ),
+        () => {
+          const nums = [randInt(1, 9), randInt(1, 9), randInt(1, 9)];
+          const squared = nums.map(n => n * n);
+          return {
+            type: 'blank',
+            q: `<code>$nums = [${nums.join(', ')}]; $squares = array_map(fn($n) => $n * $n, $nums); echo implode(', ', $squares);</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [squared.join(', ')], placeholder: '출력 결과',
+            why: `array_map은 각 원소에 fn($n) => $n * $n을 적용하므로, [${nums.join(', ')}]이 각각 제곱되어 ${squared.join(', ')}가 돼요.`,
+            hint: '화살표 함수는 array_map 같은 곳에 넘기는 짧은 콜백으로 자주 쓰여요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '매개변수 <code>$n</code>을 받아 <code>$n * 2</code>를 반환하는 화살표 함수를 만들어 <code>$double</code>에 담는 코드를 작성하세요.',
+          starter: '',
+          placeholder: '$double = fn($n) => $n * 2;',
+          accept: ['$double = fn($n) => $n * 2;'],
+          why: 'fn(매개변수) => 표현식 형태로 화살표 함수를 만들어요.',
+          hint: '$double = fn($n) => $n * 2; 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '화살표 함수(fn) 안에 넣을 수 없는 것은?',
+          '여러 줄의 문장이나 if/반복문 같은 제어 구조', ['바깥 스코프에 있는 변수', '매개변수', '사칙연산 표현식'],
+          '화살표 함수는 => 뒤에 단 하나의 표현식만 올 수 있어서, 여러 문장이나 제어 구조는 담을 수 없어요.',
+          '여러 줄의 로직이 필요하면 화살표 함수 대신 일반 function(...) use(...) { }를 써야 해요.'
+        ),
+      ],
+      boss: () => {
+        const bonus1 = randInt(5, 15);
+        const bonus2 = bonus1 + randInt(1, 10);
+        const score = randInt(10, 50);
+        const result = score + bonus1;
+        return {
+          type: 'blank',
+          q: `<code>$bonus = ${bonus1}; $addBonus = fn($score) => $score + $bonus; $bonus = ${bonus2}; echo $addBonus(${score});</code>를 실행하면? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(result)], placeholder: '숫자',
+          why: `fn 화살표 함수는 정의되는 시점의 $bonus 값(${bonus1})을 값으로 캡처하므로, 이후 $bonus를 ${bonus2}로 바꿔도 영향받지 않아 ${score} + ${bonus1} = ${result}이에요.`,
+          hint: '화살표 함수는 use()가 없어도, 정의 시점의 바깥 변수 값을 스냅샷처럼 캡처해요.'
+        };
+      }
+    },
+    {
+      id: 'arrayDestructuring',
+      title: '배열 구조 분해',
+      ready: true,
+      summary: '배열의 각 요소를 한 번에 여러 변수로 나눠 담는 배열 구조 분해 문법을 배워요.',
+      goals: ['[$a, $b] = $array로 한 번에 여러 변수 담기', '쉼표로 필요 없는 값 건너뛰기', '키를 지정해 연관 배열도 구조 분해하기'],
+      blocks: [
+        {
+          h: '한 번에 여러 변수 담기',
+          html: `<p><code>[$a, $b] = $array;</code>처럼 쓰면, 배열의 각 요소를 순서대로 여러 변수에 한 번에 나눠 담을 수 있어요.</p>`,
+          code: {
+            label: 'destructure_basic.php',
+            lang: 'php',
+            src: `<?php
+[$name, $age] = ["지수", 17];
+echo $name . " " . $age;`,
+            out: `지수 17`
+          }
+        },
+        {
+          h: '필요한 값만 건너뛰며 담기',
+          html: `<p>쉼표 사이를 비워두면 그 위치의 값은 건너뛰고 무시할 수 있어요.</p>`,
+          code: {
+            label: 'destructure_skip.php',
+            lang: 'php',
+            src: `<?php
+[$first, , $third] = [1, 2, 3];
+echo $first . " " . $third;`,
+            out: `1 3`
+          }
+        },
+        {
+          h: '연관 배열은 키로 구조 분해',
+          html: `<p>연관 배열은 <code>["키" =&gt; $변수]</code> 형태로, 순서가 아니라 키를 기준으로 구조 분해할 수 있어요.</p>`,
+          code: {
+            label: 'destructure_assoc.php',
+            lang: 'php',
+            src: `<?php
+$student = ["name" => "민준", "age" => 16];
+["name" => $name, "age" => $age] = $student;
+echo $name . " " . $age;`,
+            out: `민준 16`
+          },
+          after: `<div class="note"><b>정리</b> — 배열 구조 분해는 foreach와 함께 쓰면 여러 행(row)을 한 번에 풀어서 받을 때 특히 편리해요. 예: <code>foreach ($rows as [$id, $name]) { ... }</code></div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const name = pick(['지수', '민준', '서연']);
+          const age = randInt(14, 19);
+          return {
+            type: 'blank',
+            q: `<code>[$name, $age] = ["${name}", ${age}]; echo $name . " " . $age;</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${name} ${age}`], placeholder: '출력 결과',
+            why: `배열의 첫 번째 값("${name}")이 $name에, 두 번째 값(${age})이 $age에 순서대로 담겨서 "${name} ${age}"가 출력돼요.`,
+            hint: '[$a, $b] = [값1, 값2]는 순서대로 각 변수에 값을 담아요.'
+          };
+        },
+        () => makeChoice(
+          '배열 구조 분해([$a, $b] = $array)의 특징으로 알맞은 것은?',
+          '배열의 각 요소를 한 번에 여러 변수에 나눠 담을 수 있다', ['배열을 항상 정렬한 뒤에 담는다', '연관 배열에는 절대 쓸 수 없다', '한 번에 하나의 변수에만 값을 담을 수 있다'],
+          '구조 분해는 여러 변수를 한 줄로 한 번에 채울 수 있게 해줘요.',
+          '$a = $array[0]; $b = $array[1]; 을 한 줄로 줄인 것과 비슷해요.'
+        ),
+        () => {
+          const a = randInt(1, 9);
+          const b = randInt(10, 19);
+          const c = randInt(20, 29);
+          return {
+            type: 'blank',
+            q: `<code>[$first, , $third] = [${a}, ${b}, ${c}]; echo $first . " " . $third;</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${a} ${c}`], placeholder: '출력 결과',
+            why: `가운데 자리를 비워뒀으므로 ${b}는 무시되고, $first에는 ${a}, $third에는 ${c}가 담겨 "${a} ${c}"가 출력돼요.`,
+            hint: '쉼표 사이를 비워두면 그 위치의 값은 그냥 건너뛰어요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '연관 배열 <code>$student</code>(키 "name", "age")를 <code>$name</code>, <code>$age</code> 변수로 구조 분해하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: '["name" => $name, "age" => $age] = $student;',
+          accept: ['["name" => $name, "age" => $age] = $student;'],
+          why: '연관 배열은 ["키" => $변수] 형태로 키를 지정해서 구조 분해해요.',
+          hint: '["name" => $name, "age" => $age] = $student; 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '<code>list($a, $b) = [1, 2];</code>와 <code>[$a, $b] = [1, 2];</code>의 관계는?',
+          '완전히 같은 동작을 하는, 서로 바꿔 쓸 수 있는 문법이다', ['list()가 항상 더 빠르게 동작한다', '[] 문법은 연관 배열에서만 쓸 수 있다', 'list()는 최대 2개의 변수만 담을 수 있다'],
+          'list(...)와 [...] 구조 분해 문법은 동일한 기능을 하며, 최신 코드에서는 보통 []가 더 많이 쓰여요.',
+          '둘 다 "배열을 여러 변수로 풀어 담는다"는 같은 목적의 문법이에요.'
+        ),
+      ],
+      boss: () => {
+        const a = randInt(1, 9);
+        const b = randInt(1, 9);
+        const c = randInt(1, 9);
+        return {
+          type: 'blank',
+          q: `<code>[[$a, $b], $c] = [[${a}, ${b}], ${c}]; echo $a . " " . $b . " " . $c;</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`${a} ${b} ${c}`], placeholder: '출력 결과',
+          why: `배열 구조 분해는 중첩된 배열에도 그대로 적용되어, 안쪽 배열 [${a}, ${b}]이 각각 $a, $b에, 바깥의 ${c}가 $c에 담겨요.`,
+          hint: '구조 분해 문법은 배열 안에 배열이 있어도 그 모양 그대로 대응시켜 담아요.'
+        };
+      }
+    },
+    {
+      id: 'spreadOperatorArrays',
+      title: '배열 스프레드 연산자: ...',
+      ready: true,
+      summary: '배열 리터럴 안에서 다른 배열의 요소를 그대로 펼쳐 넣는 스프레드 연산자(...)를 배워요.',
+      goals: ['[...$arr]로 배열 안에서 다른 배열 펼치기', '여러 배열을 이어붙이거나 값을 추가하기', '문자열 키가 겹칠 때의 동작(array_merge와 비슷)'],
+      blocks: [
+        {
+          h: '배열 안에서 배열 펼치기',
+          html: `<p><code>[...$fruits, "포도"]</code>처럼 배열 리터럴 안에 <code>...$배열</code>을 쓰면, 그 배열의 요소들이 그 자리에 그대로 펼쳐져 들어가요.</p>`,
+          code: {
+            label: 'spread_basic.php',
+            lang: 'php',
+            src: `<?php
+$fruits = ["사과", "바나나"];
+$more = [...$fruits, "포도"];
+echo implode(", ", $more);`,
+            out: `사과, 바나나, 포도`
+          }
+        },
+        {
+          h: '여러 배열 한 번에 합치기',
+          html: `<p>스프레드는 여러 배열을 순서대로 이어붙이는 데도 유용해요.</p>`,
+          code: {
+            label: 'spread_merge.php',
+            lang: 'php',
+            src: `<?php
+$a = [1, 2];
+$b = [3, 4];
+$combined = [...$a, ...$b];
+echo implode(", ", $combined);`,
+            out: `1, 2, 3, 4`
+          }
+        },
+        {
+          h: '문자열 키가 겹치면?',
+          html: `<p>문자열 키를 가진 배열을 펼칠 때 같은 키가 겹치면, <code>array_merge</code>처럼 <b>나중에 나온 값이 이전 값을 덮어써요</b>.</p>`,
+          code: {
+            label: 'spread_override.php',
+            lang: 'php',
+            src: `<?php
+$defaults = ["theme" => "dark", "lang" => "ko"];
+$overrides = ["lang" => "en"];
+$settings = [...$defaults, ...$overrides];
+echo $settings["theme"] . " " . $settings["lang"];`,
+            out: `dark en`
+          },
+          after: `<div class="note"><b>정리</b> — 숫자 인덱스는 펼쳐지면서 순서대로 다시 매겨지고, 문자열 키는 겹치면 나중 값이 이긴다는 점을 array_merge와 비슷하게 기억해두면 좋아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const a = [randInt(1, 9), randInt(1, 9)];
+          const b = [randInt(1, 9), randInt(1, 9)];
+          const combined = [...a, ...b];
+          return {
+            type: 'blank',
+            q: `<code>$a = [${a.join(', ')}]; $b = [${b.join(', ')}]; $combined = [...$a, ...$b]; echo implode(", ", $combined);</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [combined.join(', ')], placeholder: '출력 결과',
+            why: `[...$a, ...$b]는 $a의 요소들을 먼저, 그 다음 $b의 요소들을 이어붙이므로 ${combined.join(', ')}가 돼요.`,
+            hint: '...는 배열의 요소를 그 자리에 순서대로 펼쳐 넣어요.'
+          };
+        },
+        () => makeChoice(
+          '배열 스프레드 연산자([...$arr])의 특징으로 알맞은 것은?',
+          '배열 리터럴 안에서 다른 배열의 요소들을 그 자리에 그대로 펼쳐 넣는다', ['배열의 요소를 무작위로 섞는다', '배열을 항상 오름차순으로 정렬한다', '배열의 첫 번째 요소만 꺼내온다'],
+          '...는 배열의 각 요소를 펼쳐서 새로운 배열 리터럴 안에 그대로 나열해줘요.',
+          '"펼치다(spread)"라는 이름처럼, 배열 하나를 여러 개의 개별 요소로 풀어 놓는 거예요.'
+        ),
+        () => {
+          const langs = ['en', 'ja', 'fr'];
+          const lang = pick(langs);
+          return {
+            type: 'blank',
+            q: `<code>$defaults = ["theme" => "dark", "lang" => "ko"]; $overrides = ["lang" => "${lang}"]; $settings = [...$defaults, ...$overrides]; echo $settings["theme"] . " " . $settings["lang"];</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`dark ${lang}`], placeholder: '출력 결과',
+            why: `theme은 $overrides에 없으므로 그대로 "dark"가 남고, lang은 겹치므로 나중에 펼친 $overrides의 값 "${lang}"이 덮어써서 "dark ${lang}"이 돼요.`,
+            hint: '같은 문자열 키가 겹치면, 나중에 펼친 배열의 값이 이전 값을 덮어써요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '배열 <code>$a</code>와 <code>$b</code>를 순서대로 이어붙인 새 배열을 만들어 <code>$combined</code>에 담는 코드를 스프레드 연산자로 작성하세요.',
+          starter: '',
+          placeholder: '$combined = [...$a, ...$b];',
+          accept: ['$combined = [...$a, ...$b];'],
+          why: '[...$a, ...$b]는 $a의 요소들 뒤에 $b의 요소들을 이어붙여요.',
+          hint: '$combined = [...$a, ...$b]; 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '배열 스프레드와 array_merge()의 관계로 알맞은 것은?',
+          '문자열 키가 겹치면 나중에 나온 배열의 값이 덮어쓴다는 점에서 array_merge와 비슷하게 동작한다', ['스프레드는 문자열 키를 가진 배열에는 전혀 쓸 수 없다', 'array_merge는 배열을 절대 합칠 수 없는 함수다', '스프레드는 항상 원본 배열의 순서를 무시하고 무작위로 섞는다'],
+          '숫자 인덱스는 다시 매겨지고, 문자열 키는 겹치면 뒤에 오는 값이 이긴다는 점이 array_merge와 유사해요.',
+          '스프레드가 array_merge를 완전히 대체하지는 않지만, 배열 리터럴 문법 안에서 비슷한 동작을 해요.'
+        ),
+      ],
+      boss: () => {
+        const a = [randInt(1, 9)];
+        const b = [randInt(1, 9), randInt(1, 9)];
+        const mid = randInt(90, 99);
+        const combined = [...a, mid, ...b];
+        return {
+          type: 'blank',
+          q: `<code>$a = [${a.join(', ')}]; $b = [${b.join(', ')}]; $combined = [...$a, ${mid}, ...$b]; echo implode(", ", $combined);</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [combined.join(', ')], placeholder: '출력 결과',
+          why: `스프레드와 일반 값을 섞어 쓸 수 있어서, $a의 요소 뒤에 ${mid}가 그대로 들어가고 이어서 $b의 요소들이 펼쳐져 ${combined.join(', ')}가 돼요.`,
+          hint: '스프레드(...)와 평범한 값을 배열 리터럴 안에 자유롭게 섞어 쓸 수 있어요.'
+        };
+      }
+    },
+    {
+      id: 'nullCoalescingAssignment',
+      title: '널 병합 대입 연산자: ??=',
+      ready: true,
+      summary: '변수(또는 배열 키)가 없거나 null일 때만 값을 대입하는 ??= 연산자로, 기본값 설정 코드를 간결하게 쓰는 법을 배워요.',
+      goals: ['??=의 동작(없거나 null일 때만 대입)', '기존 isset() + if 코드와의 비교', '배열 키의 기본값 설정에 활용하기'],
+      blocks: [
+        {
+          h: '기존 방식: isset()으로 기본값 설정',
+          html: `<p>키가 없을 때만 기본값을 넣고 싶다면, 원래는 <code>isset()</code>으로 먼저 확인하는 코드가 필요했어요.</p>`,
+          code: {
+            label: 'default_old.php',
+            lang: 'php',
+            src: `<?php
+$settings = [];
+if (!isset($settings['theme'])) {
+    $settings['theme'] = 'light';
+}
+echo $settings['theme'];`,
+            out: `light`
+          }
+        },
+        {
+          h: '더 짧게: ??=',
+          html: `<p><code>$변수 ??= 값;</code>은 "$변수가 없거나 null이면 값을 대입하고, 이미 값이 있으면 그대로 둔다"는 뜻이에요.</p>`,
+          code: {
+            label: 'default_new.php',
+            lang: 'php',
+            src: `<?php
+$settings = [];
+$settings['theme'] ??= 'light';
+echo $settings['theme'];`,
+            out: `light`
+          }
+        },
+        {
+          h: '이미 값이 있으면 그대로',
+          html: `<p>이미 null이 아닌 값이 있다면, <code>??=</code>는 아무 일도 하지 않고 기존 값을 그대로 유지해요.</p>`,
+          code: {
+            label: 'default_existing.php',
+            lang: 'php',
+            src: `<?php
+$settings = ['theme' => 'dark'];
+$settings['theme'] ??= 'light';
+echo $settings['theme'];`,
+            out: `dark`
+          },
+          after: `<div class="note"><b>정리</b> — ??=는 "값이 없을 때만 채워 넣는" 기본값 설정 코드를 한 줄로 줄여줘서, 설정값·옵션 처리에 자주 쓰여요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const val = pick(['light', 'dark', 'auto']);
+          return {
+            type: 'blank',
+            q: `<code>$settings = []; $settings['theme'] ??= '${val}'; echo $settings['theme'];</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [val], placeholder: '출력 결과',
+            why: `$settings['theme']가 처음엔 존재하지 않으므로 ??=가 '${val}'을 대입해서 "${val}"이 출력돼요.`,
+            hint: '??=는 왼쪽 값이 없거나 null일 때만 오른쪽 값을 대입해요.'
+          };
+        },
+        () => makeChoice(
+          '<code>$x ??= 값;</code>의 동작으로 알맞은 것은?',
+          '$x가 없거나 null이면 값을 대입하고, 이미 값이 있으면 그대로 둔다', ['$x의 값과 상관없이 항상 값을 새로 대입한다', '$x가 0이거나 빈 문자열이어도 항상 값을 대입한다', '$x가 이미 있으면 오류를 발생시킨다'],
+          '??=는 null 병합 연산자(??)와 대입(=)이 합쳐진 것으로, "없을 때만 채운다"는 뜻이에요.',
+          '0이나 빈 문자열은 null이 아니므로, ??=는 그런 값은 그대로 유지해요.'
+        ),
+        () => {
+          const existing = pick(['dark', 'blue', 'red']);
+          const fallback = pick(['light', 'green', 'gray']);
+          return {
+            type: 'blank',
+            q: `<code>$settings = ['theme' => '${existing}']; $settings['theme'] ??= '${fallback}'; echo $settings['theme'];</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [existing], placeholder: '출력 결과',
+            why: `$settings['theme']에 이미 '${existing}'이라는 null이 아닌 값이 있으므로 ??=는 아무 일도 하지 않고 그대로 "${existing}"이 출력돼요.`,
+            hint: '이미 값이 있으면 ??=는 그 값을 건드리지 않아요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '배열 <code>$config</code>의 <code>"lang"</code> 키가 없거나 null일 때만 <code>"ko"</code>를 대입하는 코드를 한 줄로 작성하세요.',
+          starter: '',
+          placeholder: '$config["lang"] ??= "ko";',
+          accept: ['$config["lang"] ??= "ko";'],
+          why: '??=는 왼쪽 값이 없거나 null일 때만 오른쪽 값을 대입해요.',
+          hint: '$config["lang"] ??= "ko"; 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '<code>$settings["theme"] ??= "light";</code>와 완전히 같은 동작을 하는 코드는?',
+          'if (!isset($settings["theme"]) || $settings["theme"] === null) { $settings["theme"] = "light"; }', ['$settings["theme"] = "light";', 'if (isset($settings["theme"])) { $settings["theme"] = "light"; }', 'unset($settings["theme"]);'],
+          '??=는 "키가 없거나 값이 null일 때만" 대입하는 if문을 한 줄로 줄인 표현이에요.',
+          '??=를 풀어 쓰면 isset() 확인 후 대입하는 if문과 같아요.'
+        ),
+      ],
+      boss: () => {
+        const hasValue = Math.random() < 0.5;
+        const existing = pick(['dark', 'blue']);
+        const result = hasValue ? existing : 'light';
+        return {
+          type: 'blank',
+          q: `<code>$settings = ${hasValue ? `['theme' => '${existing}']` : '[]'}; $settings['theme'] ??= 'light'; $settings['theme'] ??= 'blue'; echo $settings['theme'];</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [result], placeholder: '출력 결과',
+          why: hasValue
+            ? `이미 '${existing}'라는 값이 있으므로 두 번의 ??=는 모두 아무 일도 하지 않아 "${existing}"이 그대로 출력돼요.`
+            : `처음엔 값이 없으므로 첫 번째 ??=가 'light'를 대입하고, 이제 값이 생겼으므로 두 번째 ??=('blue')는 무시되어 "light"가 출력돼요.`,
+          hint: '??=는 값이 생기고 나면, 그 뒤에 또 ??=를 써도 더 이상 아무 영향을 주지 않아요.'
+        };
+      }
+    },
+    {
+      id: 'stringContainsFunctions',
+      title: '문자열 포함 검사: str_contains 등',
+      ready: true,
+      summary: 'strpos의 번거로운 비교 없이, 문자열 포함·시작·끝 여부를 명확한 참/거짓으로 확인하는 함수들을 배워요.',
+      goals: ['str_contains로 부분 문자열 포함 확인', 'str_starts_with / str_ends_with로 시작·끝 확인', '기존 strpos !== false 방식과의 비교'],
+      blocks: [
+        {
+          h: '기존 방식의 함정: strpos',
+          html: `<p><code>strpos</code>는 찾은 위치(정수)나 <code>false</code>를 반환해요. 위치가 0일 수도 있어서, <code>== false</code>로 비교하면 "0번째에서 찾음"과 "못 찾음"을 헷갈릴 수 있어요. 그래서 항상 <code>!== false</code>(타입까지 비교)로 써야 했어요.</p>`,
+          code: {
+            label: 'strpos_old.php',
+            lang: 'php',
+            src: `<?php
+$text = "안녕하세요, PHP!";
+if (strpos($text, "PHP") !== false) {
+    echo "포함됨";
+}`,
+            out: `포함됨`
+          }
+        },
+        {
+          h: '명확하게: str_contains',
+          html: `<p>PHP 8.0부터는 <code>str_contains($문자열, $찾을값)</code>이 참/거짓을 바로 반환해서, <code>!== false</code> 같은 함정 없이 명확하게 쓸 수 있어요.</p>`,
+          code: {
+            label: 'str_contains_basic.php',
+            lang: 'php',
+            src: `<?php
+$text = "안녕하세요, PHP!";
+if (str_contains($text, "PHP")) {
+    echo "포함됨";
+}`,
+            out: `포함됨`
+          }
+        },
+        {
+          h: '시작과 끝 확인하기',
+          html: `<p><code>str_starts_with</code>와 <code>str_ends_with</code>는 각각 문자열이 특정 값으로 시작하는지, 끝나는지를 true/false로 확인해줘요.</p>`,
+          code: {
+            label: 'str_starts_ends.php',
+            lang: 'php',
+            src: `<?php
+$filename = "photo.png";
+var_dump(str_starts_with($filename, "photo"));
+var_dump(str_ends_with($filename, ".png"));`,
+            out: `bool(true)
+bool(true)`
+          },
+          after: `<div class="note"><b>정리</b> — 이 세 함수(str_contains, str_starts_with, str_ends_with)는 모두 PHP 8.0부터 추가되었고, 항상 명확한 true/false만 반환해서 strpos의 함정에서 자유로워요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const word = pick(['사과', '바나나', '포도']);
+          const text = `오늘은 ${word}를 먹었어요`;
+          return {
+            type: 'blank',
+            q: `<code>$text = "${text}"; var_dump(str_contains($text, "${word}"));</code>를 실행하면? (true/false)`,
+            prefix: '', suffix: '', accept: ['true'], placeholder: 'true / false',
+            why: `$text 안에 "${word}"가 포함되어 있으므로 str_contains는 true를 반환해요.`,
+            hint: 'str_contains는 포함되어 있으면 true, 아니면 false를 그대로 반환해요.'
+          };
+        },
+        () => makeChoice(
+          'str_contains()가 strpos() !== false 방식보다 나은 점은?',
+          '항상 명확한 true/false만 반환해서, 0번째 위치와 못 찾은 경우를 헷갈릴 여지가 없다', ['대소문자를 항상 무시하고 비교한다', '여러 문자열을 한 번에 검색할 수 있다', 'strpos보다 항상 실행 속도가 빠르다'],
+          'strpos는 정수 또는 false를 섞어서 반환하지만, str_contains는 오직 true/false만 반환해서 실수할 여지가 없어요.',
+          '"포함한다(contains)"는 이름 그대로, 참/거짓만 알려줘요.'
+        ),
+        () => {
+          const ext = pick(['.png', '.jpg', '.pdf']);
+          const filename = `report${ext}`;
+          const checkExt = pick(['.png', '.jpg', '.pdf']);
+          const result = ext === checkExt;
+          return {
+            type: 'blank',
+            q: `<code>$filename = "${filename}"; var_dump(str_ends_with($filename, "${checkExt}"));</code>를 실행하면? (true/false)`,
+            prefix: '', suffix: '', accept: [result ? 'true' : 'false'], placeholder: 'true / false',
+            why: result
+              ? `"${filename}"은 실제로 "${checkExt}"로 끝나므로 true예요.`
+              : `"${filename}"은 "${ext}"로 끝나고 "${checkExt}"로 끝나지 않으므로 false예요.`,
+            hint: 'str_ends_with는 문자열이 정확히 그 값으로 끝나는지 확인해요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>$filename</code>이 <code>"photo"</code>로 시작하는지 확인하는 코드를 한 줄로 작성하세요.',
+          starter: '',
+          placeholder: 'str_starts_with($filename, "photo");',
+          accept: ['str_starts_with($filename, "photo");'],
+          why: 'str_starts_with($문자열, $접두어)는 그 접두어로 시작하는지를 true/false로 알려줘요.',
+          hint: 'str_starts_with($filename, "photo"); 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          'str_contains, str_starts_with, str_ends_with에 대한 설명으로 알맞은 것은?',
+          '모두 PHP 8.0부터 추가되었고, 항상 true 또는 false만 반환한다', ['셋 다 대소문자를 자동으로 통일해서 비교한다', 'str_contains만 정수를 반환하고 나머지는 불리언이다', '셋 다 정규표현식 패턴을 인자로 받아야 한다'],
+          '세 함수 모두 PHP 8.0에서 추가된 문자열 검사 함수로, 항상 명확한 불리언을 반환해요.',
+          '정규표현식이 필요 없는, 단순 포함/시작/끝 검사에 특화된 함수들이에요.'
+        ),
+      ],
+      boss: () => {
+        const filenames = ['photo.png', 'report.pdf', 'archive.zip', 'index.html'];
+        const filename = pick(filenames);
+        const startsOk = filename.startsWith('photo') || filename.startsWith('report');
+        const endsOk = filename.endsWith('.png') || filename.endsWith('.pdf');
+        const passes = startsOk && endsOk;
+        return {
+          type: 'blank',
+          q: `<code>$filename = "${filename}";</code>이고, 다음 조건을 확인해요: <code>(str_starts_with($filename, "photo") || str_starts_with($filename, "report")) && (str_ends_with($filename, ".png") || str_ends_with($filename, ".pdf"))</code>. 이 조건의 결과는? (true/false)`,
+          prefix: '', suffix: '', accept: [passes ? 'true' : 'false'], placeholder: 'true / false',
+          why: `"${filename}"은 시작 조건이 ${startsOk ? '참' : '거짓'}이고 끝 조건이 ${endsOk ? '참' : '거짓'}이므로, 전체 &&(그리고) 결과는 ${passes ? 'true' : 'false'}예요.`,
+          hint: '두 조건을 각각 확인한 뒤, &&(둘 다 참이어야 함)로 합쳐서 판단해요.'
+        };
+      }
+    },
+    {
+      id: 'dateTimeClass',
+      title: 'DateTime 클래스로 날짜 다루기',
+      ready: true,
+      summary: '문자열로 날짜를 다루는 대신, DateTime 객체로 날짜·시간을 안전하게 계산하고 형식화하는 법을 배워요.',
+      goals: ['new DateTime()으로 날짜 객체 만들기', 'format()으로 원하는 형식으로 출력하기', 'modify()와 diff()로 날짜 계산하기'],
+      blocks: [
+        {
+          h: '날짜를 객체로: DateTime',
+          html: `<p><code>new DateTime('날짜문자열')</code>로 날짜를 표현하는 객체를 만들 수 있어요. <code>format()</code>에 원하는 형식 문자를 넘기면 그 형식대로 출력해줘요.</p>`,
+          code: {
+            label: 'datetime_basic.php',
+            lang: 'php',
+            src: `<?php
+$date = new DateTime('2024-03-15');
+echo $date->format('Y-m-d');`,
+            out: `2024-03-15`
+          }
+        },
+        {
+          h: '원하는 형식으로: format()',
+          html: `<p><code>Y</code>(4자리 연도), <code>n</code>(월, 앞의 0 없이), <code>j</code>(일, 앞의 0 없이) 같은 형식 문자를 조합해서 원하는 모양으로 만들 수 있어요.</p>`,
+          code: {
+            label: 'datetime_format.php',
+            lang: 'php',
+            src: `<?php
+$date = new DateTime('2024-03-15');
+echo $date->format('Y년 n월 j일');`,
+            out: `2024년 3월 15일`
+          }
+        },
+        {
+          h: '날짜 계산하기: modify()와 diff()',
+          html: `<p><code>modify('+N days')</code>는 객체가 가진 날짜 자체를 상대적으로 바꿔줘요. 두 날짜 사이의 차이가 궁금하면 <code>$start-&gt;diff($end)</code>로 <code>DateInterval</code> 객체를 얻고, 그 안의 <code>-&gt;days</code>로 총 일수를 알 수 있어요.</p>`,
+          code: {
+            label: 'datetime_modify.php',
+            lang: 'php',
+            src: `<?php
+$date = new DateTime('2024-03-15');
+$date->modify('+10 days');
+echo $date->format('Y-m-d');`,
+            out: `2024-03-25`
+          },
+          after: `<div class="note"><b>정리</b> — DateTime은 modify()를 부르면 객체 자신의 값이 바뀌어요(mutable). 원본을 그대로 두고 싶다면 같은 방식으로 쓰는 DateTimeImmutable을 대신 쓰면 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const year = 2024;
+          const month = randInt(1, 12);
+          const day = randInt(1, 20);
+          const mm = String(month).padStart(2, '0');
+          const dd = String(day).padStart(2, '0');
+          return {
+            type: 'blank',
+            q: `<code>$date = new DateTime('${year}-${mm}-${dd}'); echo $date->format('Y-m-d');</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${year}-${mm}-${dd}`], placeholder: '출력 결과',
+            why: `format('Y-m-d')는 생성할 때 넣은 날짜를 그대로 "연-월-일" 형식으로 보여줘서 "${year}-${mm}-${dd}"가 출력돼요.`,
+            hint: 'format의 Y, m, d는 각각 4자리 연도, 2자리 월, 2자리 일을 뜻해요.'
+          };
+        },
+        () => makeChoice(
+          'DateTime 객체의 format() 메서드가 하는 일은?',
+          '날짜/시간 값을 지정한 형식 문자열에 맞춰 문자열로 만들어준다', ['날짜를 무작위로 하나 골라 반환한다', '두 날짜를 자동으로 더해준다', '날짜 값을 데이터베이스에 저장한다'],
+          'format()은 Y, m, d 같은 형식 문자를 조합해 원하는 모양의 날짜 문자열을 만들어줘요.',
+          '형식 문자(Y, m, d, n, j 등)를 조합해서 원하는 출력 모양을 정해요.'
+        ),
+        () => {
+          const year = 2024;
+          const month = randInt(1, 11);
+          const day = randInt(1, 20);
+          const n = randInt(1, 15);
+          const d = new Date(Date.UTC(year, month - 1, day));
+          d.setUTCDate(d.getUTCDate() + n);
+          const ny = d.getUTCFullYear();
+          const nm = String(d.getUTCMonth() + 1).padStart(2, '0');
+          const nd = String(d.getUTCDate()).padStart(2, '0');
+          const mm = String(month).padStart(2, '0');
+          const dd = String(day).padStart(2, '0');
+          return {
+            type: 'blank',
+            q: `<code>$date = new DateTime('${year}-${mm}-${dd}'); $date->modify('+${n} days'); echo $date->format('Y-m-d');</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${ny}-${nm}-${nd}`], placeholder: '출력 결과',
+            why: `modify('+${n} days')는 날짜에 ${n}일을 더해서 ${ny}-${nm}-${nd}가 돼요.`,
+            hint: 'modify는 날짜 객체 자체의 값을 바꿔버려요(mutable).'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>$date</code>(DateTime 객체)를 <code>"월/일/연도"</code> 형태(예: 3/15/2024)로 출력하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'echo $date->format("n/j/Y");',
+          accept: ['echo $date->format("n/j/Y");'],
+          why: 'n은 앞의 0 없는 월, j는 앞의 0 없는 일, Y는 4자리 연도를 뜻해요.',
+          hint: 'echo $date->format("n/j/Y"); 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          'DateTime의 modify() 메서드가 하는 일은?',
+          '객체가 가진 날짜/시간 값을 "+N days" 같은 상대적인 표현으로 바꾼다', ['날짜를 항상 오늘 날짜로 초기화한다', '다른 DateTime 객체와 비교해서 boolean을 반환한다', '날짜를 문자열이 아닌 정수로 바꾼다'],
+          'modify()는 "+10 days", "-1 month"처럼 상대적인 표현을 받아 객체의 날짜 값 자체를 바꿔요.',
+          '"수정하다(modify)"라는 이름처럼, 객체 안의 날짜 값을 직접 바꿔요.'
+        ),
+      ],
+      boss: () => {
+        const year = 2024;
+        const m1 = randInt(1, 6);
+        const d1 = randInt(1, 20);
+        const deltaDays = randInt(5, 40);
+        const start = new Date(Date.UTC(year, m1 - 1, d1));
+        const end = new Date(start);
+        end.setUTCDate(end.getUTCDate() + deltaDays);
+        const mm1 = String(m1).padStart(2, '0');
+        const dd1 = String(d1).padStart(2, '0');
+        const y2 = end.getUTCFullYear();
+        const m2 = String(end.getUTCMonth() + 1).padStart(2, '0');
+        const d2 = String(end.getUTCDate()).padStart(2, '0');
+        return {
+          type: 'blank',
+          q: `<code>$start = new DateTime('${year}-${mm1}-${dd1}'); $end = new DateTime('${y2}-${m2}-${d2}'); $diff = $start->diff($end); echo $diff->days;</code>를 실행하면? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(deltaDays)], placeholder: '숫자',
+          why: `diff()는 두 날짜 사이의 차이를 DateInterval 객체로 반환하고, ->days는 그 차이를 전체 일수로 알려줘서 ${deltaDays}가 돼요.`,
+          hint: 'diff()가 반환하는 객체의 ->days 프로퍼티는 두 날짜 사이의 총 일수예요.'
+        };
+      }
+    },
+    {
+      id: 'passwordHashing',
+      title: '비밀번호 해싱: password_hash / password_verify',
+      ready: true,
+      summary: '비밀번호를 평문으로 저장하지 않고, password_hash와 password_verify로 안전하게 저장·확인하는 법을 배워요.',
+      goals: ['비밀번호를 평문으로 저장하면 안 되는 이유', 'password_hash()로 안전하게 해싱하기', 'password_verify()로 로그인 시 안전하게 비교하기'],
+      blocks: [
+        {
+          h: '문제: 평문 저장의 위험',
+          html: `<p>비밀번호를 그대로(평문) 저장하면, 데이터베이스가 유출되는 사고가 났을 때 모든 사용자의 실제 비밀번호가 그대로 노출돼요. 그래서 절대 평문으로 저장하면 안 돼요.</p>`,
+          code: {
+            label: 'plain_bad.php',
+            lang: 'php',
+            src: `<?php
+// 절대 이렇게 하면 안 돼요!
+$stored = $_POST['password']; // 평문 그대로 저장`
+          }
+        },
+        {
+          h: '해결: password_hash()',
+          html: `<p><code>password_hash($비밀번호, PASSWORD_DEFAULT)</code>는 비밀번호를 안전한 해시값으로 바꿔줘요. 매번 다른 salt(임의의 값)가 섞여서, 같은 비밀번호를 해싱해도 결과 문자열이 매번 달라져요.</p>`,
+          code: {
+            label: 'password_hash_basic.php',
+            lang: 'php',
+            src: `<?php
+$hash = password_hash("mySecret123", PASSWORD_DEFAULT);
+echo strlen($hash) > 0 ? "해시 생성됨" : "실패";`,
+            out: `해시 생성됨`
+          }
+        },
+        {
+          h: '로그인 확인: password_verify()',
+          html: `<p>해시값은 매번 달라지므로, 두 해시를 <code>==</code>로 비교하면 안 돼요. 대신 <code>password_verify($입력값, $저장된해시)</code>가 내부적으로 안전하게 비교해서 true/false를 알려줘요.</p>`,
+          code: {
+            label: 'password_verify_basic.php',
+            lang: 'php',
+            src: `<?php
+$hash = password_hash("mySecret123", PASSWORD_DEFAULT);
+var_dump(password_verify("mySecret123", $hash));
+var_dump(password_verify("wrongGuess", $hash));`,
+            out: `bool(true)
+bool(false)`
+          },
+          after: `<div class="note"><b>정리</b> — 회원가입 때는 password_hash()로 만든 해시만 저장하고, 로그인 때는 항상 password_verify()로 비교해요. 평문 비밀번호는 저장은 물론, 저장된 상태로 남겨두지도 않아야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const pw = pick(['secret123', 'myPass2024', 'hunter2']);
+          return {
+            type: 'blank',
+            q: `<code>$hash = password_hash("${pw}", PASSWORD_DEFAULT); var_dump(password_verify("${pw}", $hash));</code>를 실행하면? (true/false)`,
+            prefix: '', suffix: '', accept: ['true'], placeholder: 'true / false',
+            why: `password_verify에 넘긴 값("${pw}")이 해싱했던 원래 비밀번호와 같으므로 true를 반환해요.`,
+            hint: 'password_verify는 입력값을 해시와 다시 비교해서 일치 여부를 true/false로 알려줘요.'
+          };
+        },
+        () => makeChoice(
+          '비밀번호를 평문으로 저장하면 안 되는 이유는?',
+          'DB가 유출되면 모든 사용자의 실제 비밀번호가 그대로 노출되기 때문', ['평문으로 저장하면 로그인 속도가 항상 느려지기 때문', 'PHP에서 문자열을 그대로 저장하는 게 문법적으로 불가능하기 때문', '평문 저장은 저장 공간을 더 많이 차지하기 때문'],
+          '평문 저장은 보안 사고 시 사용자의 실제 비밀번호가 그대로 드러나는 치명적인 문제를 만들어요.',
+          '해싱은 "원래 값을 알 수 없게 바꿔서 저장한다"는 게 핵심 목적이에요.'
+        ),
+        () => {
+          const pw = pick(['secret123', 'myPass2024', 'hunter2']);
+          const wrong = pick(['wrongpass', '1234', 'test']);
+          return {
+            type: 'blank',
+            q: `<code>$hash = password_hash("${pw}", PASSWORD_DEFAULT); var_dump(password_verify("${wrong}", $hash));</code>를 실행하면? (true/false)`,
+            prefix: '', suffix: '', accept: ['false'], placeholder: 'true / false',
+            why: `password_verify에 넘긴 값("${wrong}")이 원래 해싱했던 비밀번호("${pw}")와 다르므로 false를 반환해요.`,
+            hint: '값이 다르면 password_verify는 false를 반환해요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>$password</code>(문자열)를 PHP가 권장하는 기본 알고리즘으로 해싱해 <code>$hash</code>에 담는 코드를 작성하세요.',
+          starter: '',
+          placeholder: '$hash = password_hash($password, PASSWORD_DEFAULT);',
+          accept: ['$hash = password_hash($password, PASSWORD_DEFAULT);'],
+          why: 'PASSWORD_DEFAULT는 PHP가 현재 권장하는 가장 안전한 알고리즘을 자동으로 선택해줘요.',
+          hint: '$hash = password_hash($password, PASSWORD_DEFAULT); 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '두 해시값을 == 로 직접 비교하면 안 되는 이유는?',
+          '같은 비밀번호라도 매번 다른 salt가 섞여 해시값 자체가 달라지기 때문에, 반드시 password_verify()로 비교해야 한다', ['==는 문자열 비교에 아예 쓸 수 없기 때문에', '해시값은 항상 숫자로만 이루어져 있어서 == 비교가 의미 없기 때문에', 'password_hash가 매번 정확히 같은 해시값을 만들어서 비교가 무의미하기 때문에'],
+          'password_hash는 매번 다른 salt를 섞어 해시값을 다르게 만들기 때문에, 문자열 비교로는 같은 비밀번호도 다르다고 판단될 수 있어요.',
+          'password_verify는 해시 안에 들어있는 salt 정보를 이용해 다시 계산해서 안전하게 비교해줘요.'
+        ),
+      ],
+      boss: () => {
+        const correct = Math.random() < 0.5;
+        const original = pick(['secret123', 'myPass2024', 'hunter2']);
+        const attempt = correct ? original : pick(['wrongpass', '1234', 'test']);
+        return {
+          type: 'blank',
+          q: `<code>$hash = password_hash("${original}", PASSWORD_DEFAULT); // 회원가입 시 저장</code> 이후 로그인 시 <code>$ok = password_verify("${attempt}", $hash); var_dump($ok);</code>를 실행하면? (true/false)`,
+          prefix: '', suffix: '', accept: [correct ? 'true' : 'false'], placeholder: 'true / false',
+          why: correct
+            ? `로그인 시도한 비밀번호("${attempt}")가 가입 때와 같으므로 password_verify는 true를 반환해요.`
+            : `로그인 시도한 비밀번호("${attempt}")가 가입 때 비밀번호("${original}")와 다르므로 password_verify는 false를 반환해요.`,
+          hint: 'password_verify는 해시를 다시 계산해서 원래 비밀번호와 일치하는지 안전하게 비교해줘요.'
+        };
+      }
+    },
+    {
+      id: 'dependencyInjectionBasics',
+      title: '의존성 주입(DI)의 기본',
+      ready: true,
+      summary: '클래스 안에서 직접 의존 객체를 만드는 대신, 밖에서 만들어 넣어주는 의존성 주입의 개념과 장점을 배워요.',
+      goals: ['클래스 내부에서 new로 직접 만드는 방식의 문제', '생성자를 통한 의존성 주입', '인터페이스와 함께 쓸 때의 유연함'],
+      blocks: [
+        {
+          h: '문제: 클래스 안에서 직접 만들기',
+          html: `<p><code>OrderService</code>가 자기 안에서 직접 <code>new SmtpMailer()</code>를 만들면, 다른 발송 방식으로 바꾸거나 테스트용 가짜 객체로 교체하기가 어려워요. 두 클래스가 단단히 묶여(결합) 있는 상태예요.</p>`,
+          code: {
+            label: 'di_problem.php',
+            lang: 'php',
+            src: `<?php
+class SmtpMailer {
+    public function send($to, $msg) {
+        echo "SMTP로 전송: " . $to;
+    }
+}
+
+class OrderService {
+    private $mailer;
+
+    public function __construct() {
+        $this->mailer = new SmtpMailer(); // 클래스 안에서 직접 생성
+    }
+
+    public function complete($to) {
+        $this->mailer->send($to, "주문 완료");
+    }
+}`
+          }
+        },
+        {
+          h: '해결: 생성자로 주입받기',
+          html: `<p>객체를 클래스 안에서 직접 만들지 않고, 생성자를 통해 <b>밖에서 만들어 넣어주는 것</b>을 의존성 주입(Dependency Injection)이라고 해요.</p>`,
+          code: {
+            label: 'di_constructor.php',
+            lang: 'php',
+            src: `<?php
+class OrderService {
+    private $mailer;
+
+    public function __construct(SmtpMailer $mailer) {
+        $this->mailer = $mailer;
+    }
+
+    public function complete($to) {
+        $this->mailer->send($to, "주문 완료");
+    }
+}
+
+$mailer = new SmtpMailer();
+$service = new OrderService($mailer);
+$service->complete("jisoo@example.com");`,
+            out: `SMTP로 전송: jisoo@example.com`
+          }
+        },
+        {
+          h: '인터페이스와 함께: 더 유연하게',
+          html: `<p>구체 클래스 대신 <b>인터페이스</b> 타입으로 주입받으면, <code>OrderService</code>는 실제로 어떤 구현이 들어오는지 몰라도 동작해요. 테스트할 때는 진짜로 메일을 보내지 않는 가짜 구현을 대신 넣어줄 수도 있어요.</p>`,
+          code: {
+            label: 'di_interface.php',
+            lang: 'php',
+            src: `<?php
+interface Mailer {
+    public function send($to, $msg);
+}
+
+class FakeMailer implements Mailer {
+    public function send($to, $msg) {
+        echo "테스트용, 실제 전송 안 함: " . $to;
+    }
+}
+
+class OrderService {
+    private Mailer $mailer;
+
+    public function __construct(Mailer $mailer) {
+        $this->mailer = $mailer;
+    }
+
+    public function complete($to) {
+        $this->mailer->send($to, "주문 완료");
+    }
+}
+
+$service = new OrderService(new FakeMailer());
+$service->complete("jisoo@example.com");`,
+            out: `테스트용, 실제 전송 안 함: jisoo@example.com`
+          },
+          after: `<div class="note"><b>정리</b> — 의존성 주입은 클래스가 "무엇을 쓸지" 스스로 결정하지 않고 밖에서 받게 만들어서, 구현을 갈아끼우기 쉽고 테스트하기 쉬운 유연한 구조를 만들어줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const email = pick(['jisoo@example.com', 'minjun@example.com', 'seoyeon@example.com']);
+          return {
+            type: 'blank',
+            q: `<code>class SmtpMailer { public function send($to, $msg) { echo "SMTP로 전송: " . $to; } } class OrderService { private $mailer; public function __construct(SmtpMailer $mailer) { $this->mailer = $mailer; } public function complete($to) { $this->mailer->send($to, "주문 완료"); } }</code>이고 <code>$service = new OrderService(new SmtpMailer()); $service->complete("${email}");</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`SMTP로 전송: ${email}`], placeholder: '출력 결과',
+            why: `주입받은 SmtpMailer의 send()가 호출되어 "SMTP로 전송: ${email}"이 출력돼요.`,
+            hint: 'OrderService는 생성자로 받은 mailer 객체를 그대로 써요.'
+          };
+        },
+        () => makeChoice(
+          '의존성 주입(DI)의 장점으로 알맞은 것은?',
+          '클래스가 필요한 객체를 직접 만들지 않아서, 구현을 갈아끼우거나 테스트하기 쉬워진다', ['클래스 안의 코드 줄 수를 항상 줄여준다', '프로그램의 실행 속도를 항상 더 빠르게 만든다', '생성자를 아예 쓰지 않아도 되게 해준다'],
+          'DI는 클래스와 그 의존 객체 사이의 결합을 느슨하게 만들어서 유연성과 테스트 용이성을 높여요.',
+          '직접 new로 만들지 않고, 밖에서 "주입"받는다는 게 핵심이에요.'
+        ),
+        () => {
+          const email = pick(['jisoo@example.com', 'minjun@example.com', 'seoyeon@example.com']);
+          return {
+            type: 'blank',
+            q: `<code>interface Mailer { public function send($to, $msg); } class FakeMailer implements Mailer { public function send($to, $msg) { echo "테스트용, 실제 전송 안 함: " . $to; } } class OrderService { private Mailer $mailer; public function __construct(Mailer $mailer) { $this->mailer = $mailer; } public function complete($to) { $this->mailer->send($to, "주문 완료"); } }</code>이고 <code>$service = new OrderService(new FakeMailer()); $service->complete("${email}");</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`테스트용, 실제 전송 안 함: ${email}`], placeholder: '출력 결과',
+            why: `Mailer 타입으로 주입받았기 때문에 FakeMailer의 send() 구현이 대신 호출되어 "테스트용, 실제 전송 안 함: ${email}"이 출력돼요.`,
+            hint: 'OrderService는 인터페이스 타입만 알기 때문에, 어떤 구현을 넣어도 그대로 동작해요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>OrderService</code>가 <code>Mailer</code> 인터페이스 타입의 객체를 생성자로 주입받아 프로퍼티에 저장하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'public function __construct(Mailer $mailer) {\n    $this->mailer = $mailer;\n}',
+          accept: ['public function __construct(Mailer $mailer) {\n    $this->mailer = $mailer;\n}'],
+          why: '생성자의 매개변수를 Mailer 타입으로 받아 그대로 프로퍼티에 저장해요.',
+          hint: 'public function __construct(Mailer $mailer) { $this->mailer = $mailer; } 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '클래스 안에서 직접 new로 의존 객체를 만드는 방식의 문제점은?',
+          '다른 구현으로 바꾸거나, 테스트용 가짜 객체로 교체하기 어렵다', ['코드가 항상 더 짧아진다', '메모리를 자동으로 절약해준다', '생성자를 아예 쓸 필요가 없어진다'],
+          '내부에서 직접 만들면 그 구체 클래스에 단단히 묶여서, 유연하게 교체하기 어려워져요.',
+          '테스트할 때 진짜 SMTP 서버로 메일을 보내고 싶지 않다면, 이 문제가 바로 와닿을 거예요.'
+        ),
+      ],
+      boss: () => {
+        const useFake = Math.random() < 0.5;
+        const email = pick(['jisoo@example.com', 'minjun@example.com', 'seoyeon@example.com']);
+        const result = useFake ? `테스트용, 실제 전송 안 함: ${email}` : `SMTP로 전송: ${email}`;
+        return {
+          type: 'blank',
+          q: `<code>interface Mailer { public function send($to, $msg); } class SmtpMailer implements Mailer { public function send($to, $msg) { echo "SMTP로 전송: " . $to; } } class FakeMailer implements Mailer { public function send($to, $msg) { echo "테스트용, 실제 전송 안 함: " . $to; } } class OrderService { private Mailer $mailer; public function __construct(Mailer $mailer) { $this->mailer = $mailer; } public function complete($to) { $this->mailer->send($to, "주문 완료"); } }</code>이고 <code>$service = new OrderService(${useFake ? 'new FakeMailer()' : 'new SmtpMailer()'}); $service->complete("${email}");</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [result], placeholder: '출력 결과',
+          why: `OrderService는 Mailer 인터페이스 타입으로 어떤 구현이든 주입받을 수 있어서, ${useFake ? 'FakeMailer' : 'SmtpMailer'}가 주입되면 그 send() 구현이 실행되어 "${result}"가 출력돼요.`,
+          hint: 'OrderService는 어떤 Mailer 구현이 들어오는지 몰라도, 인터페이스 타입만 보고 동작해요.'
+        };
+      }
+    },
+    {
+      id: 'interfaceConstants',
+      title: '인터페이스 상수',
+      ready: true,
+      summary: '인터페이스 안에 정의해서, 그 인터페이스를 구현하는 모든 클래스가 공유하는 상수를 배워요.',
+      goals: ['인터페이스 안에 const로 상수 정의하기', '구현 클래스에서 상수 값을 재정의하기', '서로 다른 인터페이스의 상수가 충돌할 때'],
+      blocks: [
+        {
+          h: '인터페이스에 상수 정의하기',
+          html: `<p>인터페이스 안에 <code>const</code>로 상수를 정의하면, 그 인터페이스를 구현하는 모든 클래스가 기본적으로 이 값을 물려받아요. <code>ClassName::상수이름</code>으로 접근해요.</p>`,
+          code: {
+            label: 'interface_const_basic.php',
+            lang: 'php',
+            src: `<?php
+interface HasVersion {
+    const VERSION = "1.0";
+}
+
+class App implements HasVersion {
+}
+
+echo App::VERSION;`,
+            out: `1.0`
+          }
+        },
+        {
+          h: '구현 클래스에서 값 재정의하기',
+          html: `<p>구현하는 클래스는 인터페이스가 정한 상수의 값을 자신만의 값으로 재정의할 수 있어요.</p>`,
+          code: {
+            label: 'interface_const_override.php',
+            lang: 'php',
+            src: `<?php
+interface HasVersion {
+    const VERSION = "1.0";
+}
+
+class App implements HasVersion {
+    const VERSION = "2.0"; // 재정의
+}
+
+echo App::VERSION;`,
+            out: `2.0`
+          }
+        },
+        {
+          h: '두 인터페이스의 상수가 충돌하면',
+          html: `<p>서로 다른 두 인터페이스가 같은 이름의 상수를 <b>다른 값</b>으로 가지고 있다면, 그 둘을 동시에 구현하는 클래스는 오류가 나요. 같은 값이라면 문제 없어요.</p>`,
+          code: {
+            label: 'interface_const_conflict.php',
+            lang: 'php',
+            src: `<?php
+interface A { const NAME = "A"; }
+interface B { const NAME = "B"; }
+
+class C implements A, B {
+} // 오류! 서로 다른 값의 같은 이름 상수를 동시에 물려받을 수 없음`
+          },
+          after: `<div class="note"><b>정리</b> — 인터페이스 상수는 "이 인터페이스를 구현하면 기본적으로 갖게 되는 공통 값"을 정의할 때 쓰고, 상수는 객체 변수를 통해서도(<code>$obj::상수이름</code>) 접근할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const v = pick(['1.0', '2.5', '3.1']);
+          return {
+            type: 'blank',
+            q: `<code>interface HasVersion { const VERSION = "${v}"; } class App implements HasVersion { }</code>이고 <code>echo App::VERSION;</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [v], placeholder: '출력 결과',
+            why: `App은 VERSION을 재정의하지 않았으므로, 인터페이스에 정의된 값 "${v}"가 그대로 쓰여요.`,
+            hint: '재정의하지 않으면 인터페이스가 정한 값을 그대로 물려받아요.'
+          };
+        },
+        () => makeChoice(
+          '인터페이스 상수의 특징으로 알맞은 것은?',
+          '인터페이스를 구현하는 모든 클래스가 기본적으로 공유하는 상수를 정의할 수 있다', ['인터페이스 안의 상수는 절대 접근할 수 없다', '인터페이스 상수는 반드시 정수여야 한다', '구현 클래스는 상수를 재정의할 수 없다'],
+          '인터페이스 상수는 그 인터페이스를 구현하는 모든 클래스가 공통으로 갖는 값을 정의하는 방법이에요.',
+          'ClassName::상수이름 형태로 어디서든 접근할 수 있어요.'
+        ),
+        () => {
+          const base = pick(['1.0', '2.0']);
+          const override = pick(['9.9', '10.0', '4.4']);
+          return {
+            type: 'blank',
+            q: `<code>interface HasVersion { const VERSION = "${base}"; } class App implements HasVersion { const VERSION = "${override}"; }</code>이고 <code>echo App::VERSION;</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [override], placeholder: '출력 결과',
+            why: `App이 VERSION을 "${override}"로 재정의했으므로, 인터페이스의 기본값(${base}) 대신 재정의된 값이 쓰여요.`,
+            hint: '구현 클래스가 같은 이름으로 상수를 다시 선언하면 그 값이 우선해요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>HasVersion</code> 인터페이스 안에, 값이 <code>"1.0"</code>인 <code>VERSION</code> 상수를 선언하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'const VERSION = "1.0";',
+          accept: ['const VERSION = "1.0";'],
+          why: '인터페이스 안에서도 const 상수이름 = 값; 형태로 상수를 선언해요.',
+          hint: 'const VERSION = "1.0"; 형태를 그대로 써보세요.'
+        }),
+        () => makeChoice(
+          '서로 다른 두 인터페이스가 같은 이름의 상수를 서로 다른 값으로 가지고 있을 때, 그 둘을 동시에 구현하는 클래스를 만들면?',
+          '오류가 발생한다', ['먼저 나온 인터페이스의 값이 자동으로 선택된다', '두 값을 배열로 합쳐서 저장한다', '나중에 나온 인터페이스의 값이 자동으로 선택된다'],
+          '값이 다른 동일한 이름의 상수를 동시에 물려받을 방법이 없어서, PHP는 이를 오류로 처리해요.',
+          '값이 같다면 문제없지만, 다르면 어느 쪽을 따를지 알 수 없어서 오류가 나요.'
+        ),
+      ],
+      boss: () => {
+        const base = pick(['1.0', '2.0']);
+        const overridden = Math.random() < 0.5;
+        const override = pick(['9.9', '10.0']);
+        const result = overridden ? override : base;
+        return {
+          type: 'blank',
+          q: `<code>interface HasVersion { const VERSION = "${base}"; } class App implements HasVersion { ${overridden ? `const VERSION = "${override}";` : ''} } $app = new App(); echo $app::VERSION;</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [result], placeholder: '출력 결과',
+          why: overridden
+            ? `App이 VERSION을 "${override}"로 재정의했으므로, 인스턴스를 통해 접근해도(::) 재정의된 값이 나와요.`
+            : `App은 VERSION을 재정의하지 않았으므로, 인터페이스에 정의된 기본값 "${base}"가 그대로 쓰여요.`,
+          hint: '상수는 $객체::상수이름 형태로, 객체 변수를 통해서도 접근할 수 있어요.'
+        };
+      }
+    },
+    {
+      id: 'abstractVsInterface',
+      title: '추상 클래스 vs 인터페이스: 언제 무엇을 쓸까',
+      ready: true,
+      summary: '비슷해 보이는 추상 클래스와 인터페이스를, 실제로 어떤 기준으로 선택해야 하는지 배워요.',
+      goals: ['추상 클래스: 관련된 클래스들이 공통 구현을 공유할 때', '인터페이스: 서로 다른 클래스가 같은 규약을 따를 때', '클래스는 하나만 상속하지만, 인터페이스는 여러 개 구현 가능'],
+      blocks: [
+        {
+          h: '공통 코드가 있다면: 추상 클래스',
+          html: `<p>추상 클래스는 <code>introduce()</code>처럼 공통 로직(상태 포함)을 자식에게 그대로 물려주면서, <code>speak()</code>처럼 자식마다 달라야 하는 부분만 강제로 채우게 할 수 있어요. 단, 클래스는 <code>extends</code>로 오직 하나만 상속할 수 있어요.</p>`,
+          code: {
+            label: 'abstract_choice.php',
+            lang: 'php',
+            src: `<?php
+abstract class Animal {
+    protected $name;
+
+    public function __construct($name) {
+        $this->name = $name;
+    }
+
+    abstract public function speak();
+
+    public function introduce() {
+        return $this->name . ": " . $this->speak();
+    }
+}
+
+class Dog extends Animal {
+    public function speak() {
+        return "멍멍!";
+    }
+}
+
+$d = new Dog("바둑이");
+echo $d->introduce();`,
+            out: `바둑이: 멍멍!`
+          }
+        },
+        {
+          h: '규약만 필요하다면: 인터페이스',
+          html: `<p>인터페이스는 공통 구현이나 상태 없이, "이 메서드들은 반드시 있어야 한다"는 규약만 강제해요. 서로 관련 없는 클래스라도 <code>implements</code> 뒤에 쉼표로 여러 개를 나열해 동시에 구현할 수 있어요.</p>`,
+          code: {
+            label: 'interface_choice.php',
+            lang: 'php',
+            src: `<?php
+interface Flyable {
+    public function fly();
+}
+
+interface Swimmable {
+    public function swim();
+}
+
+class Duck implements Flyable, Swimmable {
+    public function fly() {
+        return "날아요";
+    }
+
+    public function swim() {
+        return "헤엄쳐요";
+    }
+}
+
+$duck = new Duck();
+echo $duck->fly() . " " . $duck->swim();`,
+            out: `날아요 헤엄쳐요`
+          }
+        },
+        {
+          h: '선택 기준 정리',
+          html: `<p>관련된 클래스들이 <b>공통 상태·로직</b>을 나눠 가져야 한다면 추상 클래스를, 서로 무관한 클래스들에 <b>같은 규약</b>만 강제하고 싶거나 한 클래스가 여러 규약을 동시에 따라야 한다면 인터페이스를 선택해요.</p>`,
+          after: `<div class="note"><b>정리</b> — 실무에서는 인터페이스로 규약을 정의하고, 그 규약의 공통 구현 일부는 추상 클래스로 제공하는 식으로 둘을 함께 쓰는 경우도 많아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const animals = [['바둑이', '멍멍!', 'Dog'], ['나비', '야옹!', 'Cat'], ['짹짹이', '짹짹!', 'Bird']];
+          const [name, sound, cls] = pick(animals);
+          return {
+            type: 'blank',
+            q: `<code>abstract class Animal { protected $name; public function __construct($name) { $this->name = $name; } abstract public function speak(); public function introduce() { return $this->name . ": " . $this->speak(); } } class ${cls} extends Animal { public function speak() { return "${sound}"; } }</code>이고 <code>$a = new ${cls}("${name}"); echo $a->introduce();</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${name}: ${sound}`], placeholder: '출력 결과',
+            why: `introduce()는 부모의 공통 로직이고, speak()는 ${cls}가 구현한 "${sound}"를 가져와 "${name}: ${sound}"가 출력돼요.`,
+            hint: '추상 클래스는 공통 로직(introduce)과 자식이 채워야 할 부분(speak)을 함께 담아요.'
+          };
+        },
+        () => makeChoice(
+          '한 클래스가 여러 개를 동시에 물려받을(따를) 수 있는 것은?',
+          '인터페이스(implements로 여러 개 지정 가능)', ['추상 클래스(extends로 여러 개 지정 가능)', '둘 다 여러 개를 동시에 쓸 수 없다', '추상 클래스와 인터페이스 모두 무제한으로 상속 가능하다'],
+          'PHP 클래스는 extends로 오직 하나만 상속하지만, implements 뒤에는 여러 인터페이스를 쉼표로 나열할 수 있어요.',
+          '클래스는 "부모가 하나"지만, 규약(인터페이스)은 여러 개를 동시에 따를 수 있어요.'
+        ),
+        () => {
+          const variants = [
+            ['Duck', '날아요', '헤엄쳐요'],
+            ['FlyingFish', '점프해요', '헤엄쳐요'],
+          ];
+          const [cls, flyMsg, swimMsg] = pick(variants);
+          return {
+            type: 'blank',
+            q: `<code>interface Flyable { public function fly(); } interface Swimmable { public function swim(); } class ${cls} implements Flyable, Swimmable { public function fly() { return "${flyMsg}"; } public function swim() { return "${swimMsg}"; } }</code>이고 <code>$x = new ${cls}(); echo $x->fly() . " " . $x->swim();</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${flyMsg} ${swimMsg}`], placeholder: '출력 결과',
+            why: `${cls}는 Flyable과 Swimmable을 동시에 구현했으므로 fly()와 swim() 둘 다 호출할 수 있어 "${flyMsg} ${swimMsg}"가 출력돼요.`,
+            hint: '인터페이스는 implements 뒤에 쉼표로 여러 개를 나열해 동시에 구현할 수 있어요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>Flyable</code>과 <code>Swimmable</code> 인터페이스를 동시에 구현하는 <code>Duck</code> 클래스를 작성하세요. <code>fly()</code>는 "날아요"를, <code>swim()</code>은 "헤엄쳐요"를 반환해요.',
+          starter: '',
+          rows: 6,
+          placeholder: 'class Duck implements Flyable, Swimmable {\n    public function fly() {\n        return "날아요";\n    }\n    public function swim() {\n        return "헤엄쳐요";\n    }\n}',
+          accept: ['class Duck implements Flyable, Swimmable {\n    public function fly() {\n        return "날아요";\n    }\n    public function swim() {\n        return "헤엄쳐요";\n    }\n}'],
+          why: 'implements 뒤에 쉼표로 여러 인터페이스를 나열하면 동시에 구현할 수 있고, 각 인터페이스가 요구하는 메서드를 모두 구현해야 해요.',
+          hint: 'class Duck implements Flyable, Swimmable { } 안에 fly()와 swim() 메서드를 각각 구현하세요.'
+        }),
+        () => makeChoice(
+          '추상 클래스를 선택해야 하는 상황으로 알맞은 것은?',
+          '관련된 자식 클래스들이 공통 상태나 로직을 공유해야 할 때', ['서로 전혀 관련 없는 클래스들에 메서드 이름만 통일하고 싶을 때', '한 클래스가 여러 개의 서로 다른 규약을 동시에 따라야 할 때', '상태(프로퍼티)를 전혀 갖지 않는 순수한 규약만 정의하고 싶을 때'],
+          '추상 클래스는 프로퍼티와 일반 메서드로 공통 로직·상태를 공유할 수 있다는 게 인터페이스와의 큰 차이예요.',
+          '"공통으로 나눠 가질 코드가 있는가"가 추상 클래스를 고르는 핵심 기준이에요.'
+        ),
+      ],
+      boss: () => makeChoice(
+        '여러 종류의 결제 수단(카드, 계좌이체, 포인트)이 있고, 이들은 서로 상속 관계가 없는 클래스들인데 모두 pay() 메서드를 반드시 가져야 한다면, 어떤 방법이 더 적합할까요?',
+        '인터페이스로 pay() 규약을 정의하고 각 결제 수단이 구현한다', ['추상 클래스로 만들어 상속 구조를 강제한다', '아무 규약 없이 각자 원하는 이름의 메서드를 자유롭게 쓴다', 'trait으로 상태를 강제로 공유시킨다'],
+        '서로 무관한 클래스들에 같은 메서드 규약만 강제하고 싶을 때는 인터페이스가 더 적합해요.',
+        '상속 관계가 없는 서로 다른 클래스들에게 공통 규약만 강제하고 싶을 때는 인터페이스를 떠올려보세요.'
+      )
+    },
+    {
+      id: 'arrayReduce',
+      title: '배열 누적 함수: array_reduce',
+      ready: true,
+      summary: '배열의 값들을 하나의 결과값으로 누적시키는 array_reduce를 배워요.',
+      goals: ['array_reduce로 배열을 하나의 값으로 누적하기', '콜백의 carry(누적값)와 초기값의 역할 이해하기', 'array_map/array_filter와 array_reduce의 차이 구분하기'],
+      blocks: [
+        {
+          h: '값들을 하나로 누적하기: array_reduce',
+          html: `<p><code>array_reduce(배열, 콜백, 초기값)</code>은 배열의 값을 순서대로 콜백에 넘기며 하나의 결과값으로 누적해요. 콜백의 첫 번째 매개변수 <code>$carry</code>는 지금까지 누적된 값이고, 두 번째는 현재 값이에요.</p>`,
+          code: {
+            label: 'array_reduce_sum.php',
+            lang: 'php',
+            src: `<?php
+$prices = [1200, 3400, 2500];
+$total = array_reduce($prices, function ($carry, $price) {
+    return $carry + $price;
+}, 0);
+
+echo $total;`,
+            out: `7100`
+          }
+        },
+        {
+          h: '합계 말고 다른 것도: 최댓값 구하기',
+          html: `<p>array_reduce는 합계뿐 아니라 조건에 따라 값을 고르는 데도 쓸 수 있어요. 화살표 함수(<code>fn</code>)와 함께 쓰면 더 짧게 쓸 수 있어요.</p>`,
+          code: {
+            label: 'array_reduce_max.php',
+            lang: 'php',
+            src: `<?php
+$numbers = [4, 9, 2, 7];
+$max = array_reduce($numbers, fn($carry, $n) => $n > $carry ? $n : $carry, 0);
+
+echo $max;`,
+            out: `9`
+          },
+          after: `<div class="note"><b>정리</b> — array_map은 각 값을 "변환"하고, array_filter는 조건에 맞는 값만 "걸러내고", array_reduce는 모든 값을 하나의 결과로 "합쳐요". 셋의 역할을 구분해서 기억해두면 좋아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const variants = [
+            { prices: [1000, 2000, 3000], total: 6000 },
+            { prices: [500, 1500, 2000], total: 4000 },
+            { prices: [2500, 1500, 3000], total: 7000 },
+          ];
+          const v = pick(variants);
+          return {
+            type: 'blank',
+            q: `<code>$prices = [${v.prices.join(', ')}]; $total = array_reduce($prices, function ($carry, $price) { return $carry + $price; }, 0); echo $total;</code>를 실행하면? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(v.total)], placeholder: '숫자',
+            why: `array_reduce는 0에서 시작해 각 가격을 차례로 더해서 ${v.total}이 돼요.`,
+            hint: '초기값 0에서 시작해 배열의 값을 하나씩 더한다고 생각해보세요.'
+          };
+        },
+        () => makeChoice(
+          'array_reduce의 콜백 함수에서 첫 번째 매개변수(carry)가 의미하는 것은?',
+          '지금까지 누적된 결과값', ['현재 배열 원소의 인덱스', '원본 배열 전체', '항상 고정된 초기값'],
+          'carry는 이전 단계까지 계산된 누적 결과를 담고 있고, 다음 단계로 그대로 이어져요.',
+          '"들고 다니는(carry) 값"이라는 이름 그대로, 누적된 결과를 뜻해요.'
+        ),
+        () => {
+          const variants = [
+            { nums: [4, 9, 2, 7], max: 9 },
+            { nums: [10, 3, 8, 15, 6], max: 15 },
+            { nums: [1, 1, 1], max: 1 },
+          ];
+          const v = pick(variants);
+          return {
+            type: 'blank',
+            q: `<code>$numbers = [${v.nums.join(', ')}]; $max = array_reduce($numbers, fn($carry, $n) => $n > $carry ? $n : $carry, 0); echo $max;</code>를 실행하면? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(v.max)], placeholder: '숫자',
+            why: `각 값이 carry보다 크면 carry를 그 값으로 바꾸는 방식으로 최댓값 ${v.max}을 찾아요.`,
+            hint: '더 큰 값이 나올 때마다 carry가 그 값으로 바뀐다고 생각해보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '문자열 배열 <code>$words</code>를 받아, array_reduce로 각 단어를 "-"로 이어붙인 하나의 문자열을 반환하는 함수 <code>joinWithDash</code>를 작성하세요. (초기값은 빈 문자열)',
+          starter: '',
+          rows: 5,
+          placeholder: 'function joinWithDash($words) {\n    return array_reduce($words, function ($carry, $word) {\n        return $carry === "" ? $word : $carry . "-" . $word;\n    }, "");\n}',
+          accept: ['function joinWithDash($words) {\n    return array_reduce($words, function ($carry, $word) {\n        return $carry === "" ? $word : $carry . "-" . $word;\n    }, "");\n}'],
+          why: 'carry가 빈 문자열이면 첫 단어를 그대로, 아니면 "-"로 이어붙이며 하나의 문자열을 만들어가요.',
+          hint: '$carry === "" 인지로 첫 단어인지 구분해서 "-"를 붙일지 결정하세요.'
+        }),
+        () => makeChoice(
+          'array_map, array_filter, array_reduce 중 배열 전체를 하나의 값으로 합치는 함수는?',
+          'array_reduce', ['array_map', 'array_filter', 'array_walk'],
+          'array_map은 변환, array_filter는 걸러내기, array_reduce는 하나로 합치는 역할이에요.',
+          '"줄이다(reduce)"라는 이름처럼, 여러 값을 하나로 줄여요.'
+        ),
+      ],
+      boss: () => ({
+        type: 'blank',
+        q: `<code>$numbers = [2, 3, 4]; $product = array_reduce($numbers, function ($carry, $n) { return $carry * $n; }, 1); echo $product;</code>를 실행하면? 숫자만 쓰세요.`,
+        prefix: '', suffix: '', accept: ['24'], placeholder: '숫자',
+        why: '초기값 1에서 시작해 2, 3, 4를 차례로 곱하면 2 × 3 × 4 = 24예요.',
+        hint: '합계를 구할 때는 초기값 0과 덧셈을, 곱을 구할 때는 초기값 1과 곱셈을 써요.'
+      })
+    },
+    {
+      id: 'generatorsYield',
+      title: '제너레이터와 yield',
+      ready: true,
+      summary: '값을 한 번에 다 만들지 않고 하나씩 지연해서 만들어내는 제너레이터와 yield 키워드를 배워요.',
+      goals: ['yield로 제너레이터 함수 만들기', '제너레이터가 배열과 다르게 값을 지연 생성한다는 것 이해하기', 'foreach로 제너레이터 순회하기'],
+      blocks: [
+        {
+          h: '값을 하나씩 만들어내는 함수: 제너레이터',
+          html: `<p>함수 안에 <code>yield</code>가 있으면, 그 함수는 호출 즉시 배열을 만드는 대신 <b>Generator 객체</b>를 반환해요. foreach로 순회할 때마다 그다음 값을 그때그때 계산해서 하나씩 내보내요.</p>`,
+          code: {
+            label: 'generator_basic.php',
+            lang: 'php',
+            src: `<?php
+function numbersUpTo($n) {
+    for ($i = 1; $i <= $n; $i++) {
+        yield $i;
+    }
+}
+
+foreach (numbersUpTo(5) as $num) {
+    echo $num . " ";
+}`,
+            out: `1 2 3 4 5 `
+          }
+        },
+        {
+          h: 'yield로 키와 값을 함께 만들기',
+          html: `<p><code>yield 키 => 값</code> 형태로 쓰면 foreach에서 키와 값을 함께 받을 수 있어요. 만약 이 값들을 모두 배열에 담아 반환했다면, 개수가 아주 많을 때 메모리를 많이 써야 했겠지만 제너레이터는 한 번에 하나씩만 만들어서 메모리를 아껴요.</p>`,
+          code: {
+            label: 'generator_keyvalue.php',
+            lang: 'php',
+            src: `<?php
+function squareMap($n) {
+    for ($i = 1; $i <= $n; $i++) {
+        yield $i => $i * $i;
+    }
+}
+
+foreach (squareMap(4) as $num => $square) {
+    echo "$num^2 = $square\\n";
+}`,
+            out: `1^2 = 1
+2^2 = 4
+3^2 = 9
+4^2 = 16
+`
+          },
+          after: `<div class="note"><b>정리</b> — 제너레이터는 아주 큰 수의 데이터나 끝이 없는 시퀀스를 다룰 때, 배열처럼 한 번에 다 메모리에 올리지 않고 필요한 만큼만 하나씩 만들어낼 수 있어 유리해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = pick([3, 4, 6]);
+          const out = Array.from({ length: n }, (_, i) => i + 1).join(' ') + ' ';
+          return {
+            type: 'blank',
+            q: `<code>function numbersUpTo($n) { for ($i = 1; $i <= $n; $i++) { yield $i; } } foreach (numbersUpTo(${n}) as $num) { echo $num . " "; }</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [out], placeholder: '출력 결과',
+            why: `1부터 ${n}까지의 값을 하나씩 yield하면서 foreach가 그 값을 받아 공백과 함께 출력해요.`,
+            hint: '1부터 n까지의 숫자를 공백으로 구분해 나열해보세요(끝에도 공백 있음).'
+          };
+        },
+        () => makeChoice(
+          'yield가 포함된 함수를 호출하면 무엇을 반환하나요?',
+          'Generator 객체', ['즉시 계산이 끝난 배열', 'null', '정수 하나'],
+          'yield가 있는 함수는 실제로 실행되지 않고, 값을 하나씩 꺼낼 수 있는 Generator 객체를 즉시 반환해요.',
+          '함수를 호출한 순간에는 아직 아무 값도 계산되지 않아요.'
+        ),
+        () => {
+          const n = pick([2, 3, 5]);
+          const lines = Array.from({ length: n }, (_, i) => `${i + 1}^2 = ${(i + 1) * (i + 1)}`).join('\n') + '\n';
+          return {
+            type: 'blank',
+            q: `<code>function squareMap($n) { for ($i = 1; $i <= $n; $i++) { yield $i => $i * $i; } } foreach (squareMap(${n}) as $num => $square) { echo "$num^2 = $square\\n"; }</code>를 실행하면? (줄바꿈 포함 그대로 입력)`,
+            prefix: '', suffix: '', accept: [lines], placeholder: '출력 결과',
+            why: `${n}까지 각 수와 그 제곱을 "$num^2 = $square" 형태로 한 줄씩 출력해요.`,
+            hint: '1부터 순서대로 "숫자^2 = 제곱값" 줄을 만들어보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '1부터 <code>$n</code>까지 각 수의 제곱을 yield하는 제너레이터 함수 <code>squares</code>를 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'function squares($n) {\n    for ($i = 1; $i <= $n; $i++) {\n        yield $i * $i;\n    }\n}',
+          accept: ['function squares($n) {\n    for ($i = 1; $i <= $n; $i++) {\n        yield $i * $i;\n    }\n}'],
+          why: '반복문 안에서 각 i의 제곱을 yield하면, 호출할 때마다 하나씩 계산해서 내보내는 제너레이터가 돼요.',
+          hint: 'for 반복문 안에 yield $i * $i;를 넣어보세요.'
+        }),
+        () => makeChoice(
+          '제너레이터가 일반 배열을 반환하는 방식보다 유리한 경우는?',
+          '아주 많은 데이터를 한 번에 메모리에 올리지 않고 하나씩 처리하고 싶을 때', ['배열의 순서를 반대로 뒤집고 싶을 때', '값을 여러 번 반복해서 순회하고 싶을 때', '배열의 키를 항상 0부터 다시 매기고 싶을 때'],
+          '제너레이터는 값을 미리 다 만들어두지 않고 필요할 때마다 하나씩 만들기 때문에 메모리를 아낄 수 있어요.',
+          '"지연 생성(lazy)"이 제너레이터의 핵심 장점이에요.'
+        ),
+      ],
+      boss: () => ({
+        type: 'blank',
+        q: `<code>function evensUpTo($n) { for ($i = 2; $i <= $n; $i += 2) { yield $i; } } foreach (evensUpTo(10) as $even) { echo $even . " "; }</code>를 실행하면? (그대로 입력)`,
+        prefix: '', suffix: '', accept: ['2 4 6 8 10 '], placeholder: '출력 결과',
+        why: '2부터 10까지 2씩 증가하며 짝수를 하나씩 yield하고, foreach가 그 값을 공백과 함께 출력해요.',
+        hint: '2, 4, 6, 8, 10을 공백으로 구분해 나열해보세요(끝에도 공백 있음).'
+      })
+    },
+    {
+      id: 'traitConflictResolution',
+      title: '트레이트 충돌 해결: insteadof와 as',
+      ready: true,
+      summary: '두 트레이트에 같은 이름의 메서드가 있을 때 insteadof와 as로 충돌을 해결하는 법을 배워요.',
+      goals: ['여러 트레이트를 함께 쓸 때 이름이 겹치면 무슨 일이 생기는지 이해하기', 'insteadof로 어떤 트레이트의 메서드를 쓸지 지정하기', 'as로 별칭을 만들어 충돌한 메서드를 둘 다 사용하기'],
+      blocks: [
+        {
+          h: '트레이트 충돌: 같은 이름의 메서드가 있을 때',
+          html: `<p>서로 다른 두 트레이트에 이름이 같은 메서드가 있으면, 그냥 <code>use A, B;</code>로 둘 다 넣을 수 없어요 — PHP가 어느 쪽 메서드를 써야 할지 알 수 없어서 치명적 오류가 나요. 이럴 땐 <code>use A, B { A::method insteadof B; }</code>처럼 <b>어떤 트레이트의 것을 쓸지</b> 명시해야 해요.</p>`,
+          code: {
+            label: 'trait_conflict.php',
+            lang: 'php',
+            src: `<?php
+trait Greeting {
+    public function hello() {
+        return "안녕하세요!";
+    }
+}
+
+trait Farewell {
+    public function hello() {
+        return "안녕히 가세요!";
+    }
+}
+
+class Person {
+    use Greeting, Farewell {
+        Greeting::hello insteadof Farewell;
+    }
+}
+
+$p = new Person();
+echo $p->hello();`,
+            out: `안녕하세요!`
+          }
+        },
+        {
+          h: 'as로 별칭을 만들어 둘 다 쓰기',
+          html: `<p><code>as</code>를 쓰면 충돌해서 밀려난 메서드를 다른 이름으로 남겨서 둘 다 쓸 수 있어요. <code>Farewell::hello as sayBye;</code>라고 하면, Farewell의 원래 메서드를 <code>sayBye</code>라는 새 이름으로 호출할 수 있어요.</p>`,
+          code: {
+            label: 'trait_conflict_as.php',
+            lang: 'php',
+            src: `<?php
+trait Greeting {
+    public function hello() {
+        return "안녕하세요!";
+    }
+}
+
+trait Farewell {
+    public function hello() {
+        return "안녕히 가세요!";
+    }
+}
+
+class Person {
+    use Greeting, Farewell {
+        Greeting::hello insteadof Farewell;
+        Farewell::hello as sayBye;
+    }
+}
+
+$p = new Person();
+echo $p->hello() . " " . $p->sayBye();`,
+            out: `안녕하세요! 안녕히 가세요!`
+          },
+          after: `<div class="note"><b>정리</b> — insteadof는 "충돌 시 누구 걸 쓸지" 우선순위를 정하고, as는 "밀려난 것도 다른 이름으로 살려서" 함께 쓸 수 있게 해줘요. 둘을 같이 쓰는 경우가 많아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const variants = [
+            { helloA: '안녕하세요!', helloB: '안녕히 가세요!' },
+            { helloA: '반갑습니다!', helloB: '다음에 또 만나요!' },
+            { helloA: 'Hi there!', helloB: 'Goodbye!' },
+          ];
+          const v = pick(variants);
+          return {
+            type: 'blank',
+            q: `<code>trait Greeting { public function hello() { return "${v.helloA}"; } } trait Farewell { public function hello() { return "${v.helloB}"; } } class Person { use Greeting, Farewell { Greeting::hello insteadof Farewell; } } $p = new Person(); echo $p->hello();</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [v.helloA], placeholder: '출력 결과',
+            why: `Greeting::hello insteadof Farewell로 Greeting의 hello()를 선택했으므로 "${v.helloA}"가 출력돼요.`,
+            hint: 'insteadof 뒤에 쓰인 트레이트가 아니라, 앞에 쓰인 트레이트의 메서드가 선택돼요.'
+          };
+        },
+        () => makeChoice(
+          '두 트레이트가 같은 이름의 메서드를 가진 채로, 아무 해결 없이 함께 use하면 어떻게 되나요?',
+          '치명적 오류(Fatal error)가 발생한다', ['첫 번째로 나열된 트레이트의 메서드가 자동으로 선택된다', '두 메서드의 내용이 합쳐져서 실행된다', '나중에 선언된 트레이트의 메서드가 자동으로 선택된다'],
+          'PHP는 어느 트레이트의 메서드를 써야 할지 스스로 판단하지 않고, 개발자가 insteadof로 명시하지 않으면 오류를 내요.',
+          '자동으로 골라주지 않는다는 점이 핵심이에요.'
+        ),
+        () => {
+          const variants = [
+            { helloA: '안녕하세요!', helloB: '안녕히 가세요!' },
+            { helloA: '반갑습니다!', helloB: '다음에 또 만나요!' },
+            { helloA: 'Hi there!', helloB: 'Goodbye!' },
+          ];
+          const v = pick(variants);
+          return {
+            type: 'blank',
+            q: `<code>trait Greeting { public function hello() { return "${v.helloA}"; } } trait Farewell { public function hello() { return "${v.helloB}"; } } class Person { use Greeting, Farewell { Greeting::hello insteadof Farewell; Farewell::hello as sayBye; } } $p = new Person(); echo $p->hello() . " " . $p->sayBye();</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${v.helloA} ${v.helloB}`], placeholder: '출력 결과',
+            why: `hello()는 Greeting 것이 선택되어 "${v.helloA}", sayBye()는 as로 별칭된 Farewell의 hello()라서 "${v.helloB}"가 출력돼요.`,
+            hint: 'hello()는 insteadof로 선택된 쪽, sayBye()는 as로 별칭된 쪽이에요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '트레이트 <code>Logger</code>와 <code>Reporter</code>에 모두 <code>log()</code> 메서드가 있어요. <code>Service</code> 클래스에서 <code>Logger</code>의 <code>log()</code>를 쓰고, <code>Reporter</code>의 <code>log()</code>는 <code>report</code>라는 이름으로도 쓸 수 있게 하는 클래스를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'class Service {\n    use Logger, Reporter {\n        Logger::log insteadof Reporter;\n        Reporter::log as report;\n    }\n}',
+          accept: ['class Service {\n    use Logger, Reporter {\n        Logger::log insteadof Reporter;\n        Reporter::log as report;\n    }\n}'],
+          why: 'insteadof로 Logger의 log()를 우선시키고, as로 Reporter의 log()를 report라는 새 이름으로 남겨요.',
+          hint: 'use Logger, Reporter { Logger::log insteadof Reporter; Reporter::log as report; } 형태를 떠올려보세요.'
+        }),
+        () => makeChoice(
+          'as 키워드를 트레이트 충돌 해결에 쓰는 이유는?',
+          '충돌해서 밀려난 메서드를 다른 이름으로 남겨 둘 다 쓸 수 있게 하려고', ['두 메서드를 하나로 합치려고', '트레이트를 클래스에서 완전히 제외하려고', '메서드의 접근 제어자(public/private)를 바꾸려고'],
+          'as는 이름을 바꿔서 원래는 가려졌을 메서드도 여전히 호출할 수 있게 해줘요.',
+          '"~로서(as)"라는 이름처럼, 다른 이름으로 다시 쓸 수 있게 해줘요.'
+        ),
+      ],
+      boss: () => ({
+        type: 'blank',
+        q: `<code>trait English { public function greet() { return "Hello!"; } } trait Korean { public function greet() { return "안녕하세요!"; } } class Bot { use English, Korean { Korean::greet insteadof English; English::greet as greetInEnglish; } } $bot = new Bot(); echo $bot->greet() . " " . $bot->greetInEnglish();</code>를 실행하면? (그대로 입력)`,
+        prefix: '', suffix: '', accept: ['안녕하세요! Hello!'], placeholder: '출력 결과',
+        why: 'greet()는 Korean::greet insteadof English로 선택되어 "안녕하세요!", greetInEnglish()는 as로 별칭된 English의 greet()라서 "Hello!"가 출력돼요.',
+        hint: 'insteadof로 선택된 쪽이 greet(), as로 별칭된 쪽이 greetInEnglish()예요.'
+      })
+    },
+    {
+      id: 'iteratorInterface',
+      title: 'Iterator 인터페이스로 커스텀 순회 만들기',
+      ready: true,
+      summary: '내가 만든 클래스의 객체를 foreach로 순회할 수 있게 해주는 Iterator 인터페이스를 배워요.',
+      goals: ['Iterator 인터페이스가 요구하는 5개 메서드 이해하기', 'current/key/next/rewind/valid를 구현해 순회 로직 만들기', 'IteratorAggregate로 더 간단하게 위임하기'],
+      blocks: [
+        {
+          h: 'foreach로 순회 가능한 객체 만들기: Iterator',
+          html: `<p>PHP 내장 <code>Iterator</code> 인터페이스는 <code>current()</code>, <code>key()</code>, <code>next()</code>, <code>rewind()</code>, <code>valid()</code> 다섯 메서드를 요구해요. 이 메서드들을 구현하면, 배열이 아닌 내 클래스의 객체도 <code>foreach</code>로 순회할 수 있어요.</p>`,
+          code: {
+            label: 'number_collection.php',
+            lang: 'php',
+            src: `<?php
+class NumberCollection implements Iterator {
+    private array $items = [];
+    private int $position = 0;
+
+    public function add($item) {
+        $this->items[] = $item;
+    }
+
+    public function current(): mixed {
+        return $this->items[$this->position];
+    }
+
+    public function key(): mixed {
+        return $this->position;
+    }
+
+    public function next(): void {
+        $this->position++;
+    }
+
+    public function rewind(): void {
+        $this->position = 0;
+    }
+
+    public function valid(): bool {
+        return isset($this->items[$this->position]);
+    }
+}
+
+$collection = new NumberCollection();
+$collection->add(10);
+$collection->add(20);
+$collection->add(30);
+
+foreach ($collection as $key => $value) {
+    echo "$key => $value\\n";
+}`,
+            out: `0 => 10
+1 => 20
+2 => 30
+`
+          }
+        },
+        {
+          h: '더 간단하게: IteratorAggregate',
+          html: `<p>순회 로직을 직접 다 만들기 번거로울 땐, <code>IteratorAggregate</code>를 구현해 <code>getIterator()</code> 하나만 만들면 돼요. 내부 배열을 <code>ArrayIterator</code>로 감싸서 반환하면, foreach가 그 이터레이터에 순회를 위임해요.</p>`,
+          code: {
+            label: 'simple_collection.php',
+            lang: 'php',
+            src: `<?php
+class SimpleCollection implements IteratorAggregate {
+    private array $items = [];
+
+    public function add($item) {
+        $this->items[] = $item;
+    }
+
+    public function getIterator(): Iterator {
+        return new ArrayIterator($this->items);
+    }
+}
+
+$collection = new SimpleCollection();
+$collection->add("사과");
+$collection->add("바나나");
+
+foreach ($collection as $item) {
+    echo $item . " ";
+}`,
+            out: `사과 바나나 `
+          },
+          after: `<div class="note"><b>정리</b> — 순회 방식을 세밀하게 직접 제어하고 싶다면 Iterator를, 그냥 기존 배열을 순회 가능하게 만들고 싶을 뿐이라면 IteratorAggregate가 더 간단해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const variants = [
+            { items: [1, 2, 3] },
+            { items: [100, 200] },
+            { items: [7, 14, 21, 28] },
+          ];
+          const v = pick(variants);
+          const out = v.items.map((item, idx) => `${idx} => ${item}`).join('\n') + '\n';
+          return {
+            type: 'blank',
+            q: `위 <code>NumberCollection</code>에 <code>${v.items.join(', ')}</code>을 순서대로 add()한 뒤 <code>foreach ($collection as $key => $value) { echo "$key => $value\\n"; }</code>를 실행하면? (줄바꿈 포함 그대로 입력)`,
+            prefix: '', suffix: '', accept: [out], placeholder: '출력 결과',
+            why: `add()한 순서대로 인덱스 0부터 key가 매겨지고, 그 key와 값을 "key => value" 형태로 한 줄씩 출력해요.`,
+            hint: '0번부터 순서대로 "인덱스 => 값" 줄을 나열해보세요.'
+          };
+        },
+        () => makeChoice(
+          'Iterator 인터페이스를 구현할 때 반드시 만들어야 하는 메서드가 아닌 것은?',
+          'count()', ['current()', 'next()', 'valid()'],
+          'count()는 Countable 인터페이스에서 요구하는 메서드로, Iterator와는 별개예요. Iterator는 current/key/next/rewind/valid 다섯 개를 요구해요.',
+          'Iterator는 "순회"에 필요한 메서드만 요구해요. 개수를 세는 것과는 관련 없어요.'
+        ),
+        () => {
+          const variants = [
+            ['빨강', '파랑'],
+            ['하나', '둘', '셋'],
+            ['x', 'y', 'z'],
+          ];
+          const v = pick(variants);
+          const out = v.join(' ') + ' ';
+          return {
+            type: 'blank',
+            q: `위 <code>SimpleCollection</code>에 <code>${v.join(', ')}</code>을 순서대로 add()한 뒤 <code>foreach ($collection as $item) { echo $item . " "; }</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [out], placeholder: '출력 결과',
+            why: 'getIterator()가 반환한 ArrayIterator가 add()된 순서 그대로 값을 하나씩 내보내줘요.',
+            hint: 'add()한 순서대로 값을 공백으로 구분해 나열해보세요(끝에도 공백 있음).'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>$this->items</code> 배열을 <code>ArrayIterator</code>로 감싸서 반환하는 <code>getIterator()</code> 메서드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'public function getIterator(): Iterator {\n    return new ArrayIterator($this->items);\n}',
+          accept: ['public function getIterator(): Iterator {\n    return new ArrayIterator($this->items);\n}'],
+          why: 'IteratorAggregate는 getIterator()가 반환하는 Iterator(여기서는 ArrayIterator)에게 순회를 위임해요.',
+          hint: 'return new ArrayIterator($this->items); 한 줄이면 충분해요.'
+        }),
+        () => makeChoice(
+          'IteratorAggregate가 Iterator보다 더 간단한 이유는?',
+          '직접 순회 로직을 만들지 않고 ArrayIterator 같은 기존 이터레이터에 위임할 수 있어서', ['foreach 없이도 배열을 출력할 수 있어서', 'current()나 key() 같은 메서드가 아예 필요 없어져서', '클래스에 프로퍼티를 선언할 필요가 없어져서'],
+          'IteratorAggregate는 getIterator() 하나만 구현하면, 나머지 순회 로직은 반환한 이터레이터가 알아서 처리해줘요.',
+          '"직접 다 만들지 않고 맡긴다(위임)"는 점이 핵심이에요.'
+        ),
+      ],
+      boss: () => ({
+        type: 'blank',
+        q: `<code>class Countdown implements Iterator { private array $items = [3, 2, 1]; private int $position = 0; public function current(): mixed { return $this->items[$this->position]; } public function key(): mixed { return $this->position; } public function next(): void { $this->position++; } public function rewind(): void { $this->position = 0; } public function valid(): bool { return isset($this->items[$this->position]); } } foreach (new Countdown() as $num) { echo $num . " "; }</code>를 실행하면? (그대로 입력)`,
+        prefix: '', suffix: '', accept: ['3 2 1 '], placeholder: '출력 결과',
+        why: '$items 배열 [3, 2, 1]을 순서대로 순회하며 각 값 뒤에 공백을 붙여 출력해요.',
+        hint: '배열에 저장된 순서 그대로, 공백으로 구분해 나열해보세요(끝에도 공백 있음).'
+      })
+    },
+    {
+      id: 'curlHttpRequests',
+      title: 'cURL로 HTTP 요청 보내기',
+      ready: true,
+      summary: 'PHP에서 cURL을 이용해 외부 API에 HTTP 요청을 보내고 응답을 받아오는 법을 배워요.',
+      goals: ['curl_init/curl_setopt/curl_exec의 기본 흐름 이해하기', 'GET과 POST 요청을 각각 보내는 법', '응답 상태 코드를 확인하고 curl_close로 자원을 정리하는 습관'],
+      blocks: [
+        {
+          h: 'GET 요청 보내기: cURL의 기본 흐름',
+          html: `<p><code>curl_init()</code>으로 요청 핸들을 만들고, <code>curl_setopt()</code>으로 URL 등 옵션을 설정한 뒤, <code>curl_exec()</code>으로 실제 요청을 보내고 응답을 받아요. <code>CURLOPT_RETURNTRANSFER</code>를 true로 하면 응답을 화면에 바로 출력하지 않고 문자열로 돌려받아요. 다 쓴 뒤엔 <code>curl_close()</code>로 자원을 정리해요.</p>`,
+          code: {
+            label: 'curl_get.php',
+            lang: 'php',
+            src: `<?php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, "https://api.example.com/users/1");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+echo $statusCode . "\\n";
+echo $response;`
+          }
+        },
+        {
+          h: 'POST 요청으로 데이터 보내기',
+          html: `<p>POST 요청은 <code>CURLOPT_POST</code>를 true로 하고, <code>CURLOPT_POSTFIELDS</code>에 보낼 데이터를 담아요. JSON으로 보내려면 <code>json_encode()</code>로 문자열로 바꾸고, <code>CURLOPT_HTTPHEADER</code>로 <code>Content-Type: application/json</code>을 함께 알려줘요.</p>`,
+          code: {
+            label: 'curl_post.php',
+            lang: 'php',
+            src: `<?php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, "https://api.example.com/users");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(["name" => "Bob"]));
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+echo $response;`
+          },
+          after: `<div class="note"><b>정리</b> — 실무에서는 <code>curl_errno($ch)</code>로 요청 자체가 실패했는지도 함께 확인하고, 받은 JSON 응답은 <code>json_decode()</code>로 PHP 배열/객체로 바꿔서 사용해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '<code>curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);</code>의 역할은?',
+          '응답을 화면에 바로 출력하지 않고 문자열로 돌려받는다', ['요청 방식을 무조건 POST로 바꾼다', 'SSL 인증서 검증을 꺼버린다', '요청의 타임아웃 시간을 늘린다'],
+          'CURLOPT_RETURNTRANSFER를 true로 하지 않으면 curl_exec()는 응답을 곧바로 화면에 출력하고 true를 반환해요.',
+          '"돌려받는다(return)"는 이름처럼, 응답을 변수로 받을 수 있게 해줘요.'
+        ),
+        () => {
+          const variants = [
+            { code: 200, body: '{"id":1,"name":"Alice"}' },
+            { code: 404, body: '{"error":"Not Found"}' },
+            { code: 201, body: '{"id":2,"name":"Bob"}' },
+          ];
+          const v = pick(variants);
+          return {
+            type: 'blank',
+            q: `<code>$ch = curl_init(); curl_setopt($ch, CURLOPT_URL, "https://api.example.com/users/1"); curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); $response = curl_exec($ch); $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); echo $statusCode . "\\n"; echo $response;</code>를 실행했고, 서버가 상태 코드 ${v.code}와 응답 본문 <code>${v.body}</code>를 돌려줬다고 가정하면, 출력 결과는? (줄바꿈 포함 그대로 입력)`,
+            prefix: '', suffix: '', accept: [`${v.code}\n${v.body}`], placeholder: '출력 결과',
+            why: `$statusCode(${v.code})를 먼저 줄바꿈과 함께 출력하고, 이어서 $response(${v.body})를 출력해요.`,
+            hint: '첫 줄엔 상태 코드, 다음 줄엔 응답 본문이 그대로 출력돼요.'
+          };
+        },
+        () => {
+          const variants = [
+            { name: 'Bob', body: '{"id":2,"name":"Bob"}' },
+            { name: 'Carol', body: '{"id":3,"name":"Carol"}' },
+          ];
+          const v = pick(variants);
+          return {
+            type: 'blank',
+            q: `위 POST 요청 코드에서 <code>json_encode(["name" => "${v.name}"])</code>로 데이터를 보냈고, 서버가 <code>${v.body}</code>를 응답으로 돌려줬다고 가정하면, <code>echo $response;</code>의 출력 결과는? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [v.body], placeholder: '출력 결과',
+            why: '$response에는 서버가 돌려준 응답 본문이 그대로 담겨 있어서, echo하면 그 내용이 출력돼요.',
+            hint: '서버가 응답으로 준 문자열을 그대로 옮겨 적으면 돼요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '<code>$url</code>과 배열 <code>$data</code>를 받아, JSON으로 POST 요청을 보내고 응답 문자열을 반환하는 함수 <code>postJson</code>을 작성하세요.',
+          starter: '',
+          rows: 8,
+          placeholder: 'function postJson($url, $data) {\n    $ch = curl_init();\n    curl_setopt($ch, CURLOPT_URL, $url);\n    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n    curl_setopt($ch, CURLOPT_POST, true);\n    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));\n    $response = curl_exec($ch);\n    curl_close($ch);\n    return $response;\n}',
+          accept: ['function postJson($url, $data) {\n    $ch = curl_init();\n    curl_setopt($ch, CURLOPT_URL, $url);\n    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n    curl_setopt($ch, CURLOPT_POST, true);\n    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));\n    $response = curl_exec($ch);\n    curl_close($ch);\n    return $response;\n}'],
+          why: 'curl_init으로 핸들을 만들고, URL·POST 여부·전송할 JSON 데이터를 설정한 뒤 curl_exec으로 요청을 보내고, 응답을 반환하기 전 curl_close로 자원을 정리해요.',
+          hint: 'CURLOPT_POST를 true로, CURLOPT_POSTFIELDS에 json_encode($data)를 넣고 curl_exec의 결과를 반환하세요.'
+        }),
+        () => makeChoice(
+          '요청이 끝난 뒤 <code>curl_close($ch)</code>를 호출하는 이유는?',
+          '더 이상 필요 없는 cURL 리소스(핸들)를 해제하기 위해', ['서버와의 연결을 끊지 않고 계속 유지하기 위해', '응답 내용을 자동으로 화면에 출력하기 위해', '다음 요청을 자동으로 다시 보내기 위해'],
+          'curl_init()으로 만든 핸들은 시스템 자원을 차지하므로, 다 쓴 뒤엔 curl_close()로 반드시 정리해줘야 해요.',
+          '파일을 다 쓰면 닫듯이, cURL 핸들도 다 쓰면 닫아줘야 해요.'
+        ),
+      ],
+      boss: () => ({
+        type: 'blank',
+        q: `<code>$ch = curl_init(); curl_setopt($ch, CURLOPT_URL, "https://api.example.com/ping"); curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); $response = curl_exec($ch); $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); if ($statusCode === 200) { echo "OK: " . $response; } else { echo "실패: " . $statusCode; }</code>를 실행했고, 서버가 상태 코드 500과 응답 본문 <code>"Server Error"</code>를 돌려줬다고 가정하면, 출력 결과는? (그대로 입력)`,
+        prefix: '', suffix: '', accept: ['실패: 500'], placeholder: '출력 결과',
+        why: '$statusCode가 200이 아니라 500이므로 else 분기가 실행되어 "실패: 500"이 출력돼요.',
+        hint: '상태 코드가 200이 아니면 else 블록의 "실패: " . $statusCode가 실행돼요.'
+      })
     }],
   tierBoss: {
     beginner: () => ({

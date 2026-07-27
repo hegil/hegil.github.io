@@ -3325,6 +3325,1966 @@ printf("%d\\n", rand());`
         'srand를 안 부르거나 항상 같은 값으로 부르면, rand()가 매번 같은 시드로 시작해서 같은 순서의 값을 내놓아요.',
         'srand(time(NULL))처럼 매번 바뀌는 값을 시드로 줘야 한다는 걸 떠올려보세요.'
       )
+    },
+    {
+      id: 'dynamicArrayVector',
+      title: '동적 배열(가변 배열) 직접 구현하기',
+      ready: true,
+      summary: '크기가 부족해지면 realloc으로 스스로 늘어나는 가변 배열을 직접 만들어봐요.',
+      goals: ['capacity(용량)와 size(길이) 구분하기', 'realloc으로 배열 늘리기', '다 쓴 뒤 free 하기'],
+      blocks: [
+        {
+          h: '배열이 꽉 차면 더 큰 공간으로: realloc',
+          html: `<p>보통 배열은 크기가 고정돼 있지만, 파이썬의 리스트나 자바의 ArrayList처럼 <b>필요할 때마다 저절로 커지는 배열</b>을 만들고 싶을 수 있어요. 이걸 <b>동적 배열(가변 배열)</b>이라고 불러요.</p>
+                 <p>비결은 <code>capacity</code>(현재 할당된 총 공간)와 <code>size</code>(실제로 채워진 개수)를 따로 관리하다가, <code>size</code>가 <code>capacity</code>에 딱 차면 <code>realloc</code>으로 더 큰 공간을 다시 받는 거예요.</p>`,
+          code: {
+            label: 'dynamic_array.c',
+            src: `#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    int capacity = 2;
+    int size = 0;
+    int *arr = malloc(capacity * sizeof(int));
+
+    for (int i = 1; i <= 5; i++) {
+        if (size == capacity) {
+            capacity *= 2;
+            arr = realloc(arr, capacity * sizeof(int));
+        }
+        arr[size] = i;
+        size++;
+    }
+
+    for (int i = 0; i < size; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\\n");
+
+    free(arr);
+    return 0;
+}`,
+            out: `1 2 3 4 5 `
+          }
+        },
+        {
+          h: 'realloc이 하는 일',
+          html: `<p><code>realloc(포인터, 새크기)</code>는 기존 메모리의 <b>내용은 그대로 유지</b>한 채, 더 크거나 작은 공간으로 옮겨줘요. 메모리가 부족해서 실패하면 <code>NULL</code>을 돌려주니, 실무 코드라면 <code>arr = realloc(...)</code> 전에 임시 변수로 받아 확인하는 게 안전해요.</p>
+                 <p>중요한 점은 <code>realloc</code>이 <b>메모리 위치를 옮길 수도 있다</b>는 거예요. 그래서 항상 반환값을 원래 포인터 변수에 다시 저장해야 해요.</p>`
+        },
+        {
+          h: 'capacity를 2배씩 늘리는 이유',
+          html: `<p>공간이 부족할 때마다 딱 1칸씩만 늘리면, 원소를 넣을 때마다 매번 realloc(느린 작업)을 해야 해서 비효율적이에요. <b>2배씩 늘리면</b> realloc 호출 횟수가 훨씬 줄어들어서, 평균적으로 훨씬 빠르게 동작해요.</p>`,
+          after: `<div class="note"><b>다 쓴 뒤에는</b> — 동적 배열도 결국 malloc/realloc으로 만든 힙 메모리라서, 다 쓰면 반드시 <code>free</code>로 반납해야 메모리 누수가 안 생겨요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const pushes = randInt(3, 6);
+          let capacity = 1, size = 0;
+          for (let i = 0; i < pushes; i++) {
+            if (size === capacity) capacity *= 2;
+            size++;
+          }
+          return {
+            type: 'blank',
+            q: `<code>capacity = 1;</code>에서 시작해서 꽉 찰 때마다 <code>capacity</code>를 2배로 늘리는 방식으로 원소를 ${pushes}번 넣었어요. 최종 <code>capacity</code>는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(capacity)], placeholder: '숫자',
+            why: `1 → 2 → 4 → 8 순서로 두 배씩 늘어나며, 원소 ${pushes}개를 다 담을 수 있는 첫 capacity는 ${capacity}예요.`,
+            hint: '꽉 찰 때만 capacity가 2배로 늘어난다는 점에 주의해서 하나씩 세어보세요.'
+          };
+        },
+        () => makeChoice(
+          'realloc(포인터, 새크기)의 동작으로 옳은 것은?',
+          '기존 내용은 유지한 채 더 크거나 작은 크기로 재할당한다', ['기존 내용을 지우고 새 공간만 만든다', '항상 원래 있던 자리에서 크기만 바꾼다', '실패해도 항상 원래 포인터를 그대로 돌려준다'],
+          'realloc은 기존 데이터를 보존하면서 메모리 크기를 바꿔주고, 필요하면 다른 위치로 옮길 수도 있어요.',
+          '"복사해서 옮길 수도 있다"는 점이 malloc과 다른 부분이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `size가 capacity와 같아졌을 때, capacity를 두 배로 늘리고 그 크기만큼 배열을 재할당하는 코드를 완성하세요.`,
+          prefix: 'capacity *= 2;\narr = realloc(arr, capacity * ', suffix: ');', accept: ['sizeof(int)'], placeholder: '표현식',
+          why: '재할당할 전체 바이트 수는 "늘어난 개수 × 요소 하나의 크기"라서 <code>capacity * sizeof(int)</code>예요.',
+          hint: 'int 배열이니 요소 하나의 크기를 구하는 연산자를 떠올려보세요.'
+        }),
+        () => makeChoice(
+          'size와 capacity를 굳이 따로 두는 이유는?',
+          '실제로 채워진 개수(size)와 할당된 전체 공간(capacity)을 구분해야 언제 늘려야 할지 알 수 있어서',
+          ['size와 capacity는 항상 같은 값이라서 상관없다', 'capacity는 필요 없고 size만 있으면 충분하다', '둘 다 malloc과는 관계없는 값이라서'],
+          'size가 capacity에 도달했을 때만 realloc이 필요하므로, 둘을 구분해야 언제 배열을 늘릴지 판단할 수 있어요.',
+          '"채워진 칸 수"와 "전체 칸 수"는 서로 다른 정보라는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>int capacity = 4;</code>인 배열 <code>arr</code>의 capacity를 두 배로 늘리고 realloc으로 재할당하는 코드 두 줄을 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'capacity *= 2;\narr = realloc(arr, capacity * sizeof(int));',
+          accept: ['capacity *= 2;arr = realloc(arr, capacity * sizeof(int));'],
+          why: 'capacity를 먼저 2배로 늘린 뒤, 그 새 capacity만큼 realloc으로 재할당해야 해요.',
+          hint: 'capacity *= 2; 다음 줄에 arr = realloc(arr, capacity * sizeof(int));를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const pushes = randInt(4, 7);
+        let capacity = 2, size = 0, reallocs = 0;
+        for (let i = 0; i < pushes; i++) {
+          if (size === capacity) { capacity *= 2; reallocs++; }
+          size++;
+        }
+        return {
+          type: 'blank',
+          q: `<code>capacity = 2;</code>에서 시작해 꽉 찰 때마다 2배로 늘리는 방식으로 원소를 ${pushes}번 넣었어요. realloc이 호출된 총 횟수는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(reallocs)], placeholder: '숫자',
+          why: `capacity 2에서 시작해 ${pushes}개를 넣는 동안 꽉 찰 때마다만 realloc이 불려서, 총 ${reallocs}번 호출돼요.`,
+          hint: '매번 realloc하는 게 아니라, size가 capacity에 도달했을 때만 호출된다는 점을 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'stackArrayImpl',
+      title: '배열로 스택 구현하기',
+      ready: true,
+      summary: '나중에 넣은 게 먼저 나오는 후입선출(LIFO) 구조, 스택을 배열과 top 인덱스로 직접 만들어봐요.',
+      goals: ['후입선출(LIFO) 원리 이해하기', 'push/pop과 top 인덱스', '스택이 가득 참/비어있음 확인하기'],
+      blocks: [
+        {
+          h: '나중에 넣은 게 먼저 나온다: 스택(LIFO)',
+          html: `<p><b>스택</b>은 마지막에 넣은 값이 가장 먼저 나오는 자료구조예요(Last In, First Out). 접시를 쌓아 올렸다가 위에서부터 하나씩 꺼내는 모습과 같아요.</p>
+                 <p>배열과 <code>top</code>(맨 위 원소의 인덱스)만 있으면 스택을 쉽게 만들 수 있어요.</p>`,
+          code: {
+            label: 'stack_array.c',
+            src: `#include <stdio.h>
+#define MAX 100
+
+int stack[MAX];
+int top = -1;  // 비어있으면 -1
+
+void push(int value) {
+    stack[++top] = value;
+}
+
+int pop(void) {
+    return stack[top--];
+}
+
+int main(void) {
+    push(10);
+    push(20);
+    push(30);
+    printf("%d\\n", pop());
+    printf("%d\\n", pop());
+    return 0;
+}`,
+            out: `30\n20`
+          }
+        },
+        {
+          h: 'push와 pop, 그리고 top',
+          html: `<p><code>push</code>는 <code>top</code>을 하나 증가시킨 뒤 그 자리에 값을 넣고, <code>pop</code>은 <code>top</code> 자리의 값을 꺼낸 뒤 <code>top</code>을 하나 줄여요. <code>top</code>이 <code>-1</code>이면 스택이 비어있다는 뜻이에요.</p>`
+        },
+        {
+          h: '가득 참/비어있음 확인하기',
+          html: `<p>실무 코드라면 <code>push</code> 전에 <code>top == MAX - 1</code>(가득 참)인지, <code>pop</code> 전에 <code>top == -1</code>(비어있음)인지 반드시 확인해야 배열 범위를 벗어나는 사고를 막을 수 있어요.</p>`,
+          after: `<div class="note"><b>실전 활용</b> — 스택은 함수 호출 기록, 괄호 짝 검사, 후위 표기법 계산기 등 정말 다양한 곳에서 쓰여요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const values = [randInt(1, 50), randInt(1, 50), randInt(1, 50)];
+          return {
+            type: 'blank',
+            q: `<code>push(${values[0]}); push(${values[1]}); push(${values[2]});</code> 후 <code>pop()</code>을 호출하면 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(values[2])], placeholder: '숫자',
+            why: `스택은 LIFO라서, 가장 마지막에 push한 ${values[2]}가 가장 먼저 나와요.`,
+            hint: '가장 최근에 넣은 값이 가장 먼저 나온다는 걸 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `스택이 비어있음을 나타내는 <code>top</code>의 초기값을 쓰세요.`,
+          prefix: 'int top = ', suffix: ';', accept: ['-1'], placeholder: '숫자',
+          why: '인덱스가 아직 하나도 안 채워졌다는 뜻으로 top을 -1로 초기화해요.',
+          hint: '배열 인덱스로는 절대 나올 수 없는 값이에요.'
+        }),
+        () => makeChoice(
+          '스택에서 push하기 전에 반드시 확인해야 하는 것은?',
+          'top이 이미 배열의 마지막 인덱스(가득 참)인지', ['배열이 정렬되어 있는지', 'top이 짝수인지', '배열의 모든 값이 0인지'],
+          '가득 찬 상태에서 push하면 배열 범위를 벗어나므로, push 전에 꽉 찼는지 확인해야 해요.',
+          '더 넣을 공간이 남아있는지부터 확인해야겠죠.'
+        ),
+        () => makeChoice(
+          '스택의 동작 원리를 가장 잘 설명한 것은?',
+          '나중에 넣은 값이 먼저 나온다(LIFO)', ['먼저 넣은 값이 먼저 나온다(FIFO)', '무작위 순서로 나온다', '항상 가장 작은 값이 먼저 나온다'],
+          '스택은 Last In, First Out 구조로, 접시를 쌓듯 마지막에 올린 게 먼저 내려와요.',
+          '접시 쌓기를 떠올려보면 어떤 접시를 먼저 꺼내게 될까요?'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>int stack[100]; int top = -1;</code>이 있을 때, 값 <code>5</code>를 push하는 함수 호출 한 줄을 작성하세요. (push 함수는 이미 정의되어 있다고 가정)',
+          starter: '',
+          placeholder: 'push(5);',
+          accept: ['push(5);'],
+          why: 'push(5)는 스택의 맨 위에 5를 새로 쌓아요.',
+          hint: 'push 함수에 넣을 값을 인자로 전달하세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(1, 30), b = randInt(1, 30), c = randInt(1, 30);
+        return {
+          type: 'blank',
+          q: `<code>push(${a}); push(${b}); pop(); push(${c});</code>를 순서대로 실행한 뒤 <code>pop()</code>을 호출하면 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(c)], placeholder: '숫자',
+          why: `push(${a}), push(${b})로 쌓은 뒤 pop()으로 ${b}를 꺼내고, push(${c})로 다시 쌓았으니 마지막 pop()의 결과는 ${c}예요.`,
+          hint: '한 단계씩 스택의 top에 무엇이 쌓여있는지 그려보세요.'
+        };
+      }
+    },
+    {
+      id: 'queueArrayImpl',
+      title: '배열로 원형 큐 구현하기',
+      ready: true,
+      summary: '먼저 넣은 게 먼저 나오는 선입선출(FIFO) 구조인 큐를, 배열을 원처럼 돌려 쓰는 원형 큐로 만들어봐요.',
+      goals: ['선입선출(FIFO) 원리 이해하기', 'front/rear로 큐 관리하기', '원형 큐로 공간 재활용하기'],
+      blocks: [
+        {
+          h: '먼저 넣은 게 먼저 나온다: 큐(FIFO)',
+          html: `<p><b>큐</b>는 줄을 서는 것과 같아요. 먼저 줄을 선 사람이 먼저 나가는 구조(First In, First Out)죠. <code>front</code>(꺼낼 위치)와 <code>rear</code>(넣을 위치) 두 인덱스로 관리해요.</p>`,
+          code: {
+            label: 'queue_naive.c',
+            src: `#define MAX 5
+int queue[MAX];
+int front = 0, rear = 0, count = 0;
+
+void enqueue(int value) {
+    queue[rear] = value;
+    rear = (rear + 1) % MAX;
+    count++;
+}
+
+int dequeue(void) {
+    int value = queue[front];
+    front = (front + 1) % MAX;
+    count--;
+    return value;
+}`
+          }
+        },
+        {
+          h: '배열을 원처럼 돌려쓰기: 원형 큐',
+          html: `<p>그냥 배열로만 큐를 만들면, dequeue를 계속 할수록 앞쪽 공간이 낭비돼요. <b>원형 큐</b>는 <code>(인덱스 + 1) % MAX</code>로 인덱스를 계산해서, 배열 끝에 도달하면 다시 처음(0번)으로 돌아가게 만들어요. 그래서 이미 비워진 앞쪽 공간을 재활용할 수 있어요.</p>`,
+          code: {
+            label: 'queue_use.c',
+            src: `enqueue(1);
+enqueue(2);
+enqueue(3);
+printf("%d\\n", dequeue());
+printf("%d\\n", dequeue());`,
+            out: `1\n2`
+          }
+        },
+        {
+          h: 'count로 가득 참/비어있음 구분하기',
+          html: `<p>원형 큐는 <code>front</code>와 <code>rear</code>가 같아도 "가득 찬 것"인지 "비어있는 것"인지 헷갈릴 수 있어요. 그래서 <code>count</code>(현재 담긴 개수)를 따로 관리해서, <code>count == 0</code>이면 비어있음, <code>count == MAX</code>이면 가득 참으로 명확히 구분해요.</p>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const values = [randInt(1, 40), randInt(1, 40), randInt(1, 40)];
+          return {
+            type: 'blank',
+            q: `<code>enqueue(${values[0]}); enqueue(${values[1]}); enqueue(${values[2]});</code> 후 <code>dequeue()</code>를 호출하면 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(values[0])], placeholder: '숫자',
+            why: `큐는 FIFO라서, 가장 먼저 enqueue한 ${values[0]}이 가장 먼저 나와요.`,
+            hint: '가장 먼저 들어온 값이 가장 먼저 나온다는 걸 떠올려보세요.'
+          };
+        },
+        () => {
+          const max = randInt(3, 6);
+          const rear = randInt(0, max - 1);
+          const next = (rear + 1) % max;
+          return {
+            type: 'blank',
+            q: `<code>MAX = ${max}</code>인 원형 큐에서 <code>rear = ${rear}</code>일 때, enqueue 후 다음 <code>rear</code> 값을 구하는 식 <code>(rear + 1) % MAX</code>의 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(next)], placeholder: '숫자',
+            why: `(${rear} + 1) % ${max} = ${next}예요. 배열 끝에 도달하면 나머지 연산 덕분에 다시 0으로 돌아가요.`,
+            hint: '나머지 연산자(%)가 배열 끝에서 처음으로 돌아가게 해준다는 걸 기억하세요.'
+          };
+        },
+        () => makeChoice(
+          '원형 큐에서 (인덱스 + 1) % MAX 방식을 쓰는 이유는?',
+          '배열 끝에 도달했을 때 다시 처음(0번)으로 돌아가 이미 비워진 공간을 재활용하기 위해서',
+          ['계산을 더 복잡하게 만들기 위해서', 'MAX 값을 매번 바꾸기 위해서', '배열 크기를 무한히 늘리기 위해서'],
+          '나머지 연산으로 인덱스가 배열 끝에서 다시 0으로 순환하게 만들어, 앞쪽의 빈 공간을 계속 재사용할 수 있어요.',
+          '"원형"이라는 이름처럼 배열을 고리 모양으로 잇는다고 생각해보세요.'
+        ),
+        () => makeChoice(
+          '원형 큐에서 front == rear일 때 비어있는지 가득 찼는지 구분하려면?',
+          'count(현재 담긴 개수)를 따로 관리해서 확인한다', ['front와 rear를 비교하면 항상 명확히 구분된다', 'MAX 값을 확인하면 된다', '항상 가득 찬 것으로 간주한다'],
+          'front와 rear만으로는 애매하므로, count == 0(비어있음)과 count == MAX(가득 참)를 따로 관리해야 정확해요.',
+          '두 인덱스가 같아지는 경우가 두 가지(비었을 때, 꽉 찼을 때) 있다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '큐에 값 <code>7</code>을 enqueue하는 함수 호출 한 줄을 작성하세요. (enqueue 함수는 이미 정의되어 있다고 가정)',
+          starter: '',
+          placeholder: 'enqueue(7);',
+          accept: ['enqueue(7);'],
+          why: 'enqueue(7)은 큐의 rear 위치에 7을 새로 넣어요.',
+          hint: 'enqueue 함수에 넣을 값을 인자로 전달하세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(1, 20), b = randInt(1, 20), c = randInt(1, 20);
+        return {
+          type: 'blank',
+          q: `빈 큐에서 <code>enqueue(${a}); enqueue(${b}); dequeue(); enqueue(${c});</code>를 실행한 뒤, <code>dequeue()</code>를 호출하면 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(b)], placeholder: '숫자',
+          why: `enqueue(${a}), enqueue(${b})로 줄을 세운 뒤 dequeue()로 ${a}가 빠지고, enqueue(${c})가 뒤에 추가돼요. 그래서 다음 dequeue()는 남아있던 ${b}예요.`,
+          hint: '줄을 선 순서대로 큐에 무엇이 남아있는지 하나씩 따라가보세요.'
+        };
+      }
+    },
+    {
+      id: 'doublyLinkedList',
+      title: '이중 연결 리스트',
+      ready: true,
+      summary: '다음 노드뿐 아니라 이전 노드도 가리키는 이중 연결 리스트로, 양방향 이동과 삭제를 배워요.',
+      goals: ['prev/next 두 방향 포인터', '양방향으로 순회하기', '중간 노드를 안전하게 삭제하기'],
+      blocks: [
+        {
+          h: '앞뒤로 다 가리키기: 이중 연결 리스트',
+          html: `<p>기본 연결 리스트는 <code>next</code>만 있어서 한 방향으로만 이동할 수 있어요. <b>이중 연결 리스트</b>는 <code>prev</code>(이전 노드)까지 가지고 있어서, <b>앞으로도 뒤로도</b> 자유롭게 이동할 수 있어요.</p>`,
+          code: {
+            label: 'DNode.c',
+            src: `struct DNode {
+    int value;
+    struct DNode *prev;
+    struct DNode *next;
+};
+
+struct DNode a = {10, NULL, NULL};
+struct DNode b = {20, NULL, NULL};
+a.next = &b;
+b.prev = &a;
+
+printf("%d\\n", a.next->value);
+printf("%d\\n", b.prev->value);`,
+            out: `20\n10`
+          }
+        },
+        {
+          h: '중간 노드를 삭제할 때의 이점',
+          html: `<p>단일 연결 리스트에서 중간 노드를 삭제하려면, 그 노드의 <b>이전 노드</b>를 찾기 위해 처음부터 다시 순회해야 해요. 이중 연결 리스트는 삭제할 노드의 <code>prev</code>를 바로 알 수 있어서, 앞뒤 노드를 서로 이어주기만 하면 돼요.</p>`,
+          code: {
+            label: 'remove_middle.c',
+            src: `// b를 삭제: a와 c를 직접 연결
+void removeNode(struct DNode *node) {
+    if (node->prev != NULL) node->prev->next = node->next;
+    if (node->next != NULL) node->next->prev = node->prev;
+}`
+          }
+        },
+        {
+          h: '양방향 순회',
+          html: `<p><code>next</code>를 따라가면 앞에서 뒤로, <code>prev</code>를 따라가면 뒤에서 앞으로 순회할 수 있어요. 그래서 "최근 방문 목록을 뒤로 가기"처럼 양방향 이동이 필요한 기능에 잘 어울려요.</p>`,
+          after: `<div class="note"><b>대가</b> — 포인터를 하나 더 관리해야 해서, 노드마다 메모리를 조금 더 쓰고 코드도 조금 더 복잡해져요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const v1 = randInt(1, 50), v2 = randInt(1, 50);
+          return {
+            type: 'blank',
+            q: `<code>struct DNode a = {${v1}, NULL, NULL}; struct DNode b = {${v2}, NULL, NULL}; a.next = &b; b.prev = &a;</code>일 때, <code>b.prev-&gt;value</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(v1)], placeholder: '숫자',
+            why: `b.prev는 a를 가리키니, b.prev->value는 a.value인 ${v1}이에요.`,
+            hint: 'b.prev가 어느 노드의 주소를 담고 있는지 먼저 확인해보세요.'
+          };
+        },
+        () => ({
+          type: 'blank',
+          q: `<code>struct DNode</code> 안에서, 이전 노드를 가리키는 자기 자신 타입의 포인터 멤버를 선언하는 코드를 완성하세요.`,
+          prefix: 'struct DNode {\n    int value;\n    struct DNode ', suffix: ';\n    struct DNode *next;\n};', accept: ['*prev'], placeholder: '변수 이름',
+          why: '이중 연결 리스트는 next 말고도 이전 노드를 가리키는 <code>struct DNode *prev;</code>를 추가로 가져요.',
+          hint: '포인터 표기(*)를 붙인 이름을 쓰세요.'
+        }),
+        () => makeChoice(
+          '단일 연결 리스트와 비교했을 때, 이중 연결 리스트의 장점은?',
+          '앞뒤 노드를 서로 바로 알 수 있어서 중간 노드 삭제가 더 쉽다', ['메모리를 항상 더 적게 쓴다', '노드 구조가 항상 더 단순해진다', '순회 속도가 항상 더 빠르다'],
+          'prev 포인터 덕분에 이전 노드를 바로 찾을 수 있어서, 중간 노드를 삭제할 때 처음부터 다시 순회할 필요가 없어요.',
+          '삭제할 노드의 "이전 노드"를 찾는 데 걸리는 수고를 비교해보세요.'
+        ),
+        () => makeChoice(
+          '이중 연결 리스트에서 노드를 삭제할 때 해야 할 일은?',
+          '삭제할 노드의 prev와 next를 서로 직접 연결한다', ['리스트 전체를 처음부터 다시 만든다', 'next만 NULL로 바꾸면 충분하다', '아무것도 할 필요가 없다'],
+          '삭제할 노드의 이전 노드의 next와, 다음 노드의 prev를 서로 이어줘야 리스트가 끊기지 않아요.',
+          '삭제 후에도 나머지 노드들이 서로 이어져 있어야 한다는 점을 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>struct DNode a = {1, NULL, NULL};</code>와 <code>struct DNode b = {2, NULL, NULL};</code>를 만들고, a와 b를 서로 앞뒤로 이어준 뒤(<code>a.next</code>와 <code>b.prev</code>) <code>b.prev-&gt;value</code>를 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'struct DNode a = {1, NULL, NULL};\nstruct DNode b = {2, NULL, NULL};\na.next = &b;\nb.prev = &a;\nprintf("%d\\n", b.prev->value);',
+          accept: ['struct DNode a = {1, NULL, NULL};struct DNode b = {2, NULL, NULL};a.next = &b;b.prev = &a;printf("%d\\n", b.prev->value);'],
+          why: 'a.next = &b;와 b.prev = &a;로 양방향으로 이어준 뒤, b.prev->value로 a의 값을 꺼내요.',
+          hint: 'a.next = &b; b.prev = &a; 다음 줄에 printf로 b.prev->value를 출력하세요.'
+        }),
+      ],
+      boss: () => {
+        const v1 = randInt(1, 20), v2 = randInt(1, 20), v3 = randInt(1, 20);
+        return {
+          type: 'blank',
+          q: `세 노드 a(${v1}), b(${v2}), c(${v3})가 <code>a &lt;-&gt; b &lt;-&gt; c</code>로 이어진 이중 연결 리스트에서, b를 삭제하고 a와 c를 직접 이어준 뒤 <code>a.next-&gt;value</code>의 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(v3)], placeholder: '숫자',
+          why: `b를 삭제하면서 a.next와 c.prev를 서로 직접 연결했으니, a.next->value는 c.value인 ${v3}예요.`,
+          hint: '중간 노드를 삭제하면 양옆 노드끼리 직접 연결된다는 점을 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'linkedListReverse',
+      title: '연결 리스트 뒤집기와 삽입/삭제',
+      ready: true,
+      summary: '연결 리스트의 맨 앞/중간에 노드를 끼워 넣고 빼내는 법과, 리스트 전체를 뒤집는 방법을 배워요.',
+      goals: ['맨 앞에 노드 삽입하기', '특정 노드 삭제하기', '리스트 뒤집기(reverse) 알고리즘'],
+      blocks: [
+        {
+          h: '맨 앞에 새 노드 끼워 넣기',
+          html: `<p>연결 리스트의 맨 앞에 새 노드를 넣으려면, 새 노드의 <code>next</code>가 기존의 <b>첫 번째 노드</b>를 가리키게 한 뒤, "첫 번째 노드"라는 표시(head)를 새 노드로 바꾸면 돼요. 배열과 달리 다른 노드들을 옮길 필요가 전혀 없어요.</p>`,
+          code: {
+            label: 'insert_front.c',
+            src: `struct Node *insertFront(struct Node *head, int value) {
+    struct Node *newNode = malloc(sizeof(struct Node));
+    newNode->value = value;
+    newNode->next = head;
+    return newNode;  // 새 head
+}`
+          }
+        },
+        {
+          h: '리스트 뒤집기: 세 개의 포인터로',
+          html: `<p>연결 리스트를 뒤집으려면 <code>prev</code>, <code>curr</code>, <code>next</code> 세 포인터로 한 칸씩 이동하며, 각 노드의 <code>next</code>가 <b>거꾸로</b> 이전 노드를 가리키게 바꿔줘요.</p>`,
+          code: {
+            label: 'reverse_list.c',
+            src: `struct Node *reverse(struct Node *head) {
+    struct Node *prev = NULL;
+    struct Node *curr = head;
+    while (curr != NULL) {
+        struct Node *next = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = next;
+    }
+    return prev;  // 새 head
+}`
+          }
+        },
+        {
+          h: '특정 노드 삭제하기',
+          html: `<p>단일 연결 리스트에서 노드를 삭제하려면, 삭제할 노드의 <b>바로 앞 노드</b>를 찾아서 그 <code>next</code>가 삭제할 노드를 건너뛰고 그 다음 노드를 가리키게 바꿔야 해요.</p>`,
+          after: `<div class="note"><b>핵심</b> — 배열은 삭제하면 뒤 원소들을 한 칸씩 당겨야 하지만, 연결 리스트는 포인터 하나만 바꾸면 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const v1 = randInt(1, 50);
+          const newVal = randInt(1, 50);
+          return {
+            type: 'blank',
+            q: `head가 가리키는 첫 노드의 값이 ${v1}일 때, <code>insertFront(head, ${newVal})</code>를 호출한 뒤 새 head의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(newVal)], placeholder: '숫자',
+            why: `insertFront는 새 노드를 맨 앞에 넣고 그 노드를 새 head로 반환하니, 새 head의 값은 ${newVal}이에요.`,
+            hint: '새로 넣은 노드가 이제 리스트의 맨 앞이 된다는 걸 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          '연결 리스트를 뒤집는 reverse 함수에서, curr의 next를 prev로 바꾸기 전에 꼭 해야 할 일은?',
+          'curr->next를 잃어버리지 않도록 next라는 임시 변수에 미리 저장해둔다', ['head를 NULL로 만든다', 'curr를 malloc으로 새로 만든다', '아무것도 할 필요가 없다'],
+          'curr->next를 바로 바꿔버리면 원래 다음 노드로 가는 길을 잃어버려서, 미리 next 변수에 저장해둬야 해요.',
+          '연결을 바꾸기 전에 "다음으로 갈 길"을 먼저 기억해둬야 한다는 걸 생각해보세요.'
+        ),
+        () => makeChoice(
+          '연결 리스트에서 특정 노드를 삭제할 때 실제로 하는 일은?',
+          '삭제할 노드의 이전 노드의 next가, 삭제할 노드를 건너뛰고 그 다음 노드를 가리키게 바꾼다',
+          ['배열처럼 뒤 노드들을 전부 한 칸씩 옮긴다', '리스트 전체를 지우고 다시 만든다', '삭제할 노드의 value만 0으로 바꾼다'],
+          '포인터 연결만 바꿔주면 되므로, 이전 노드의 next를 삭제할 노드의 next로 다시 이어주면 돼요.',
+          '중간에 있는 칸 하나를 "건너뛰도록" 만든다고 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>reverse</code> 함수에서, 뒤집기 전 원래의 head가 뒤집힌 후 리스트에서 차지하는 위치는? (한글로 "처음" 또는 "마지막" 중 하나)`,
+          prefix: '', suffix: '', accept: ['마지막'], placeholder: '처음 또는 마지막',
+          why: '리스트를 뒤집으면 원래 맨 앞이었던 노드가 맨 뒤로 가게 돼요.',
+          hint: '방향이 완전히 반대로 바뀐다는 걸 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '연결 리스트를 뒤집는 <code>reverse</code> 함수의 while문 안에서, curr의 next를 잃지 않게 임시로 저장하는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'struct Node *next = curr->next;',
+          accept: ['struct Node *next = curr->next;'],
+          why: 'curr->next를 prev로 덮어쓰기 전에, 원래 다음 노드 주소를 미리 저장해둬야 리스트가 끊기지 않아요.',
+          hint: 'curr->next의 값을 그대로 새 포인터 변수에 담으세요.'
+        }),
+      ],
+      boss: () => {
+        const vals = [randInt(1, 20), randInt(1, 20), randInt(1, 20), randInt(1, 20)];
+        return {
+          type: 'blank',
+          q: `${vals.join(' → ')} 순서로 이어진 연결 리스트를 <code>reverse</code>로 뒤집으면, 뒤집힌 리스트의 첫 번째 노드 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(vals[vals.length - 1])], placeholder: '숫자',
+          why: `뒤집으면 순서가 완전히 반대가 되어, 원래 마지막이었던 ${vals[vals.length - 1]}이 새 리스트의 맨 앞이 돼요.`,
+          hint: '뒤집기는 리스트의 순서를 통째로 반대로 만든다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'bubbleSelectionSort',
+      title: '버블 정렬과 선택 정렬',
+      ready: true,
+      summary: '인접한 두 값을 비교해 교환하는 버블 정렬과, 최솟값을 찾아 맨 앞에 놓는 선택 정렬을 직접 구현해요.',
+      goals: ['버블 정렬: 인접한 값 비교/교환', '선택 정렬: 최솟값 찾아 배치', '두 정렬의 시간 복잡도 감 잡기'],
+      blocks: [
+        {
+          h: '인접한 값끼리 비교해서 큰 값을 뒤로: 버블 정렬',
+          html: `<p><b>버블 정렬</b>은 배열을 앞에서부터 훑으며 <b>이웃한 두 값</b>을 비교해서, 순서가 잘못됐으면 서로 바꿔요. 이 과정을 여러 번 반복하면 큰 값이 거품처럼 뒤로 떠올라요.</p>`,
+          code: {
+            label: 'bubble_sort.c',
+            src: `void bubbleSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - 1 - i; j++) {
+            if (arr[j] > arr[j + 1]) {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int nums[] = {5, 2, 8, 1};
+bubbleSort(nums, 4);
+// nums: {1, 2, 5, 8}`
+          }
+        },
+        {
+          h: '가장 작은 값을 찾아서 앞으로: 선택 정렬',
+          html: `<p><b>선택 정렬</b>은 남은 구간에서 <b>최솟값을 찾아</b>, 그 값을 정렬되지 않은 구간의 맨 앞과 맞바꿔요. "제일 작은 걸 골라(select) 앞에 놓는다"는 뜻이에요.</p>`,
+          code: {
+            label: 'selection_sort.c',
+            src: `void selectionSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        int minIdx = i;
+        for (int j = i + 1; j < n; j++) {
+            if (arr[j] < arr[minIdx]) minIdx = j;
+        }
+        int temp = arr[i];
+        arr[i] = arr[minIdx];
+        arr[minIdx] = temp;
+    }
+}`
+          }
+        },
+        {
+          h: '얼마나 느릴까: O(n²)',
+          html: `<p>두 정렬 모두 <b>이중 반복문</b>을 쓰기 때문에, 원소가 n개면 대략 n×n번의 비교가 필요해요(시간 복잡도 O(n²)). 원소 수가 적을 땐 구현이 간단해서 유용하지만, 수천~수만 개가 넘어가면 느려서 실무에서는 보통 더 빠른 정렬(퀵/병합 정렬 등)을 써요.</p>`,
+          after: `<div class="note"><b>차이점</b> — 버블 정렬은 매번 인접 값을 바꾸며 진행하고, 선택 정렬은 한 번에 최솟값을 찾아 딱 한 번만 교환해요. 그래서 교환 횟수는 선택 정렬이 보통 더 적어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const arr = shuffle([5, 2, 8, 1, 9]).slice(0, randInt(4, 5));
+          const sorted = [...arr].sort((a, b) => a - b);
+          return {
+            type: 'blank',
+            q: `<code>int nums[] = {${arr.join(', ')}};</code>에 버블 정렬을 적용하면 결과는? 대괄호 포함해서 쓰세요.`,
+            prefix: '', suffix: '', accept: [`{${sorted.join(', ')}}`], placeholder: '{숫자, ...}',
+            why: `버블 정렬은 오름차순으로 정렬하므로 결과는 {${sorted.join(', ')}}예요.`,
+            hint: '가장 작은 값부터 순서대로 나열해보세요.'
+          };
+        },
+        () => makeChoice(
+          '버블 정렬에서, arr[j] > arr[j+1]일 때 하는 일은?',
+          '두 값을 서로 교환한다(swap)', ['두 값을 더한다', 'arr[j]를 삭제한다', 'j를 0으로 되돌린다'],
+          '순서가 잘못됐으면(앞이 뒤보다 크면) 두 값을 바꿔서 큰 값이 뒤로 밀려나게 해요.',
+          '"거품처럼 뒤로 떠오른다"는 이름의 의미를 떠올려보세요.'
+        ),
+        () => {
+          const arr = shuffle([7, 3, 9, 1, 5]).slice(0, randInt(4, 5));
+          const minVal = Math.min(...arr);
+          return {
+            type: 'blank',
+            q: `<code>int nums[] = {${arr.join(', ')}};</code>에 선택 정렬을 적용할 때, 첫 번째 바깥 반복(i=0)에서 찾아지는 최솟값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(minVal)], placeholder: '숫자',
+            why: `선택 정렬의 첫 단계는 배열 전체에서 최솟값 ${minVal}을 찾아 맨 앞으로 옮기는 거예요.`,
+            hint: '주어진 값들 중 가장 작은 값을 찾아보세요.'
+          };
+        },
+        () => makeChoice(
+          '버블 정렬과 선택 정렬의 시간 복잡도는 대체로 어떻게 될까요?',
+          '둘 다 O(n²)로 비슷하다', ['버블 정렬만 O(n)이다', '선택 정렬만 O(n log n)이다', '둘 다 O(1)이다'],
+          '두 정렬 모두 이중 반복문을 쓰기 때문에 원소 수가 n개면 대략 n² 만큼의 비교가 필요해요.',
+          '두 정렬 모두 반복문 안에 반복문이 있다는 구조를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '선택 정렬에서 배열의 <code>i</code>번째 자리와 <code>minIdx</code> 자리의 값을 서로 교환하는 코드 세 줄을 작성하세요. (temp 변수 사용)',
+          starter: '',
+          rows: 3,
+          placeholder: 'int temp = arr[i];\narr[i] = arr[minIdx];\narr[minIdx] = temp;',
+          accept: ['int temp = arr[i];arr[i] = arr[minIdx];arr[minIdx] = temp;'],
+          why: '임시 변수 temp에 arr[i]를 잠깐 담아둔 뒤, arr[minIdx]를 arr[i]에 넣고, 마지막에 temp를 arr[minIdx]에 넣으면 서로 교환돼요.',
+          hint: '세 줄로 값을 임시 저장 → 덮어쓰기 → 되돌려넣기 순서로 교환하세요.'
+        }),
+      ],
+      boss: () => {
+        const arr = shuffle([6, 3, 9, 2, 8, 1]).slice(0, randInt(4, 6));
+        const sorted = [...arr].sort((a, b) => a - b);
+        return {
+          type: 'blank',
+          q: `<code>int nums[] = {${arr.join(', ')}};</code>에 선택 정렬을 끝까지 적용한 최종 결과는? 대괄호 포함해서 쓰세요.`,
+          prefix: '', suffix: '', accept: [`{${sorted.join(', ')}}`], placeholder: '{숫자, ...}',
+          why: `선택 정렬도 결국 오름차순으로 정렬하므로 결과는 {${sorted.join(', ')}}예요.`,
+          hint: '정렬 알고리즘의 종류와 상관없이, 최종 결과는 오름차순으로 나열된 배열이에요.'
+        };
+      }
+    },
+    {
+      id: 'mergeSortC',
+      title: '병합 정렬(분할 정복)',
+      ready: true,
+      summary: '배열을 반으로 쪼개고 정렬된 두 조각을 다시 합치는 병합 정렬로, 분할 정복 사고방식을 배워요.',
+      goals: ['분할 정복(divide and conquer) 사고방식', '두 정렬된 배열 합치기(merge)', '재귀로 배열을 반씩 쪼개기'],
+      blocks: [
+        {
+          h: '문제를 반으로 쪼개서 풀기: 분할 정복',
+          html: `<p><b>병합 정렬</b>은 큰 문제를 그대로 풀지 않고, 배열을 <b>반으로 쪼갠</b> 뒤 각 조각을 재귀로 정렬하고, 마지막에 정렬된 두 조각을 <b>합치는(merge)</b> 방식이에요. 이런 접근을 <b>분할 정복</b>이라고 불러요.</p>`,
+          code: {
+            label: 'merge_sort.c',
+            src: `void merge(int arr[], int left, int mid, int right) {
+    int n1 = mid - left + 1, n2 = right - mid;
+    int L[n1], R[n2];
+    for (int i = 0; i < n1; i++) L[i] = arr[left + i];
+    for (int j = 0; j < n2; j++) R[j] = arr[mid + 1 + j];
+
+    int i = 0, j = 0, k = left;
+    while (i < n1 && j < n2) {
+        arr[k++] = (L[i] <= R[j]) ? L[i++] : R[j++];
+    }
+    while (i < n1) arr[k++] = L[i++];
+    while (j < n2) arr[k++] = R[j++];
+}`
+          }
+        },
+        {
+          h: '재귀로 반씩 쪼개기',
+          html: `<p><code>mergeSort</code>는 배열을 두 조각으로 나눠 <b>각각 자기 자신을 재귀 호출</b>해서 정렬한 뒤, <code>merge</code>로 합쳐요. 조각의 크기가 1이 되면(더 쪼갤 수 없으면) 그 자체로 이미 정렬된 것으로 보고 재귀를 멈춰요(기저 조건).</p>`,
+          code: {
+            label: 'merge_sort_recurse.c',
+            src: `void mergeSort(int arr[], int left, int right) {
+    if (left >= right) return;  // 기저 조건: 조각 크기 1 이하
+    int mid = (left + right) / 2;
+    mergeSort(arr, left, mid);
+    mergeSort(arr, mid + 1, right);
+    merge(arr, left, mid, right);
+}
+
+int nums[] = {5, 2, 8, 1};
+mergeSort(nums, 0, 3);
+// nums: {1, 2, 5, 8}`
+          }
+        },
+        {
+          h: '얼마나 빠를까: O(n log n)',
+          html: `<p>병합 정렬은 항상 <b>O(n log n)</b> 시간에 동작해서, 원소가 아주 많아져도 버블/선택 정렬(O(n²))보다 훨씬 빨라요. 다만 <code>merge</code> 과정에서 임시 배열(<code>L</code>, <code>R</code>)이 추가로 필요해서, 메모리를 더 써요.</p>`,
+          after: `<div class="note"><b>안정 정렬</b> — 병합 정렬은 값이 같은 원소들의 원래 순서를 그대로 유지하는 "안정 정렬"이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const L = shuffle([1, 3, 5, 7]).sort((a, b) => a - b).slice(0, randInt(2, 3));
+          const R = shuffle([2, 4, 6, 8]).sort((a, b) => a - b).slice(0, randInt(2, 3));
+          const merged = [...L, ...R].sort((a, b) => a - b);
+          return {
+            type: 'blank',
+            q: `이미 정렬된 두 배열 <code>L = {${L.join(', ')}}</code>과 <code>R = {${R.join(', ')}}</code>을 merge하면 결과는? 대괄호 포함해서 쓰세요.`,
+            prefix: '', suffix: '', accept: [`{${merged.join(', ')}}`], placeholder: '{숫자, ...}',
+            why: `두 정렬된 배열을 앞에서부터 비교하며 작은 값부터 채우면 {${merged.join(', ')}}이 돼요.`,
+            hint: '양쪽 배열의 맨 앞 값끼리 비교해서 더 작은 값을 먼저 꺼낸다고 생각해보세요.'
+          };
+        },
+        () => makeChoice(
+          '병합 정렬이 배열을 정렬하는 전체적인 흐름은?',
+          '배열을 반으로 쪼개 각각 재귀로 정렬한 뒤, 정렬된 두 조각을 합친다', ['배열 전체를 한 번에 훑으며 인접값만 교환한다', '가장 작은 값을 찾아 맨 앞에 놓는 것을 반복한다', '무작위로 섞은 뒤 정렬됐는지 확인한다'],
+          '병합 정렬은 "쪼개서 각각 정렬 → 합치기"라는 분할 정복 방식으로 동작해요.',
+          '"분할 정복"이라는 이름 자체가 전체 흐름의 힌트예요.'
+        ),
+        () => makeChoice(
+          '병합 정렬에서 재귀를 멈추는 기저 조건은?',
+          '쪼갤 배열 조각의 크기가 1 이하일 때', ['배열의 모든 값이 같을 때', 'merge 함수가 실패했을 때', '조각의 크기가 짝수일 때'],
+          '더 이상 쪼갤 수 없는 크기(1 이하)가 되면 그 자체로 정렬된 것으로 보고 재귀를 멈춰요.',
+          '크기가 1인 배열은 이미 정렬된 상태나 마찬가지라는 점을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '병합 정렬의 시간 복잡도로 가장 알맞은 것은?',
+          'O(n log n)', ['O(n)', 'O(n²)', 'O(1)'],
+          '배열을 log n번 쪼개고, 매 단계마다 n개의 원소를 합치는 과정을 거치므로 O(n log n)이에요.',
+          '"쪼개는 횟수(log n)"와 "합치는 데 드는 비용(n)"을 곱해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '배열 <code>arr</code>의 <code>left</code>부터 <code>right</code>까지를 재귀로 정렬하는 <code>mergeSort</code> 함수의 기저 조건 한 줄을 작성하세요. (left가 right 이상이면 그냥 return)',
+          starter: '',
+          placeholder: 'if (left >= right) return;',
+          accept: ['if (left >= right) return;'],
+          why: '조각의 크기가 1 이하(left >= right)면 이미 정렬된 것으로 보고 더 쪼개지 않아요.',
+          hint: 'left와 right를 비교하는 조건문으로 그냥 return하세요.'
+        }),
+      ],
+      boss: () => {
+        const arr = shuffle([9, 4, 7, 1, 6, 3]).slice(0, randInt(4, 6));
+        const sorted = [...arr].sort((a, b) => a - b);
+        return {
+          type: 'blank',
+          q: `<code>int nums[] = {${arr.join(', ')}};</code>에 병합 정렬을 끝까지 적용한 최종 결과는? 대괄호 포함해서 쓰세요.`,
+          prefix: '', suffix: '', accept: [`{${sorted.join(', ')}}`], placeholder: '{숫자, ...}',
+          why: `병합 정렬도 결국 오름차순으로 정렬하므로 결과는 {${sorted.join(', ')}}이에요.`,
+          hint: '어떤 정렬 알고리즘이든 최종 결과는 오름차순으로 나열된 배열이라는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'quickSortManual',
+      title: '퀵 정렬 직접 구현하기',
+      ready: true,
+      summary: '기준값(pivot)을 정해 작은 값과 큰 값으로 나누는 퀵 정렬을 직접 만들어봐요.',
+      goals: ['기준값(pivot) 정하기', 'partition으로 작은/큰 값 나누기', '재귀로 양쪽을 다시 정렬하기'],
+      blocks: [
+        {
+          h: '기준값을 정해 나누기: pivot과 partition',
+          html: `<p><b>퀵 정렬</b>은 배열에서 <b>기준값(pivot)</b>을 하나 정한 뒤, pivot보다 작은 값은 왼쪽, 큰 값은 오른쪽으로 모으는 <b>partition</b> 작업을 해요. 그러면 pivot은 정렬됐을 때의 <b>제자리</b>에 놓이게 돼요.</p>`,
+          code: {
+            label: 'partition.c',
+            src: `int partition(int arr[], int low, int high) {
+    int pivot = arr[high];  // 마지막 원소를 기준값으로
+    int i = low - 1;
+    for (int j = low; j < high; j++) {
+        if (arr[j] < pivot) {
+            i++;
+            int temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+        }
+    }
+    int temp = arr[i + 1]; arr[i + 1] = arr[high]; arr[high] = temp;
+    return i + 1;  // pivot의 최종 위치
+}`
+          }
+        },
+        {
+          h: 'partition으로 나눈 양쪽을 재귀로 정렬',
+          html: `<p>pivot 기준으로 나눠진 왼쪽 구간과 오른쪽 구간을 각각 <b>재귀로 다시 퀵 정렬</b>해요. 구간의 크기가 1 이하가 되면 그 자체로 정렬된 것이니 재귀를 멈춰요.</p>`,
+          code: {
+            label: 'quick_sort.c',
+            src: `void quickSort(int arr[], int low, int high) {
+    if (low >= high) return;
+    int p = partition(arr, low, high);
+    quickSort(arr, low, p - 1);
+    quickSort(arr, p + 1, high);
+}
+
+int nums[] = {5, 2, 8, 1};
+quickSort(nums, 0, 3);
+// nums: {1, 2, 5, 8}`
+          }
+        },
+        {
+          h: '평균은 빠르지만, 최악의 경우도 있어요',
+          html: `<p>퀵 정렬은 평균적으로 <b>O(n log n)</b>으로 매우 빠르지만, pivot을 계속 최솟값이나 최댓값으로만 고르는 최악의 경우엔 <b>O(n²)</b>까지 느려질 수 있어요. 실무에서는 pivot을 무작위로 고르거나 중간값을 추정해서 이 문제를 줄여요.</p>`,
+          after: `<div class="note"><b>병합 정렬과 비교</b> — 병합 정렬은 항상 O(n log n)이 보장되지만 추가 메모리가 필요하고, 퀵 정렬은 추가 메모리 없이 제자리에서(in-place) 정렬하지만 최악의 경우가 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const arr = shuffle([3, 7, 1, 9, 4]).slice(0, randInt(4, 5));
+          const pivot = arr[arr.length - 1];
+          const smaller = arr.slice(0, -1).filter(v => v < pivot).length;
+          return {
+            type: 'blank',
+            q: `<code>int nums[] = {${arr.join(', ')}};</code>에서 마지막 원소(${pivot})를 pivot으로 partition하면, pivot보다 작은 값은 몇 개일까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(smaller)], placeholder: '숫자',
+            why: `${pivot}보다 작은 값들의 개수를 세면 ${smaller}개예요. 이 개수만큼이 partition 후 pivot의 왼쪽에 모여요.`,
+            hint: 'pivot 값과 나머지 원소들을 하나씩 비교해보세요.'
+          };
+        },
+        () => makeChoice(
+          'partition 함수가 끝난 뒤, pivot이 놓이는 위치의 의미는?',
+          '배열이 완전히 정렬됐을 때 pivot이 있어야 할 바로 그 자리(제자리)', ['항상 배열의 맨 앞', '항상 배열의 맨 뒤', '무작위 위치'],
+          'partition은 pivot보다 작은 값은 모두 왼쪽에, 큰 값은 모두 오른쪽에 모아서 pivot을 정렬된 위치에 놓아요.',
+          'partition의 목적이 "pivot의 최종 자리를 확정하는 것"이라는 점을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '퀵 정렬의 평균 시간 복잡도와 최악의 시간 복잡도는?',
+          '평균 O(n log n), 최악 O(n²)', ['평균과 최악 모두 O(n log n)', '평균과 최악 모두 O(n²)', '평균 O(n²), 최악 O(n log n)'],
+          '퀵 정렬은 평균적으로 O(n log n)이지만, pivot이 계속 최솟값/최댓값으로만 뽑히면 O(n²)까지 느려질 수 있어요.',
+          '"운 좋게 반씩 나뉠 때"와 "운 나쁘게 한쪽으로 쏠릴 때"를 각각 생각해보세요.'
+        ),
+        () => makeChoice(
+          '퀵 정렬과 병합 정렬을 비교했을 때 옳은 설명은?',
+          '퀵 정렬은 제자리(in-place) 정렬이 가능하지만 최악의 경우가 있고, 병합 정렬은 항상 O(n log n)이지만 추가 메모리가 필요하다',
+          ['퀵 정렬은 항상 병합 정렬보다 빠르다', '병합 정렬은 재귀를 쓰지 않는다', '두 정렬 모두 정확히 같은 방식으로 동작한다'],
+          '둘 다 분할 정복을 쓰지만, 메모리 사용 방식과 최악의 경우 성능이 서로 다른 특징이 있어요.',
+          '각 정렬의 장단점을 하나씩 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>quickSort</code> 함수에서, partition으로 얻은 pivot 위치 <code>p</code>를 기준으로 왼쪽 구간(<code>low</code>부터 <code>p - 1</code>)을 재귀 호출하는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'quickSort(arr, low, p - 1);',
+          accept: ['quickSort(arr, low, p - 1);'],
+          why: 'pivot의 왼쪽 구간(low부터 p-1까지)을 다시 quickSort로 재귀 정렬해야 해요.',
+          hint: '배열, low, p - 1을 인자로 quickSort를 다시 호출하세요.'
+        }),
+      ],
+      boss: () => {
+        const arr = shuffle([8, 3, 5, 1, 9, 2]).slice(0, randInt(4, 6));
+        const sorted = [...arr].sort((a, b) => a - b);
+        return {
+          type: 'blank',
+          q: `<code>int nums[] = {${arr.join(', ')}};</code>에 퀵 정렬을 끝까지 적용한 최종 결과는? 대괄호 포함해서 쓰세요.`,
+          prefix: '', suffix: '', accept: [`{${sorted.join(', ')}}`], placeholder: '{숫자, ...}',
+          why: `퀵 정렬도 결국 오름차순으로 정렬하므로 결과는 {${sorted.join(', ')}}이에요.`,
+          hint: '정렬 방식과 상관없이 최종 결과는 오름차순으로 나열된 배열이에요.'
+        };
+      }
+    },
+    {
+      id: 'binarySearchC',
+      title: '이진 탐색',
+      ready: true,
+      summary: '정렬된 배열에서 절반씩 범위를 좁혀가며 값을 빠르게 찾는 이진 탐색을 배워요.',
+      goals: ['정렬된 배열이라는 전제 조건', 'low/mid/high로 범위 좁히기', '순차 탐색과의 속도 차이 이해하기'],
+      blocks: [
+        {
+          h: '반씩 좁혀가며 찾기: 이진 탐색',
+          html: `<p><b>이진 탐색</b>은 <b>정렬된 배열</b>에서만 쓸 수 있는 방법으로, 중간값(<code>mid</code>)과 찾는 값을 비교해서 <b>왼쪽 절반</b> 또는 <b>오른쪽 절반</b>으로 탐색 범위를 반씩 줄여나가요. 사전에서 단어를 찾을 때 가운데를 펼쳐보고 앞/뒤로 좁혀가는 것과 비슷해요.</p>`,
+          code: {
+            label: 'binary_search.c',
+            src: `int binarySearch(int arr[], int n, int target) {
+    int low = 0, high = n - 1;
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        if (arr[mid] == target) return mid;
+        else if (arr[mid] < target) low = mid + 1;
+        else high = mid - 1;
+    }
+    return -1;  // 못 찾음
+}
+
+int nums[] = {1, 3, 5, 7, 9};
+printf("%d\\n", binarySearch(nums, 5, 7));`,
+            out: `3`
+          }
+        },
+        {
+          h: '못 찾으면 -1을 반환',
+          html: `<p><code>low</code>가 <code>high</code>보다 커지면 더 좁힐 범위가 없다는 뜻이니 탐색을 멈추고, 값을 못 찾았다는 뜻으로 보통 <code>-1</code>을 반환해요(배열 인덱스로는 절대 나올 수 없는 값이라서요).</p>`
+        },
+        {
+          h: '순차 탐색보다 훨씬 빠른 이유',
+          html: `<p>순차 탐색(맨 앞부터 하나씩 확인)은 최악의 경우 <b>n번</b> 비교해야 하지만, 이진 탐색은 매번 범위가 절반으로 줄어서 <b>log₂n번</b>만에 끝나요. 원소가 100만 개라도 이진 탐색은 약 20번의 비교면 충분해요.</p>`,
+          after: `<div class="note"><b>전제 조건</b> — 이진 탐색은 배열이 반드시 <b>정렬</b>돼 있어야만 정확하게 동작해요. 정렬 안 된 배열에서는 쓸 수 없어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const arr = [1, 3, 5, 7, 9, 11, 13].slice(0, randInt(5, 7));
+          const idx = randInt(0, arr.length - 1);
+          const target = arr[idx];
+          return {
+            type: 'blank',
+            q: `정렬된 배열 <code>{${arr.join(', ')}}</code>에서 <code>binarySearch</code>로 값 ${target}을 찾으면 반환되는 인덱스는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(idx)], placeholder: '숫자',
+            why: `${target}은 배열의 ${idx}번 인덱스(0부터 시작)에 있어요.`,
+            hint: '배열 인덱스는 0부터 시작한다는 걸 기억하세요.'
+          };
+        },
+        () => makeChoice(
+          '이진 탐색을 쓰기 위한 필수 전제 조건은?',
+          '배열이 정렬되어 있어야 한다', ['배열의 크기가 짝수여야 한다', '배열에 중복값이 없어야 한다', '배열이 전역 변수여야 한다'],
+          '이진 탐색은 중간값과 비교해 범위를 좁히는 방식이라, 배열이 정렬돼 있지 않으면 정확하게 동작하지 않아요.',
+          '중간을 기준으로 "왼쪽은 더 작고 오른쪽은 더 크다"는 가정이 성립해야겠죠.'
+        ),
+        () => {
+          const arr = [2, 4, 6, 8, 10];
+          const target = pick([1, 3, 5, 7, 9, 11]);
+          return {
+            type: 'blank',
+            q: `정렬된 배열 <code>{${arr.join(', ')}}</code>에서 <code>binarySearch</code>로 배열에 없는 값 ${target}을 찾으면 반환값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: ['-1'], placeholder: '숫자',
+            why: `배열에 없는 값을 찾으면 low가 high보다 커져서 탐색이 끝나고, 관례적으로 -1을 반환해요.`,
+            hint: '배열 인덱스로는 절대 나올 수 없는 값을 반환한다는 걸 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          '원소가 100만 개인 정렬된 배열에서, 순차 탐색과 이진 탐색을 비교하면?',
+          '이진 탐색이 최악의 경우에도 훨씬 적은 비교 횟수로 훨씬 빠르다', ['순차 탐색이 항상 더 빠르다', '두 방법의 속도는 항상 똑같다', '이진 탐색은 정렬 안 된 배열에서 더 빠르다'],
+          '순차 탐색은 최악 100만 번 비교가 필요할 수 있지만, 이진 탐색은 약 log₂(100만) ≈ 20번이면 충분해요.',
+          '매번 범위를 반으로 줄이는 것과 하나씩 확인하는 것의 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>low</code>와 <code>high</code>로부터 중간 인덱스 <code>mid</code>를 계산하는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'int mid = (low + high) / 2;',
+          accept: ['int mid = (low + high) / 2;'],
+          why: '두 인덱스의 평균(정수 나눗셈)이 중간 인덱스가 돼요.',
+          hint: 'low와 high를 더해서 2로 나누세요.'
+        }),
+      ],
+      boss: () => {
+        const arr = [2, 5, 8, 11, 14, 17, 20];
+        const idx = randInt(0, arr.length - 1);
+        const target = arr[idx];
+        let low = 0, high = arr.length - 1, steps = 0;
+        while (low <= high) {
+          steps++;
+          const mid = Math.floor((low + high) / 2);
+          if (arr[mid] === target) break;
+          else if (arr[mid] < target) low = mid + 1;
+          else high = mid - 1;
+        }
+        return {
+          type: 'blank',
+          q: `정렬된 배열 <code>{${arr.join(', ')}}</code>에서 이진 탐색으로 값 ${target}을 찾을 때, mid를 비교하는 횟수(반복 횟수)는 몇 번일까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(steps)], placeholder: '숫자',
+          why: `low/high를 좁혀가며 mid를 비교한 횟수를 세어보면 ${steps}번만에 ${target}을 찾아요.`,
+          hint: '처음 mid부터 시작해서, 값을 찾을 때까지 몇 번 범위를 좁혔는지 세어보세요.'
+        };
+      }
+    },
+    {
+      id: 'bstBasics',
+      title: '이진 탐색 트리(BST) 기초',
+      ready: true,
+      summary: '왼쪽은 더 작고 오른쪽은 더 큰 값만 두는 이진 탐색 트리로, 삽입과 탐색을 배워요.',
+      goals: ['BST의 규칙: 왼쪽은 작게, 오른쪽은 크게', '재귀로 값 삽입하기', '재귀로 값 탐색하기'],
+      blocks: [
+        {
+          h: '왼쪽은 작게, 오른쪽은 크게: BST의 규칙',
+          html: `<p><b>이진 탐색 트리(BST)</b>는 각 노드마다 <b>왼쪽 자식은 자신보다 작은 값</b>, <b>오른쪽 자식은 자신보다 큰 값</b>만 담는다는 규칙을 지키는 트리예요. 이 규칙 덕분에 값을 찾을 때 이진 탐색처럼 절반씩 범위를 좁힐 수 있어요.</p>`,
+          code: {
+            label: 'TreeNode.c',
+            src: `struct TreeNode {
+    int value;
+    struct TreeNode *left;
+    struct TreeNode *right;
+};`
+          }
+        },
+        {
+          h: '재귀로 값 삽입하기',
+          html: `<p>새 값을 넣을 때는 루트부터 시작해서, 넣을 값이 현재 노드보다 <b>작으면 왼쪽</b>, <b>크면 오른쪽</b>으로 내려가요. <code>NULL</code>에 도달하면(빈 자리를 찾으면) 그 자리에 새 노드를 만들어요.</p>`,
+          code: {
+            label: 'bst_insert.c',
+            src: `struct TreeNode *insert(struct TreeNode *node, int value) {
+    if (node == NULL) {
+        struct TreeNode *newNode = malloc(sizeof(struct TreeNode));
+        newNode->value = value;
+        newNode->left = newNode->right = NULL;
+        return newNode;
+    }
+    if (value < node->value) node->left = insert(node->left, value);
+    else if (value > node->value) node->right = insert(node->right, value);
+    return node;
+}`
+          }
+        },
+        {
+          h: '재귀로 값 탐색하기',
+          html: `<p>탐색도 삽입과 같은 원리예요. 찾는 값이 현재 노드보다 작으면 왼쪽으로, 크면 오른쪽으로 내려가며 찾아요. <code>NULL</code>에 도달하면 그 값은 트리에 없는 거예요.</p>`,
+          code: {
+            label: 'bst_search.c',
+            src: `int search(struct TreeNode *node, int value) {
+    if (node == NULL) return 0;       // 못 찾음
+    if (value == node->value) return 1;  // 찾음
+    if (value < node->value) return search(node->left, value);
+    return search(node->right, value);
+}`
+          },
+          after: `<div class="note"><b>주의</b> — 값을 아주 한쪽으로 치우치게(이미 정렬된 순서로) 계속 넣으면, BST가 사실상 연결 리스트처럼 한쪽으로만 길게 늘어져서 성능 이점이 사라질 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const root = randInt(20, 30);
+          const smaller = randInt(1, root - 1);
+          return {
+            type: 'blank',
+            q: `루트 노드의 값이 ${root}인 BST에 값 ${smaller}를 삽입하면, 어느 쪽 자식으로 들어갈까요? ("left" 또는 "right")`,
+            prefix: '', suffix: '', accept: ['left'], placeholder: 'left 또는 right',
+            why: `${smaller}는 루트값 ${root}보다 작으므로 왼쪽(left) 자식 쪽으로 들어가요.`,
+            hint: 'BST 규칙: 작은 값은 왼쪽, 큰 값은 오른쪽이에요.'
+          };
+        },
+        () => makeChoice(
+          'BST에서 어떤 노드의 오른쪽 서브트리에 있는 모든 값은?',
+          '그 노드의 값보다 크다', ['그 노드의 값보다 작다', '그 노드의 값과 항상 같다', '무작위 값이다'],
+          'BST의 규칙상 오른쪽 서브트리에는 항상 현재 노드보다 큰 값들만 있어요.',
+          '"오른쪽은 크게"라는 BST의 기본 규칙을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '<code>search</code> 함수가 <code>node == NULL</code>에 도달했다는 것의 의미는?',
+          '찾는 값이 트리에 존재하지 않는다', ['찾는 값을 찾았다', '트리가 잘못 만들어졌다', '무한 루프에 빠졌다'],
+          '더 내려갈 자리가 없는데도 값을 못 찾았다면, 그 값은 트리 안에 없는 거예요.',
+          '빈 자리(NULL)에 도달했다는 건 더 이상 내려갈 곳이 없다는 뜻이에요.'
+        ),
+        () => makeChoice(
+          '루트가 20인 BST에서, 값 15를 탐색할 때 첫 번째로 이동하는 방향은?',
+          '왼쪽(left)', ['오른쪽(right)', '삽입을 먼저 한다', '탐색을 바로 멈춘다'],
+          '15는 20보다 작으므로 왼쪽 자식 쪽으로 먼저 내려가요.',
+          '찾는 값과 현재 노드의 값을 비교해서 방향을 정한다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>insert</code> 함수에서, 넣을 값이 현재 노드의 값보다 작을 때 왼쪽 서브트리에 재귀로 삽입하는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'node->left = insert(node->left, value);',
+          accept: ['node->left = insert(node->left, value);'],
+          why: '왼쪽 서브트리에 재귀로 삽입한 결과를 다시 node->left에 이어 붙여야 새 노드가 제대로 연결돼요.',
+          hint: 'insert(node->left, value)의 결과를 node->left에 다시 대입하세요.'
+        }),
+      ],
+      boss: () => {
+        const root = 20;
+        const values = shuffle([10, 30, 5, 15, 25, 35]).slice(0, 3);
+        const target = pick(values);
+        let path = [];
+        let cur = root;
+        const tree = { 20: { left: 10, right: 30 }, 10: { left: 5, right: 15 }, 30: { left: 25, right: 35 } };
+        while (cur !== target && tree[cur]) {
+          if (target < cur) { path.push('left'); cur = tree[cur].left; }
+          else { path.push('right'); cur = tree[cur].right; }
+        }
+        return {
+          type: 'blank',
+          q: `루트가 ${root}이고 왼쪽 자식이 10, 오른쪽 자식이 30인 BST에서, 10의 왼쪽 자식은 5, 오른쪽 자식은 15예요. 값 ${target}을 탐색할 때 루트에서부터 거치는 방향을 순서대로 "left,right"처럼 쉼표로 이어 쓰세요. (한 단계면 방향 하나만)`,
+          prefix: '', suffix: '', accept: [path.join(',')], placeholder: 'left 또는 right를 쉼표로',
+          why: `루트 ${root}에서 ${target}까지 내려가는 경로는 ${path.join(' → ')}예요.`,
+          hint: '루트에서 시작해 target과 비교하며 작으면 left, 크면 right로 한 단계씩 내려가보세요.'
+        };
+      }
+    },
+    {
+      id: 'recursionBacktracking',
+      title: '재귀 백트래킹: 하노이의 탑과 순열',
+      ready: true,
+      summary: '여러 선택지를 시도하고 안 되면 되돌아가는 백트래킹으로, 하노이의 탑과 순열 만들기를 풀어봐요.',
+      goals: ['하노이의 탑을 재귀로 풀기', '백트래킹의 기본 아이디어', '재귀로 순열(permutation) 만들기'],
+      blocks: [
+        {
+          h: '고전 재귀 문제: 하노이의 탑',
+          html: `<p><b>하노이의 탑</b>은 원반 n개를 한 기둥에서 다른 기둥으로, "한 번에 하나씩, 큰 원반이 작은 원반 위에 오면 안 된다"는 규칙을 지키며 옮기는 문제예요. n개를 옮기려면 <b>위 n-1개를 보조 기둥으로 옮기고 → 맨 아래 원반을 목표 기둥으로 옮기고 → n-1개를 다시 목표 기둥으로 옮기는</b> 재귀로 풀 수 있어요.</p>`,
+          code: {
+            label: 'hanoi.c',
+            src: `void hanoi(int n, char from, char aux, char to) {
+    if (n == 0) return;
+    hanoi(n - 1, from, to, aux);
+    printf("원반 %d: %c -> %c\\n", n, from, to);
+    hanoi(n - 1, aux, from, to);
+}
+
+hanoi(3, 'A', 'B', 'C');`,
+            out: `원반 1: A -> C\n원반 2: A -> B\n원반 1: C -> B\n원반 3: A -> C\n원반 1: B -> A\n원반 2: B -> C\n원반 1: A -> C`
+          }
+        },
+        {
+          h: '해봤다가 안 되면 되돌아가기: 백트래킹',
+          html: `<p><b>백트래킹</b>은 여러 선택지 중 하나를 시도해보고, 막다른 길이면 <b>선택을 되돌리고(back) 다른 선택지를 다시 시도</b>하는 방식이에요. 재귀 호출이 끝나고 돌아오면 자연스럽게 "이전 선택을 취소"하는 효과가 생겨요.</p>`
+        },
+        {
+          h: '재귀로 순열 만들기',
+          html: `<p>순열은 값을 하나씩 골라 배치를 만들고, 그 값을 "사용했다"고 표시한 뒤 재귀로 나머지를 채워요. 재귀가 끝나고 돌아오면 "사용했다" 표시를 다시 지워서(백트래킹), 다른 자리에도 그 값을 시도할 수 있게 해요.</p>`,
+          code: {
+            label: 'permutation.c',
+            src: `int used[3] = {0, 0, 0};
+int result[3];
+
+void permute(int nums[], int n, int depth) {
+    if (depth == n) {
+        for (int i = 0; i < n; i++) printf("%d ", result[i]);
+        printf("\\n");
+        return;
+    }
+    for (int i = 0; i < n; i++) {
+        if (used[i]) continue;
+        used[i] = 1;
+        result[depth] = nums[i];
+        permute(nums, n, depth + 1);
+        used[i] = 0;  // 되돌리기(백트래킹)
+    }
+}`
+          },
+          after: `<div class="note"><b>핵심</b> — <code>used[i] = 0;</code>으로 되돌리는 부분이 바로 백트래킹이에요. 이게 없으면 이미 쓴 값을 다시 못 쓰게 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(2, 4);
+          const moves = Math.pow(2, n) - 1;
+          return {
+            type: 'blank',
+            q: `하노이의 탑에서 원반이 ${n}개일 때, 필요한 최소 이동 횟수는? (공식: 2^n - 1) 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(moves)], placeholder: '숫자',
+            why: `2^${n} - 1 = ${moves}번이에요.`,
+            hint: '2의 n제곱에서 1을 빼면 돼요.'
+          };
+        },
+        () => makeChoice(
+          '하노이의 탑을 재귀로 풀 때, hanoi(n, from, aux, to)의 첫 번째 재귀 호출이 하는 일은?',
+          '위에 있는 n-1개의 원반을 보조 기둥(aux)으로 옮긴다', ['맨 아래 원반을 바로 목표 기둥으로 옮긴다', '모든 원반을 한 번에 목표 기둥으로 옮긴다', '아무 일도 하지 않는다'],
+          '맨 아래 원반을 옮기려면, 그 위에 쌓인 n-1개를 먼저 보조 기둥으로 치워둬야 해요.',
+          '맨 아래 원반을 옮기기 전에 무엇을 먼저 치워야 할지 생각해보세요.'
+        ),
+        () => makeChoice(
+          '순열을 만드는 재귀 함수에서 <code>used[i] = 0;</code>으로 되돌리는 이유는?',
+          '재귀 호출이 끝난 뒤 그 값을 다른 자리에서도 다시 시도할 수 있게 하려고',
+          ['프로그램을 더 빠르게 만들려고', 'used 배열의 크기를 줄이려고', '메모리 누수를 막으려고'],
+          '한 번 쓴 값을 계속 "사용 중"으로 두면 다른 조합을 만들 수 없으므로, 되돌아올 때 표시를 지워줘야 해요.',
+          '이 되돌리는 동작이 바로 "백트래킹"이라는 이름의 의미예요.'
+        ),
+        () => makeChoice(
+          '백트래킹의 핵심 아이디어를 가장 잘 설명한 것은?',
+          '선택지를 하나씩 시도해보고, 막히면 선택을 취소하고 다른 선택지를 다시 시도한다', ['항상 첫 번째 선택지만 고집한다', '모든 경우를 미리 다 저장해둔다', '재귀를 전혀 쓰지 않는다'],
+          '시도 → 막히면 되돌리기 → 다른 시도를 반복하는 것이 백트래킹의 핵심이에요.',
+          '"back"(되돌아가다)이라는 단어의 의미를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '순열을 만드는 재귀 함수에서, <code>i</code>번째 값을 사용 처리한 뒤 재귀 호출을 마치고 다시 사용 안 함으로 되돌리는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'used[i] = 0;',
+          accept: ['used[i] = 0;'],
+          why: '재귀 호출에서 돌아온 뒤 used[i]를 다시 0으로 되돌려야, 그 값을 다른 위치에서도 다시 쓸 수 있어요.',
+          hint: 'used 배열의 i번째 값을 0으로 바꾸세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(3, 5);
+        const moves = Math.pow(2, n) - 1;
+        return {
+          type: 'blank',
+          q: `하노이의 탑에서 원반 ${n}개를 옮기는 데 필요한 최소 이동 횟수는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(moves)], placeholder: '숫자',
+          why: `공식 2^n - 1에 n=${n}을 대입하면 2^${n} - 1 = ${moves}예요.`,
+          hint: '원반이 하나씩 늘 때마다 필요한 이동 횟수가 두 배 넘게 늘어난다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'structPaddingAlign',
+      title: '구조체 메모리 정렬과 패딩',
+      ready: true,
+      summary: '구조체의 sizeof가 멤버 크기 합과 다르게 나오는 이유, 메모리 정렬(alignment)과 패딩을 배워요.',
+      goals: ['메모리 정렬(alignment)이 뭔지', '패딩(padding)이 왜 생기는지', '멤버 순서로 구조체 크기 줄이기'],
+      blocks: [
+        {
+          h: 'sizeof가 예상과 다르게 나온다면?',
+          html: `<p><code>char</code>(1바이트) + <code>int</code>(4바이트) + <code>char</code>(1바이트)를 가진 구조체는 언뜻 6바이트일 것 같지만, 실제로는 보통 <b>12바이트</b>가 나와요. 이건 컴퓨터가 데이터를 특정 배수 위치에 놓아야 빠르게 접근할 수 있다는 <b>메모리 정렬(alignment)</b> 규칙 때문이에요.</p>`,
+          code: {
+            label: 'padding_basic.c',
+            src: `struct Example {
+    char a;   // 1바이트
+    int b;    // 4바이트
+    char c;   // 1바이트
+};
+
+printf("%zu\\n", sizeof(struct Example));`,
+            out: `12`
+          }
+        },
+        {
+          h: '빈 공간을 채우는: 패딩',
+          html: `<p><code>int</code>는 보통 4의 배수 주소에서 시작해야 해서, <code>char a</code> 뒤에 <b>3바이트의 빈 공간(패딩)</b>이 자동으로 끼어들어요. 마지막 <code>char c</code> 뒤에도 구조체 전체 크기를 4의 배수로 맞추기 위한 패딩이 붙어요. 그래서 1+3(패딩)+4+1+3(패딩) = 12바이트가 돼요.</p>`
+        },
+        {
+          h: '멤버 순서를 바꾸면 크기가 줄어들어요',
+          html: `<p>큰 자료형부터 작은 자료형 순으로 배치하면 패딩을 줄일 수 있어요. 아래처럼 <code>int</code>를 앞에, <code>char</code> 두 개를 뒤에 모으면 8바이트로 줄어요.</p>`,
+          code: {
+            label: 'padding_optimized.c',
+            src: `struct Optimized {
+    int b;    // 4바이트
+    char a;   // 1바이트
+    char c;   // 1바이트
+    // 패딩 2바이트만 추가
+};
+
+printf("%zu\\n", sizeof(struct Optimized));`,
+            out: `8`
+          },
+          after: `<div class="note"><b>실무 팁</b> — 구조체 배열을 대량으로 다루는 프로그램에서는, 멤버 순서만 바꿔도 메모리 사용량과 캐시 효율이 크게 달라질 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '구조체에 패딩이 생기는 근본적인 이유는?',
+          '각 자료형이 특정 배수의 주소에서 시작해야 CPU가 더 빠르게 접근할 수 있어서', ['컴파일러가 버그가 있어서', '메모리를 아끼기 위해서', 'char 자료형이 원래 4바이트라서'],
+          '정렬 규칙을 지키기 위해 컴파일러가 자동으로 빈 공간(패딩)을 끼워 넣어요.',
+          '"정렬(alignment)"이라는 단어가 핵심 힌트예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>struct Example { char a; int b; char c; };</code>일 때, <code>sizeof(struct Example)</code>의 값(대부분의 환경에서)은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: ['12'], placeholder: '숫자',
+          why: 'char(1) + 패딩(3) + int(4) + char(1) + 패딩(3) = 12바이트가 돼요.',
+          hint: 'int 앞뒤로 정렬을 맞추기 위한 빈 공간이 낀다는 걸 떠올려보세요.'
+        }),
+        () => makeChoice(
+          '구조체 멤버의 순서를 바꿔서 크기를 줄이려면 어떻게 배치해야 할까요?',
+          '크기가 큰 자료형부터 작은 자료형 순서로 배치한다', ['항상 알파벳 순서로 배치한다', '항상 char부터 배치한다', '순서는 크기에 아무 영향이 없다'],
+          '큰 자료형을 먼저, 작은 자료형들을 뒤에 모으면 패딩이 줄어들어 전체 크기가 작아질 수 있어요.',
+          '작은 자료형들끼리 모아두면 낭비되는 빈 공간이 줄어든다는 걸 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>struct Optimized { int b; char a; char c; };</code>일 때, <code>sizeof(struct Optimized)</code>의 값(대부분의 환경에서)은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: ['8'], placeholder: '숫자',
+          why: 'int(4) + char(1) + char(1) + 패딩(2) = 8바이트로, 순서를 바꾸기 전보다 작아져요.',
+          hint: '큰 자료형을 먼저 배치하면 패딩이 줄어든다는 점을 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '구조체 <code>struct Example</code>의 전체 크기를 바이트 단위로 출력하는 <code>printf</code> 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'printf("%zu\\n", sizeof(struct Example));',
+          accept: ['printf("%zu\\n", sizeof(struct Example));'],
+          why: 'sizeof(구조체이름)으로 전체 크기를 구하고, size_t 값이므로 %zu로 출력해요.',
+          hint: 'sizeof(struct Example)를 %zu 서식으로 출력하세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        'char 3개와 int 1개를 가진 구조체를 만들 때, 구조체 크기를 최대한 작게 만들려면 어떻게 배치해야 할까요?',
+        'int를 맨 앞에 두고 char 3개를 그 뒤에 모아 배치한다',
+        ['char, int, char, char 순서로 배치한다', 'char를 항상 int보다 뒤에 흩어서 배치한다', '순서는 크기에 전혀 영향을 주지 않는다'],
+        '작은 자료형들을 서로 붙여 놓으면 패딩이 최소화되어, int를 먼저 두고 char 3개를 모으는 배치가 가장 작아요.',
+        '큰 자료형 뒤에 작은 자료형들을 모아두면 낭비되는 공간이 줄어든다는 걸 떠올려보세요.'
+      )
+    },
+    {
+      id: 'stdintFixedWidth',
+      title: 'stdint.h 고정폭 정수 타입',
+      ready: true,
+      summary: '환경마다 크기가 달라질 수 있는 int 대신, 항상 정해진 크기를 보장하는 int32_t 같은 타입을 배워요.',
+      goals: ['int 크기가 환경마다 다를 수 있다는 문제', 'int8_t/int32_t 등 고정폭 타입', '부호 없는 고정폭 타입(uint32_t 등)'],
+      blocks: [
+        {
+          h: '환경마다 다른 int 크기',
+          html: `<p><code>int</code>의 크기는 사실 C 표준에서 <b>정확히 몇 바이트</b>인지 못박아두지 않았어요. 대부분의 환경에서 4바이트지만, 아주 오래된 시스템이나 특수한 임베디드 환경에서는 다를 수 있어요. 항상 <b>정확히 몇 바이트</b>인지 보장이 필요한 코드(네트워크 프로토콜, 파일 포맷 등)에서는 이게 문제가 될 수 있어요.</p>`
+        },
+        {
+          h: '크기를 이름에 못박은 타입: stdint.h',
+          html: `<p><code>&lt;stdint.h&gt;</code>를 포함하면 <code>int8_t</code>, <code>int16_t</code>, <code>int32_t</code>, <code>int64_t</code>처럼 <b>이름 자체에 크기(비트 수)가 적힌</b> 타입을 쓸 수 있어요. 이 타입들은 어떤 환경에서 컴파일하든 항상 그 크기를 보장해요.</p>`,
+          code: {
+            label: 'stdint_basic.c',
+            src: `#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    int32_t a = 100000;
+    int64_t b = 10000000000LL;
+    printf("%d\\n", (int)sizeof(a));
+    printf("%d\\n", (int)sizeof(b));
+    return 0;
+}`,
+            out: `4\n8`
+          }
+        },
+        {
+          h: '부호 없는 버전: uint32_t 등',
+          html: `<p>앞에 <code>u</code>를 붙인 <code>uint8_t</code>, <code>uint16_t</code>, <code>uint32_t</code>, <code>uint64_t</code>는 <b>부호 없는(음수 없는)</b> 고정폭 타입이에요. 예를 들어 <code>uint8_t</code>는 0~255만 표현하는 딱 1바이트짜리 타입으로, 색상 값(RGB) 등에 자주 써요.</p>`,
+          after: `<div class="note"><b>언제 쓸까</b> — 파일 포맷, 네트워크 패킷, 하드웨어 레지스터처럼 "정확히 몇 바이트인지"가 중요한 코드에서는 int 대신 stdint.h의 고정폭 타입을 쓰는 게 안전해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const bits = pick([8, 16, 32, 64]);
+          const bytes = bits / 8;
+          return {
+            type: 'blank',
+            q: `<code>int${bits}_t</code> 타입의 크기는 몇 바이트일까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(bytes)], placeholder: '숫자',
+            why: `타입 이름의 숫자(${bits})는 비트 수를 뜻해서, ${bits} ÷ 8 = ${bytes}바이트예요.`,
+            hint: '타입 이름의 숫자는 바이트가 아니라 비트 수라는 점을 기억하세요.'
+          };
+        },
+        () => makeChoice(
+          'stdint.h의 고정폭 타입을 쓰는 가장 큰 이유는?',
+          '어떤 환경에서 컴파일하든 항상 정해진 크기를 보장받기 위해서', ['타입 이름을 더 짧게 쓰기 위해서', 'int보다 항상 실행 속도가 빨라서', '음수를 절대 못 쓰게 막기 위해서'],
+          'int의 크기는 환경마다 다를 수 있지만, int32_t 같은 타입은 이름 그대로 항상 정확한 크기를 보장해요.',
+          '"어떤 컴퓨터에서 돌려도 똑같이 동작해야 한다"는 상황을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '<code>uint8_t</code> 타입이 표현할 수 있는 값의 범위는?',
+          '0부터 255까지', ['-128부터 127까지', '0부터 65535까지', '-255부터 255까지'],
+          'uint8_t는 부호 없는 1바이트(8비트)라서 0부터 2^8-1인 255까지 표현해요.',
+          '"u"가 붙으면 부호가 없다는(음수가 없다는) 뜻이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>&lt;stdint.h&gt;</code>를 포함해서 32비트 크기를 보장하는 부호 있는 정수 타입 이름을 쓰세요.`,
+          prefix: '', suffix: ' value = 100;', accept: ['int32_t'], placeholder: '타입 이름',
+          why: 'int32_t는 항상 32비트(4바이트) 크기를 보장하는 부호 있는 정수 타입이에요.',
+          hint: '"int" 뒤에 비트 수(32)와 "_t"가 붙어요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '<code>&lt;stdint.h&gt;</code>를 포함하는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: '#include <stdint.h>',
+          accept: ['#include <stdint.h>'],
+          why: '고정폭 정수 타입을 쓰려면 반드시 stdint.h 헤더를 포함해야 해요.',
+          hint: '#include 뒤에 꺾쇠괄호로 stdint.h를 감싸세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '네트워크로 주고받을 데이터 구조체를 만드는데, 서로 다른 컴퓨터에서 컴파일해도 항상 같은 바이트 크기가 보장되어야 해요. int 대신 무엇을 쓰는 게 안전할까요?',
+        'stdint.h의 int32_t, uint16_t 같은 고정폭 타입',
+        ['그냥 int를 쓴다', 'short를 항상 4바이트로 가정하고 쓴다', 'long을 항상 8바이트로 가정하고 쓴다'],
+        'int, short, long의 크기는 환경마다 다를 수 있지만, stdint.h의 고정폭 타입은 이름 그대로 크기를 보장해요.',
+        '이름에 크기가 못박혀 있는 타입이 무엇이었는지 떠올려보세요.'
+      )
+    },
+    {
+      id: 'sscanfStrtok',
+      title: 'sscanf와 strtok으로 문자열 파싱',
+      ready: true,
+      summary: '문자열에서 값을 뽑아내는 sscanf와, 구분자로 문자열을 토막 내는 strtok을 배워요.',
+      goals: ['sscanf로 문자열에서 값 추출하기', 'strtok으로 문자열 토큰 나누기', 'strtok을 반복 호출하는 방법'],
+      blocks: [
+        {
+          h: '문자열에서 값 뽑아내기: sscanf',
+          html: `<p><code>sscanf(문자열, 형식, ...)</code>은 <code>scanf</code>와 비슷하지만, 키보드 입력이 아니라 <b>이미 가지고 있는 문자열</b>에서 값을 읽어와요. <code>"17,180"</code>처럼 정해진 형식의 문자열을 분해할 때 아주 유용해요.</p>`,
+          code: {
+            label: 'sscanf_basic.c',
+            src: `char line[] = "17,180";
+int age, height;
+sscanf(line, "%d,%d", &age, &height);
+printf("%d %d\\n", age, height);`,
+            out: `17 180`
+          }
+        },
+        {
+          h: '구분자로 문자열 토막 내기: strtok',
+          html: `<p><code>strtok(문자열, 구분자)</code>는 문자열을 구분자 기준으로 <b>토큰(조각)</b>으로 잘라줘요. 첫 호출에는 원래 문자열을 넘기고, 그 다음부터는 <b>첫 번째 인자에 NULL</b>을 넘겨야 이어서 다음 토큰을 잘라줘요.</p>`,
+          code: {
+            label: 'strtok_basic.c',
+            src: `char text[] = "apple,banana,cherry";
+char *token = strtok(text, ",");
+while (token != NULL) {
+    printf("%s\\n", token);
+    token = strtok(NULL, ",");
+}`,
+            out: `apple\nbanana\ncherry`
+          }
+        },
+        {
+          h: 'strtok의 주의점',
+          html: `<p><code>strtok</code>은 원본 문자열을 <b>직접 수정</b>해서 구분자 자리에 <code>'\\0'</code>을 끼워 넣는 방식으로 동작해요. 그래서 문자열 리터럴(<code>"..."</code>) 그대로는 쓸 수 없고, 수정 가능한 배열(<code>char text[] = "...";</code>)에만 써야 해요.</p>`,
+          after: `<div class="note"><b>정리</b> — 형식이 정해진 값 추출은 sscanf, 구분자로 나누기는 strtok이 편해요. 상황에 맞게 골라 쓰면 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const age = randInt(10, 60);
+          const height = randInt(140, 190);
+          return {
+            type: 'blank',
+            q: `<code>char line[] = "${age},${height}"; int a, h; sscanf(line, "%d,%d", &a, &h);</code>일 때, <code>h</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(height)], placeholder: '숫자',
+            why: `형식 문자열의 두 번째 %d가 콤마 뒤의 값(${height})과 짝지어져 h에 저장돼요.`,
+            hint: '형식 문자열의 순서대로 값들이 짝지어진다는 걸 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          '<code>strtok</code>을 첫 호출 이후 이어서 다음 토큰을 얻으려면 첫 번째 인자로 무엇을 넘겨야 할까요?',
+          '<code>NULL</code>', ['원래 문자열을 다시 그대로', '빈 문자열 ""', '구분자 문자열'],
+          '두 번째 호출부터는 첫 번째 인자에 NULL을 넘겨야, strtok이 이전 위치를 기억해서 이어서 잘라줘요.',
+          'strtok은 내부적으로 마지막 위치를 기억하고 있다는 걸 떠올려보세요.'
+        ),
+        () => {
+          const words = shuffle(['apple', 'banana', 'cherry', 'date']).slice(0, randInt(3, 4));
+          const idx = randInt(0, words.length - 1);
+          return {
+            type: 'blank',
+            q: `<code>char text[] = "${words.join(',')}";</code>를 <code>strtok(text, ",")</code>으로 자르기 시작해서 ${idx + 1}번째로 얻는 토큰은? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [words[idx]], placeholder: '값',
+            why: `콤마 기준으로 자르면 순서대로 ${words.join(', ')}가 나오므로, ${idx + 1}번째는 "${words[idx]}"예요.`,
+            hint: '콤마를 기준으로 문자열을 앞에서부터 순서대로 잘라보세요.'
+          };
+        },
+        () => makeChoice(
+          'strtok을 문자열 리터럴(<code>"apple,banana"</code>) 그대로에 쓰면 위험한 이유는?',
+          'strtok이 원본 문자열을 직접 수정하는데, 문자열 리터럴은 수정할 수 없는 영역이라서', ['strtok은 리터럴을 아예 인식하지 못해서', '리터럴은 항상 NULL을 반환해서', '아무 문제 없이 항상 안전하다'],
+          'strtok은 구분자 자리에 \'\\0\'을 써넣는 방식으로 동작하는데, 문자열 리터럴은 수정 불가능한 메모리라서 문제가 생길 수 있어요.',
+          'char text[] = "..."처럼 배열로 만든 것과 문자열 리터럴의 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>char text[] = "one,two,three";</code>에서 <code>strtok</code>으로 첫 번째 토큰을 얻어 <code>token</code>에 저장하는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'char *token = strtok(text, ",");',
+          accept: ['char *token = strtok(text, ",");'],
+          why: '첫 호출에는 원본 문자열 text와 구분자 ","를 넘겨야 첫 토큰을 얻어요.',
+          hint: 'strtok(text, ",")의 결과를 char* 포인터에 담으세요.'
+        }),
+      ],
+      boss: () => {
+        const parts = [pick(['red', 'blue', 'green']), randInt(1, 100), pick(['on', 'off'])];
+        return {
+          type: 'blank',
+          q: `<code>char line[] = "${parts[0]},${parts[1]},${parts[2]}";</code>를 <code>strtok(line, ",")</code>으로 자르기 시작해서 세 번째로 얻는 토큰은? (따옴표 없이)`,
+          prefix: '', suffix: '', accept: [String(parts[2])], placeholder: '값',
+          why: `콤마 기준으로 자르면 순서대로 "${parts[0]}", "${parts[1]}", "${parts[2]}"가 나오므로 세 번째는 "${parts[2]}"예요.`,
+          hint: 'strtok을 반복 호출할 때마다 다음 토큰이 순서대로 나온다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'filePositioning',
+      title: 'fseek/ftell로 파일 위치 다루기',
+      ready: true,
+      summary: '파일 안의 "현재 읽고 쓰는 위치"를 옮기는 fseek과, 그 위치를 알려주는 ftell을 배워요.',
+      goals: ['fseek으로 파일 위치 이동하기', 'ftell로 현재 위치 알아내기', 'SEEK_SET/SEEK_CUR/SEEK_END 기준점'],
+      blocks: [
+        {
+          h: '파일 안의 커서: 파일 위치',
+          html: `<p>파일을 열면 내부적으로 "지금 읽고 쓰는 위치"를 가리키는 <b>커서(파일 위치 지시자)</b>가 있어요. 보통은 읽고 쓸 때마다 자동으로 앞으로 이동하지만, <code>fseek</code>으로 <b>원하는 위치로 직접 이동</b>시킬 수 있어요.</p>`,
+          code: {
+            label: 'fseek_basic.c',
+            src: `FILE *fp = fopen("data.txt", "r");
+fseek(fp, 5, SEEK_SET);  // 파일 맨 앞에서 5바이트 뒤로 이동
+char buf[10];
+fscanf(fp, "%s", buf);
+fclose(fp);`
+          }
+        },
+        {
+          h: '세 가지 기준점: SEEK_SET/SEEK_CUR/SEEK_END',
+          html: `<p><code>fseek(파일, 이동량, 기준점)</code>의 기준점은 세 가지예요. <code>SEEK_SET</code>은 <b>파일 맨 앞</b>부터, <code>SEEK_CUR</code>은 <b>현재 위치</b>부터, <code>SEEK_END</code>은 <b>파일 맨 끝</b>부터의 이동량을 뜻해요.</p>`,
+          code: {
+            label: 'seek_modes.c',
+            src: `fseek(fp, 0, SEEK_SET);   // 맨 처음으로
+fseek(fp, 10, SEEK_CUR);  // 현재 위치에서 10바이트 뒤로
+fseek(fp, 0, SEEK_END);   // 맨 끝으로`
+          }
+        },
+        {
+          h: '지금 위치를 알아내기: ftell',
+          html: `<p><code>ftell(파일)</code>은 현재 커서 위치를 파일 맨 앞으로부터 <b>몇 바이트 떨어져 있는지</b> 숫자로 알려줘요. <code>fseek(fp, 0, SEEK_END)</code> 후 <code>ftell(fp)</code>을 부르면 <b>파일 전체 크기</b>를 알아낼 수 있어요.</p>`,
+          code: {
+            label: 'ftell_filesize.c',
+            src: `fseek(fp, 0, SEEK_END);
+long size = ftell(fp);
+printf("%ld\\n", size);
+fseek(fp, 0, SEEK_SET);  // 다시 맨 앞으로 되돌리기`
+          },
+          after: `<div class="note"><b>주의</b> — ftell로 파일 크기를 잰 뒤에는, 다시 읽거나 쓰려면 반드시 fseek으로 원하는 위치로 되돌려놔야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '<code>fseek(fp, 0, SEEK_SET)</code>이 하는 일은?',
+          '파일 커서를 맨 앞(처음)으로 이동시킨다', ['파일 커서를 맨 끝으로 이동시킨다', '파일을 완전히 삭제한다', '아무 일도 하지 않는다'],
+          'SEEK_SET은 파일 맨 앞을 기준으로 하고, 이동량이 0이니 결국 맨 앞으로 이동해요.',
+          'SEEK_SET은 "시작(set)"을 기준으로 삼는다는 뜻이에요.'
+        ),
+        () => makeChoice(
+          '파일 전체 크기를 알아내는 가장 흔한 방법은?',
+          'fseek(fp, 0, SEEK_END)로 이동한 뒤 ftell(fp)을 호출한다', ['fopen 할 때 자동으로 알려준다', 'fclose 후에만 알 수 있다', 'strlen(fp)을 호출한다'],
+          '맨 끝으로 이동한 뒤 ftell로 현재 위치(맨 앞으로부터의 거리)를 재면, 그게 곧 파일 전체 크기예요.',
+          '"끝까지 이동한 뒤 현재 위치를 잰다"는 순서를 떠올려보세요.'
+        ),
+        () => {
+          const mode = pick(['SEEK_SET', 'SEEK_CUR', 'SEEK_END']);
+          const desc = mode === 'SEEK_SET' ? '파일 맨 앞' : mode === 'SEEK_CUR' ? '현재 위치' : '파일 맨 끝';
+          return {
+            type: 'blank',
+            q: `<code>${mode}</code>은 이동의 기준점으로 무엇을 뜻할까요? ("파일 맨 앞", "현재 위치", "파일 맨 끝" 중 하나로 답하세요)`,
+            prefix: '', suffix: '', accept: [desc], placeholder: '기준점',
+            why: `${mode}은 ${desc}을 기준으로 이동량을 계산해요.`,
+            hint: '영어 단어(SET/CUR/END)의 의미를 그대로 떠올려보세요.'
+          };
+        },
+        () => ({
+          type: 'code',
+          q: '이미 연 파일 <code>fp</code>의 커서를 파일 맨 끝으로 이동시키는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'fseek(fp, 0, SEEK_END);',
+          accept: ['fseek(fp, 0, SEEK_END);'],
+          why: 'SEEK_END를 기준으로 이동량 0을 주면 정확히 파일 맨 끝으로 이동해요.',
+          hint: 'fseek(fp, 이동량, 기준점) 형태로 SEEK_END를 기준점에 쓰세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '파일에서 데이터를 읽던 중, 잠깐 파일 크기를 확인하려고 fseek(fp, 0, SEEK_END)와 ftell(fp)을 호출했어요. 이후 원래 읽던 위치로 돌아가 계속 읽으려면 무엇을 해야 할까요?',
+        '읽던 위치를 미리 저장해뒀다가, fseek으로 그 위치로 다시 이동한다',
+        ['fclose 후 다시 fopen하면 자동으로 이어진다', '아무것도 안 해도 자동으로 이어서 읽힌다', 'ftell을 한 번 더 호출하면 자동으로 되돌아간다'],
+        'fseek으로 커서를 옮기면 그 자리에 그대로 남으므로, 원래 위치로 되돌아가려면 그 위치를 기억해뒀다가 다시 fseek해야 해요.',
+        '파일 커서는 fseek 전 상태를 자동으로 기억해주지 않는다는 점을 떠올려보세요.'
+      )
+    },
+    {
+      id: 'binaryFileIO',
+      title: 'fread/fwrite로 이진 파일 다루기',
+      ready: true,
+      summary: '텍스트가 아닌 바이트 그대로 데이터를 읽고 쓰는 fread/fwrite로, 구조체를 통째로 저장하고 불러와요.',
+      goals: ['fwrite로 구조체를 그대로 저장하기', 'fread로 구조체를 그대로 읽어오기', '텍스트 모드와 이진 모드의 차이'],
+      blocks: [
+        {
+          h: '바이트 그대로 저장하기: fwrite',
+          html: `<p><code>fprintf</code>는 값을 <b>사람이 읽을 수 있는 글자</b>로 바꿔 저장하지만, <code>fwrite(주소, 요소크기, 개수, 파일)</code>는 메모리에 있는 값을 <b>있는 그대로(이진수로)</b> 파일에 써요. 구조체 전체를 통째로 저장할 때 특히 편리해요.</p>`,
+          code: {
+            label: 'fwrite_basic.c',
+            src: `struct Player {
+    char name[20];
+    int score;
+};
+
+struct Player p = {"Choco", 95};
+FILE *fp = fopen("save.bin", "wb");
+fwrite(&p, sizeof(struct Player), 1, fp);
+fclose(fp);`
+          }
+        },
+        {
+          h: '바이트 그대로 읽어오기: fread',
+          html: `<p><code>fread(주소, 요소크기, 개수, 파일)</code>은 저장된 이진 데이터를 <b>그대로</b> 메모리로 읽어와요. 저장할 때 썼던 것과 <b>정확히 같은 구조체 타입</b>으로 읽어야 값이 올바르게 복원돼요.</p>`,
+          code: {
+            label: 'fread_basic.c',
+            src: `struct Player loaded;
+FILE *fp = fopen("save.bin", "rb");
+fread(&loaded, sizeof(struct Player), 1, fp);
+fclose(fp);
+printf("%s %d\\n", loaded.name, loaded.score);`,
+            out: `Choco 95`
+          }
+        },
+        {
+          h: '텍스트 모드 "w"와 이진 모드 "wb"의 차이',
+          html: `<p>이진 파일을 다룰 때는 <code>fopen</code>의 모드에 <code>b</code>를 붙여요(<code>"wb"</code>, <code>"rb"</code>). 텍스트 모드는 일부 운영체제에서 줄바꿈 문자를 자동 변환하기도 하는데, 이진 모드는 그런 변환 없이 <b>바이트를 있는 그대로</b> 다뤄서 구조체 같은 이진 데이터가 손상되지 않아요.</p>`,
+          after: `<div class="note"><b>주의</b> — 구조체를 통째로 fwrite한 파일은, 그 구조체 정의가 바뀌거나 다른 컴퓨터(정렬 방식이 다른)에서 읽으면 깨질 수 있어요. 이식성이 중요하다면 각 필드를 따로 저장하는 방법도 고려해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `구조체 <code>struct Player p;</code> 하나를 이진 파일에 통째로 쓰는 <code>fwrite</code> 호출에서, 두 번째 인자(요소 크기)에 들어갈 표현식을 쓰세요.`,
+          prefix: 'fwrite(&p, ', suffix: ', 1, fp);', accept: ['sizeof(struct Player)', 'sizeof(p)'], placeholder: '표현식',
+          why: '요소 하나의 크기는 구조체 전체 크기이므로 sizeof(struct Player)(또는 sizeof(p))예요.',
+          hint: '구조체 하나의 전체 바이트 크기를 구하는 연산자를 떠올려보세요.'
+        }),
+        () => makeChoice(
+          '이진 파일을 쓰기 모드로 열 때 fopen의 모드 문자열로 알맞은 것은?',
+          '<code>"wb"</code>', ['<code>"w"</code>', '<code>"rb"</code>', '<code>"bw"</code>'],
+          '이진 쓰기 모드는 w(write) 뒤에 b(binary)를 붙인 "wb"예요.',
+          '"쓰기(w)"와 "이진(b)"을 순서대로 붙여보세요.'
+        ),
+        () => makeChoice(
+          'fprintf/fscanf 대신 fwrite/fread를 구조체 저장에 쓰면 좋은 점은?',
+          '구조체 전체를 한 번에 통째로 저장하고 불러올 수 있어서 편리하다', ['항상 파일 크기가 더 작아져서', '사람이 파일을 열어 바로 읽기 편해져서', 'fprintf보다 항상 코드가 더 짧아서'],
+          'fwrite/fread는 각 필드를 하나씩 따로 다루지 않고 구조체를 한 번에 그대로 저장/복원할 수 있어요.',
+          '멤버 하나하나가 아니라 구조체 "전체"를 다룬다는 점을 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'fwrite로 저장한 이진 파일을, 사람이 텍스트 에디터로 열어보면 어떨까요?',
+          '사람이 읽기 어려운 이진 데이터(글자가 아닌 바이트)로 보인다', ['fprintf로 저장한 것과 완전히 똑같이 보인다', '항상 빈 파일로 보인다', '자동으로 사람이 읽기 좋은 글자로 바뀐다'],
+          'fwrite는 메모리 값을 그대로(이진수로) 저장하므로, 텍스트 에디터로 열면 알아보기 힘든 글자들이 보여요.',
+          'fwrite가 "사람이 읽는 글자"로 변환하지 않는다는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>struct Player loaded;</code>에 이진 파일 <code>fp</code>로부터 구조체 하나를 읽어오는 <code>fread</code> 호출 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'fread(&loaded, sizeof(struct Player), 1, fp);',
+          accept: ['fread(&loaded, sizeof(struct Player), 1, fp);'],
+          why: 'fread(주소, 요소크기, 개수, 파일) 순서로, 구조체 하나(1개)를 그대로 읽어와요.',
+          hint: 'fwrite와 똑같은 순서의 인자를 fread에 넣으세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '구조체 데이터를 저장할 때 fprintf 대신 fwrite를, 여는 모드로 "w" 대신 "wb"를 써야 하는 이유로 가장 알맞은 것은?',
+        '구조체를 사람이 읽는 글자로 변환하지 않고 메모리 그대로(이진수로) 정확하게 저장/복원하기 위해서',
+        ['"wb"가 항상 파일을 더 빠르게 열어줘서', 'fprintf는 구조체를 아예 저장할 수 없어서', '"w" 모드는 파일을 자동으로 삭제해버려서'],
+        'fwrite와 이진 모드("wb")를 함께 쓰면, 구조체의 바이트를 있는 그대로 저장하고 fread로 정확히 복원할 수 있어요.',
+        '텍스트로 "변환"하는 것과 "그대로" 저장하는 것의 차이를 떠올려보세요.'
+      )
+    },
+    {
+      id: 'numericConversion',
+      title: 'atoi/strtol로 안전하게 숫자 변환하기',
+      ready: true,
+      summary: '문자열을 숫자로 바꾸는 atoi와 strtol을 비교하고, strtol로 변환 실패를 확인하는 법을 배워요.',
+      goals: ['atoi로 간단히 문자열을 숫자로 바꾸기', 'strtol로 변환 실패 확인하기', 'atoi의 한계 이해하기'],
+      blocks: [
+        {
+          h: '문자열을 숫자로: atoi',
+          html: `<p><code>atoi(문자열)</code>은 문자열을 <code>int</code>로 변환해줘요. 명령줄 인자나 파일에서 읽은 문자열을 숫자로 쓰고 싶을 때 자주 써요.</p>`,
+          code: {
+            label: 'atoi_basic.c',
+            src: `int n = atoi("42");
+printf("%d\\n", n + 8);`,
+            out: `50`
+          }
+        },
+        {
+          h: 'atoi의 한계: 실패를 알 수 없다',
+          html: `<p><code>atoi("abc")</code>처럼 <b>변환할 수 없는 문자열</b>을 넣으면, atoi는 그냥 <b>0을 반환</b>해버려요. 그런데 <code>atoi("0")</code>도 똑같이 0을 반환하니, <b>진짜 실패인지 진짜 0인지 구분할 수 없어요</b>. 이게 atoi의 가장 큰 약점이에요.</p>`
+        },
+        {
+          h: '실패를 정확히 알 수 있는: strtol',
+          html: `<p><code>strtol(문자열, &endptr, 진법)</code>은 변환이 끝난 뒤 <b>어디까지 숫자로 읽었는지</b>를 <code>endptr</code>에 남겨줘요. <code>endptr</code>이 문자열의 <b>끝(<code>'\\0'</code>)</b>을 가리키면 전체가 제대로 숫자였다는 뜻이고, 그렇지 않으면 중간에 이상한 문자가 있었다는 뜻이에요.</p>`,
+          code: {
+            label: 'strtol_basic.c',
+            src: `char *endptr;
+long n = strtol("42abc", &endptr, 10);
+if (*endptr != '\\0') {
+    printf("일부만 변환됨: %ld\\n", n);
+}`,
+            out: `일부만 변환됨: 42`
+          },
+          after: `<div class="note"><b>정리</b> — 빠르고 간단하지만 실패를 못 알아채는 atoi, 조금 번거롭지만 실패를 정확히 확인할 수 있는 strtol. 사용자 입력처럼 신뢰할 수 없는 문자열은 strtol을 쓰는 게 안전해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(1, 100);
+          return {
+            type: 'blank',
+            q: `<code>int n = atoi("${n}");</code>일 때, <code>n</code>의 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `atoi는 숫자로만 이루어진 문자열을 그대로 int로 바꿔서 ${n}이 돼요.`,
+            hint: '문자열에 있는 숫자를 그대로 정수로 바꾼다고 생각하세요.'
+          };
+        },
+        () => makeChoice(
+          '<code>atoi("hello")</code>를 호출하면 어떤 값이 반환될까요?',
+          '0', ['오류가 발생해서 프로그램이 멈춘다', 'NULL', '가장 큰 int 값'],
+          'atoi는 변환할 수 없는 문자열을 만나면 조용히 0을 반환해요. 실패했다는 걸 알려주지 않아요.',
+          'atoi는 실패해도 티가 나지 않는다는 게 핵심이에요.'
+        ),
+        () => makeChoice(
+          'atoi의 가장 큰 문제점은?',
+          '"0"이라는 진짜 값과 변환 실패를 구분할 방법이 없다', ['음수를 변환하지 못한다', '변환 속도가 너무 느리다', '10자리 이상의 수는 변환하지 못한다'],
+          'atoi("0")과 atoi("abc") 모두 0을 반환하므로, 반환값만 보고는 성공인지 실패인지 알 수 없어요.',
+          '숫자 0을 변환한 결과와 실패했을 때의 결과가 똑같다는 점을 생각해보세요.'
+        ),
+        () => makeChoice(
+          'strtol이 atoi보다 나은 점은?',
+          'endptr을 통해 문자열 전체가 제대로 변환됐는지 확인할 수 있다', ['항상 atoi보다 실행 속도가 빠르다', 'strtol은 실수(float)도 변환할 수 있다', '문자열의 첫 글자만 읽는다'],
+          'strtol은 변환이 끝난 위치를 endptr로 알려주므로, 그 위치가 문자열 끝인지 확인해서 성공/실패를 정확히 판단할 수 있어요.',
+          'strtol은 "어디까지 읽었는지"를 추가로 알려준다는 점이 핵심이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '문자열 <code>"123"</code>을 <code>atoi</code>로 변환해서 <code>n</code>에 저장하는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'int n = atoi("123");',
+          accept: ['int n = atoi("123");'],
+          why: 'atoi(문자열)은 문자열을 int로 바로 변환해줘요.',
+          hint: 'atoi 함수에 문자열 리터럴을 넣고 int 변수에 대입하세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '사용자가 입력한 문자열이 진짜 유효한 숫자인지 정확히 확인하고 싶어요. atoi와 strtol 중 무엇을 쓰고, 어떻게 확인해야 할까요?',
+        'strtol을 쓰고, 변환 후 endptr이 문자열의 끝(\'\\0\')을 가리키는지 확인한다',
+        ['atoi를 쓰고, 반환값이 0이 아니면 성공으로 판단한다', 'atoi를 쓰고, 반환값과 상관없이 항상 성공으로 간주한다', 'strtol을 쓰지만 endptr은 확인할 필요가 없다'],
+        'atoi는 실패 여부를 알려주지 않으므로, endptr로 변환 성공 여부를 정확히 알 수 있는 strtol을 써야 안전해요.',
+        '"0이 반환됐다"는 것만으로는 성공과 실패를 구분할 수 없다는 점을 떠올려보세요.'
+      )
+    },
+    {
+      id: 'dispatchTable',
+      title: '함수 포인터 배열로 디스패치 테이블 만들기',
+      ready: true,
+      summary: '함수 포인터를 배열이나 구조체에 모아두고, 인덱스나 이름으로 원하는 동작을 바로 골라 실행하는 법을 배워요.',
+      goals: ['함수 포인터 배열 만들기', '인덱스로 함수 고르기(디스패치 테이블)', '긴 if/switch를 배열 조회로 대체하기'],
+      blocks: [
+        {
+          h: '여러 함수를 배열 하나에 모으기',
+          html: `<p><b>함수 포인터 배열</b>을 쓰면, 같은 형태의 함수 여러 개를 하나의 배열에 모아둘 수 있어요. 이렇게 만든 표를 <b>디스패치 테이블</b>이라고 불러요. 어떤 함수를 실행할지 <code>if/else</code>나 <code>switch</code>로 하나하나 따지는 대신, <b>배열 인덱스</b> 하나로 바로 골라 실행할 수 있어요.</p>`,
+          code: {
+            label: 'dispatch_basic.c',
+            src: `int add(int a, int b) { return a + b; }
+int sub(int a, int b) { return a - b; }
+int mul(int a, int b) { return a * b; }
+
+int (*ops[3])(int, int) = {add, sub, mul};
+
+printf("%d\\n", ops[0](3, 4));  // add(3,4)
+printf("%d\\n", ops[2](3, 4));  // mul(3,4)`,
+            out: `7\n12`
+          }
+        },
+        {
+          h: 'switch 대신 배열 조회로',
+          html: `<p>연산 종류가 늘어날수록 <code>switch(op) { case 0: ...; case 1: ...; }</code> 같은 코드는 점점 길어져요. 디스패치 테이블은 <b>연산 번호를 배열 인덱스로 바로 조회</b>하니, 연산이 늘어나도 코드 길이가 거의 늘지 않아요.</p>`,
+          code: {
+            label: 'calculator.c',
+            src: `int calculate(int a, int b, int opIndex) {
+    return ops[opIndex](a, b);
+}`
+          }
+        },
+        {
+          h: '실전 활용: 명령어 처리기',
+          html: `<p>디스패치 테이블은 게임의 키 입력 처리, 명령줄 도구의 명령어 분기, 상태 기계(state machine)의 상태별 처리 함수 등 "여러 경우 중 하나를 골라 실행"하는 상황에 아주 폭넓게 쓰여요.</p>`,
+          after: `<div class="note"><b>주의</b> — 배열의 인덱스 범위를 벗어난 값으로 조회하면 잘못된 메모리를 함수처럼 호출하게 되니, 인덱스가 유효한 범위인지 먼저 확인해야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const a = randInt(1, 10), b = randInt(1, 10);
+          const idx = randInt(0, 2);
+          const names = ['add', 'sub', 'mul'];
+          const result = idx === 0 ? a + b : idx === 1 ? a - b : a * b;
+          return {
+            type: 'blank',
+            q: `<code>int (*ops[3])(int, int) = {add, sub, mul};</code>일 때, <code>ops[${idx}](${a}, ${b})</code>의 결과는? (add=더하기, sub=빼기, mul=곱하기) 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(result)], placeholder: '숫자',
+            why: `ops[${idx}]는 ${names[idx]}를 가리키므로, ${names[idx]}(${a}, ${b}) = ${result}예요.`,
+            hint: '인덱스가 가리키는 함수가 어떤 연산인지 먼저 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          '디스패치 테이블(함수 포인터 배열)을 쓰는 주된 이유는?',
+          '긴 if/switch 문 대신, 인덱스 조회만으로 원하는 함수를 바로 실행할 수 있어서', ['함수 실행 속도를 항상 더 느리게 만들기 위해서', '함수를 아예 호출하지 못하게 막기 위해서', '메모리를 아예 안 쓰기 위해서'],
+          '연산 번호를 배열 인덱스로 바로 조회해서 실행하니, switch/if 분기 없이도 원하는 동작을 고를 수 있어요.',
+          '"조건을 하나하나 따지는 것"과 "표에서 바로 찾는 것"의 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>int add(int a, int b) {...}</code>, <code>int sub(int a, int b) {...}</code>가 있을 때, 이 둘을 담는 함수 포인터 배열 <code>ops</code>를 선언하고 초기화하는 코드를 완성하세요.`,
+          prefix: 'int (*ops[2])(int, int) = ', suffix: ';', accept: ['{add, sub}'], placeholder: '{함수1, 함수2}',
+          why: '배열 초기화 문법대로 중괄호 안에 함수 이름들을 나열하면 돼요.',
+          hint: '일반 배열을 초기화하듯 중괄호 안에 함수 이름들을 콤마로 나열하세요.'
+        }),
+        () => makeChoice(
+          '디스패치 테이블에서 유효하지 않은 인덱스로 함수를 호출하면 어떤 문제가 생길 수 있을까요?',
+          '배열 범위를 벗어난 잘못된 메모리를 함수처럼 호출해서 프로그램이 잘못 동작하거나 멈출 수 있다',
+          ['자동으로 가장 가까운 유효한 인덱스로 바뀐다', '아무 문제 없이 항상 안전하게 무시된다', '컴파일 시점에 자동으로 오류가 잡힌다'],
+          '배열 범위를 벗어난 접근은 정의되지 않은 동작이라, 엉뚱한 메모리를 함수 주소로 오인해 실행하면 위험해요.',
+          '배열의 다른 곳(범위 밖 접근)에서 흔히 생기는 문제와 비슷하다고 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>int (*ops[3])(int, int) = {add, sub, mul};</code>일 때, <code>ops[1]</code>을 <code>10</code>과 <code>4</code>로 호출해 출력하는 코드를 작성하세요.',
+          starter: '',
+          placeholder: 'printf("%d\\n", ops[1](10, 4));',
+          accept: ['printf("%d\\n", ops[1](10, 4));'],
+          why: 'ops[1]은 배열의 두 번째 함수(sub)를 가리키므로, ops[1](10, 4)는 sub(10, 4)와 같아요.',
+          hint: '배열 인덱스로 함수를 고른 뒤, 바로 뒤에 괄호로 인자를 넘겨 호출하세요.'
+        }),
+      ],
+      boss: () => {
+        const a = randInt(1, 20), b = randInt(1, 20);
+        const idx = randInt(0, 2);
+        const results = [a + b, a - b, a * b];
+        return {
+          type: 'blank',
+          q: `<code>int (*ops[3])(int, int) = {add, sub, mul};</code>(add=더하기, sub=빼기, mul=곱하기)일 때, <code>ops[${idx}](${a}, ${b})</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(results[idx])], placeholder: '숫자',
+          why: `ops[${idx}]가 가리키는 연산을 ${a}와 ${b}에 적용하면 ${results[idx]}가 나와요.`,
+          hint: '인덱스에 해당하는 연산이 무엇인지 확인한 뒤 계산해보세요.'
+        };
+      }
+    },
+    {
+      id: 'bitFieldsStruct',
+      title: '구조체 비트 필드',
+      ready: true,
+      summary: '구조체 멤버가 차지할 비트 수를 직접 지정하는 비트 필드로, 여러 플래그를 한 구조체에 촘촘히 담아봐요.',
+      goals: ['비트 필드 문법: 멤버 : 비트수', '여러 플래그를 한 구조체에 담기', '비트 필드로 메모리 절약하기'],
+      blocks: [
+        {
+          h: '멤버가 쓸 비트 수를 직접 지정하기',
+          html: `<p>보통 구조체 멤버는 <code>int</code>면 4바이트, <code>char</code>면 1바이트를 통째로 차지해요. 하지만 <b>on/off 하나만 표현하면 되는 값</b>도 있죠. <b>비트 필드</b>는 <code>멤버이름 : 비트수;</code> 문법으로, 멤버가 <b>딱 필요한 비트 수만</b> 쓰도록 지정할 수 있어요.</p>`,
+          code: {
+            label: 'bitfield_basic.c',
+            src: `struct Flags {
+    unsigned int isActive : 1;
+    unsigned int isAdmin  : 1;
+    unsigned int level    : 4;
+};
+
+struct Flags f = {1, 0, 9};
+printf("%d %d %d\\n", f.isActive, f.isAdmin, f.level);`,
+            out: `1 0 9`
+          }
+        },
+        {
+          h: '여러 플래그를 한 곳에 촘촘히',
+          html: `<p><code>isActive</code>와 <code>isAdmin</code>은 0 또는 1만 필요하니 각각 <b>1비트</b>, <code>level</code>은 0~15까지 필요하니 <b>4비트</b>만 쓰도록 지정했어요. 이렇게 하면 이 세 멤버가 <code>int</code> 하나(보통 4바이트=32비트)보다 훨씬 작은 공간에 다 같이 들어갈 수 있어요.</p>`
+        },
+        {
+          h: '비트 연산자로 직접 다루는 것과의 차이',
+          html: `<p>비트 연산자(<code>&</code>, <code>|</code>, <code>&lt;&lt;</code>)로도 비슷한 걸 만들 수 있지만, 비트 필드는 <b>멤버 이름으로 바로 읽고 쓸 수 있어서</b>(<code>f.isActive = 1;</code>처럼) 코드가 훨씬 읽기 쉬워져요. 다만 비트가 정확히 어떤 순서로 배치되는지는 컴파일러마다 다를 수 있어서, <b>이식성이 중요한 코드</b>에서는 주의가 필요해요.</p>`,
+          after: `<div class="note"><b>실전 활용</b> — 네트워크 패킷 헤더, 하드웨어 레지스터 표현, 여러 on/off 설정값을 묶은 구조체 등에서 자주 쓰여요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const bits = randInt(1, 6);
+          const maxVal = Math.pow(2, bits) - 1;
+          return {
+            type: 'blank',
+            q: `<code>unsigned int level : ${bits};</code>로 선언된 비트 필드가 표현할 수 있는 최댓값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(maxVal)], placeholder: '숫자',
+            why: `${bits}비트로 표현 가능한 최댓값은 2^${bits} - 1 = ${maxVal}이에요.`,
+            hint: 'n비트로 표현 가능한 최댓값은 2^n - 1이라는 공식을 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          '비트 필드를 쓰는 주된 목적은?',
+          '0/1이나 작은 범위의 값만 필요한 멤버에 딱 필요한 만큼의 비트만 할당해 메모리를 아끼기 위해',
+          ['구조체의 실행 속도를 항상 더 빠르게 만들기 위해', '멤버의 자료형을 아예 없애기 위해', '구조체를 malloc 없이 힙에 저장하기 위해'],
+          '비트 필드는 필요한 비트 수만큼만 멤버에 할당해서, 여러 개의 작은 값을 한 구조체에 촘촘히 담을 수 있게 해줘요.',
+          '"필요한 만큼만 쓴다"는 절약의 의미를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `구조체 멤버 <code>isActive</code>가 정확히 1비트만 차지하도록 선언하는 코드를 완성하세요.`,
+          prefix: 'unsigned int isActive ', suffix: ';', accept: [': 1'], placeholder: ': 비트수',
+          why: '<code>멤버이름 : 비트수;</code> 문법으로 콜론 뒤에 필요한 비트 수를 적어요.',
+          hint: '콜론(:) 뒤에 숫자 1을 적으세요.'
+        }),
+        () => makeChoice(
+          '비트 필드와 비트 연산자(&, |)로 직접 플래그를 다루는 것을 비교하면?',
+          '비트 필드는 멤버 이름으로 바로 읽고 쓸 수 있어 코드 가독성이 더 좋다', ['비트 필드는 항상 실행 속도가 더 빠르다', '비트 연산자로는 절대 플래그를 표현할 수 없다', '둘은 완전히 관련 없는 기능이다'],
+          '비트 필드는 f.isActive = 1;처럼 이름으로 직접 접근할 수 있어서, 마스크와 시프트를 직접 계산하는 것보다 읽기 쉬워요.',
+          '"이름으로 접근"과 "직접 비트 연산"의 가독성 차이를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>struct Flags f;</code>의 <code>isAdmin</code> 비트 필드 멤버에 1을 대입하는 코드 한 줄을 작성하세요.',
+          starter: '',
+          placeholder: 'f.isAdmin = 1;',
+          accept: ['f.isAdmin = 1;'],
+          why: '비트 필드도 일반 구조체 멤버처럼 점(.) 표기법으로 값을 대입할 수 있어요.',
+          hint: '구조체 멤버 접근 방식 그대로 값을 대입하세요.'
+        }),
+      ],
+      boss: () => {
+        const bits = randInt(2, 5);
+        const maxVal = Math.pow(2, bits) - 1;
+        return {
+          type: 'blank',
+          q: `여러 사용자 등급을 담아야 하는데, 등급이 0부터 ${maxVal}까지(총 ${maxVal + 1}단계) 필요해요. 이 값을 담을 비트 필드에 지정해야 할 최소 비트 수는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(bits)], placeholder: '숫자',
+          why: `2^${bits} - 1 = ${maxVal}이므로, 0부터 ${maxVal}까지 표현하려면 최소 ${bits}비트가 필요해요.`,
+          hint: 'n비트로 표현 가능한 최댓값이 필요한 범위를 담을 수 있는 최소 n을 찾아보세요.'
+        };
+      }
+    },
+    {
+      id: 'ctypeFunctions',
+      title: 'ctype.h로 문자 판별하고 변환하기',
+      ready: true,
+      summary: '문자가 숫자인지 알파벳인지 판별하는 isdigit/isalpha와, 대소문자를 바꾸는 toupper/tolower를 배워요.',
+      goals: ['isdigit/isalpha로 문자 종류 판별하기', 'toupper/tolower로 대소문자 바꾸기', '문자열 전체를 한 글자씩 검사/변환하기'],
+      blocks: [
+        {
+          h: '문자 종류 판별하기: isdigit, isalpha',
+          html: `<p><code>&lt;ctype.h&gt;</code>는 문자 하나가 어떤 종류인지 판별하는 함수들을 제공해요. <code>isdigit(c)</code>는 <b>숫자 문자('0'~'9')</b>인지, <code>isalpha(c)</code>는 <b>알파벳 문자</b>인지 확인해서, 맞으면 0이 아닌 값을, 아니면 0을 돌려줘요.</p>`,
+          code: {
+            label: 'ctype_check.c',
+            src: `char c1 = '7', c2 = 'A', c3 = '#';
+printf("%d\\n", isdigit(c1));  // 1
+printf("%d\\n", isalpha(c2));  // 1
+printf("%d\\n", isalpha(c3));  // 0`,
+            out: `1\n1\n0`
+          }
+        },
+        {
+          h: '대소문자 바꾸기: toupper, tolower',
+          html: `<p><code>toupper(c)</code>는 소문자를 대문자로, <code>tolower(c)</code>는 대문자를 소문자로 바꿔줘요. 이미 대문자/소문자가 아닌 문자(숫자, 기호 등)를 넣으면 <b>변환하지 않고 그대로</b> 돌려줘요.</p>`,
+          code: {
+            label: 'ctype_case.c',
+            src: `printf("%c\\n", toupper('a'));  // A
+printf("%c\\n", tolower('Z'));  // z
+printf("%c\\n", toupper('5'));  // 5 (변화 없음)`,
+            out: `A\nz\n5`
+          }
+        },
+        {
+          h: '문자열 전체를 한 글자씩 검사/변환하기',
+          html: `<p>문자열은 결국 문자(char)의 배열이라서, <b>반복문으로 한 글자씩</b> ctype.h 함수들을 적용하면 문자열 전체를 검사하거나 변환할 수 있어요.</p>`,
+          code: {
+            label: 'to_upper_string.c',
+            src: `char word[] = "hello";
+for (int i = 0; word[i] != '\\0'; i++) {
+    word[i] = toupper(word[i]);
+}
+printf("%s\\n", word);`,
+            out: `HELLO`
+          },
+          after: `<div class="note"><b>실전 활용</b> — 비밀번호에 숫자/영문이 섞여 있는지 검사하거나, 사용자 입력을 대소문자 구분 없이 비교할 때(전부 소문자로 바꿔서 비교) 아주 자주 쓰여요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const c = pick(['3', 'x', 'K', '@', '9']);
+          const isDigit = /[0-9]/.test(c);
+          return {
+            type: 'blank',
+            q: `<code>isdigit('${c}')</code>의 결과가 0이 아닌 값(참)인가요? (<code>true</code> 또는 <code>false</code>)`,
+            prefix: '', suffix: '', accept: [String(isDigit)], placeholder: 'true 또는 false',
+            why: isDigit ? `'${c}'는 숫자 문자라서 isdigit이 참을 돌려줘요.` : `'${c}'는 숫자가 아니라서 isdigit이 거짓(0)을 돌려줘요.`,
+            hint: "'0'부터 '9' 사이의 문자인지 확인해보세요."
+          };
+        },
+        () => {
+          const c = pick(['a', 'b', 'x', 'z', 'm']);
+          return {
+            type: 'blank',
+            q: `<code>toupper('${c}')</code>의 결과는? (따옴표 없이, 문자 하나만)`,
+            prefix: '', suffix: '', accept: [c.toUpperCase()], placeholder: '문자',
+            why: `toupper는 소문자를 대응하는 대문자로 바꿔서 '${c.toUpperCase()}'가 돼요.`,
+            hint: '알파벳의 소문자를 대문자로 바꿔보세요.'
+          };
+        },
+        () => makeChoice(
+          '<code>toupper('5')</code>를 호출하면 어떤 결과가 나올까요?',
+          "'5' 그대로(변화 없음)", ["오류가 발생한다", "'A'로 바뀐다", "NULL이 반환된다"],
+          '숫자 문자는 대문자/소문자 구분이 없으므로, toupper는 변환하지 않고 그대로 돌려줘요.',
+          '대문자로 바꿀 수 있는 건 소문자 알파벳뿐이라는 걸 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '문자열 전체를 대문자로 바꾸려면 어떻게 해야 할까요?',
+          '반복문으로 각 글자에 toupper를 적용해서 덮어쓴다', ['문자열 전체에 toupper를 한 번만 호출한다', 'strcpy로 복사만 하면 자동으로 바뀐다', '변환할 방법이 없다'],
+          'toupper는 문자 하나를 받는 함수라서, 문자열 전체를 바꾸려면 각 글자마다 반복 적용해야 해요.',
+          'toupper의 매개변수가 문자열이 아니라 문자 하나라는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '문자 <code>c</code>가 알파벳인지 확인해서 참이면 <code>"알파벳"</code>을 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'if (isalpha(c)) {\n    printf("알파벳");\n}',
+          accept: ['if (isalpha(c)) {printf("알파벳");}'],
+          why: 'isalpha(c)가 참(0이 아닌 값)이면 c가 알파벳이라는 뜻이에요.',
+          hint: 'if (isalpha(c)) 블록 안에 printf("알파벳");을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const word = pick(['Hello', 'World', 'Coding']);
+        return {
+          type: 'blank',
+          q: `<code>char word[] = "${word}";</code>의 모든 글자를 <code>toupper</code>로 바꾼 뒤의 문자열은? (따옴표 없이)`,
+          prefix: '', suffix: '', accept: [word.toUpperCase()], placeholder: '값',
+          why: `각 글자를 toupper로 바꾸면 모두 대문자가 되어 "${word.toUpperCase()}"가 돼요.`,
+          hint: '이미 대문자인 글자는 그대로, 소문자인 글자만 대문자로 바뀐다는 걸 떠올려보세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({

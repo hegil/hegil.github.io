@@ -2455,6 +2455,1902 @@ END;`
         '값이 실제로 바뀌기 전에 확인해서 막아야 하니, BEFORE UPDATE 시점의 트리거가 적합해요. AFTER는 이미 바뀐 뒤라 막을 수 없어요.',
         '"바뀌기 전에 막아야 한다"는 요구사항과 BEFORE/AFTER의 차이를 연결해보세요.'
       )
+    },
+    {
+      id: 'recursiveCte',
+      title: '재귀 CTE (WITH RECURSIVE)',
+      ready: true,
+      summary: '조직도나 카테고리 트리처럼 "자기 자신을 참조하는" 계층 구조 데이터를, 재귀 CTE로 한 번에 조회하는 법을 배워요.',
+      goals: ['WITH RECURSIVE로 계층 구조 펼치기', '기준(anchor)과 재귀(recursive) 부분의 역할', 'UNION ALL로 합치기'],
+      blocks: [
+        {
+          h: '자기 자신을 참조하는 CTE: WITH RECURSIVE',
+          html: `<p>직원과 그 직원의 상사처럼, 같은 표 안에서 "부모-자식" 관계가 반복되는 계층 구조는 <code>WITH RECURSIVE</code>로 한 번에 펼쳐볼 수 있어요.</p>`,
+          code: {
+            label: 'recursive_basic.sql',
+            lang: 'sql',
+            src: `WITH RECURSIVE numbers(n) AS (
+  SELECT 1
+  UNION ALL
+  SELECT n + 1 FROM numbers WHERE n < 5
+)
+SELECT n FROM numbers;`,
+            out: `n\n-\n1\n2\n3\n4\n5`
+          }
+        },
+        {
+          h: '두 부분으로 이루어져요: 기준과 재귀',
+          html: `<p>재귀 CTE는 항상 두 부분을 <code>UNION ALL</code>로 이어요. 첫 번째 <code>SELECT 1</code>은 <b>시작점(anchor)</b>이고, 두 번째 <code>SELECT n + 1 FROM numbers WHERE n &lt; 5</code>는 <b>이전 결과(numbers)를 참조해서 다음 값을 만드는 재귀 부분</b>이에요. n이 5가 되면 조건을 더 이상 만족 안 해서 멈춰요.</p>`,
+          after: `<div class="note"><b>주의</b> — 재귀 부분에 멈추는 조건(WHERE)이 없으면 무한히 반복돼서 오류가 나요. 항상 언젠가 거짓이 되는 조건을 넣어야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const limit = randInt(3, 8);
+          return {
+            type: 'blank',
+            q: `<code>WITH RECURSIVE numbers(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM numbers WHERE n < ${limit}) SELECT n FROM numbers;</code>를 실행하면 몇 개의 행이 나올까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(limit)], placeholder: '숫자',
+            why: `1부터 ${limit}까지 만들어져서 총 ${limit}개의 행이 나와요.`,
+            hint: '1부터 시작해서, n이 조건(n < 한계값)을 만족하는 동안 계속 다음 값을 만들어요.'
+          };
+        },
+        () => makeChoice(
+          '재귀 CTE에서 두 SELECT(기준 부분과 재귀 부분)를 이어주는 키워드는?',
+          '<code>UNION ALL</code>', ['<code>JOIN</code>', '<code>WHERE</code>', '<code>GROUP BY</code>'],
+          '기준 부분과 재귀 부분을 <code>UNION ALL</code>로 이어서 하나의 CTE를 만들어요.',
+          '두 SELECT 결과를 세로로 이어 붙이는 키워드예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `자기 자신을 참조하는 CTE를 만들 때, WITH 뒤에 추가로 붙이는 키워드를 쓰세요.`,
+          prefix: 'WITH ', suffix: ' numbers(n) AS (...)', accept: ['RECURSIVE', 'recursive'], placeholder: '키워드',
+          why: '<code>WITH RECURSIVE</code>로 자기 자신을 참조할 수 있는 CTE를 만들어요.',
+          hint: '"재귀적인"이라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '재귀 CTE의 재귀 부분에 멈추는 조건(WHERE)이 없다면?',
+          '무한히 반복되어 오류가 난다', ['자동으로 1번만 실행된다', '정상적으로 빈 결과를 돌려준다', '컴파일 시점에 미리 막아준다'],
+          '멈추는 조건이 없으면 재귀가 끝나지 않아서 오류가 나요.',
+          '반복문에 종료 조건이 없으면 어떻게 될지 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '1부터 3까지의 숫자를 만드는 재귀 CTE <code>numbers(n)</code>를 작성하고, 그 결과를 조회하는 SQL을 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'WITH RECURSIVE numbers(n) AS (\n  SELECT 1\n  UNION ALL\n  SELECT n + 1 FROM numbers WHERE n < 3\n)\nSELECT n FROM numbers;',
+          accept: ['WITH RECURSIVE numbers(n) AS (\n  SELECT 1\n  UNION ALL\n  SELECT n + 1 FROM numbers WHERE n < 3\n)\nSELECT n FROM numbers;'],
+          why: 'SELECT 1을 시작점으로 하고, UNION ALL 뒤에 n + 1을 만들면서 n < 3인 동안 반복해요.',
+          hint: '시작점 SELECT 1과 재귀 부분 SELECT n + 1 FROM numbers WHERE n < 3을 UNION ALL로 이으세요.'
+        }),
+      ],
+      boss: () => {
+        const limit = randInt(4, 10);
+        return {
+          type: 'blank',
+          q: `<code>WITH RECURSIVE numbers(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM numbers WHERE n < ${limit}) SELECT n FROM numbers;</code>의 마지막 행(n의 최댓값)은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(limit)], placeholder: '숫자',
+          why: `n이 ${limit}이 되면 더 이상 n < ${limit} 조건을 만족하지 않아 멈추므로, 마지막 값은 ${limit}이에요.`,
+          hint: '조건 n < 한계값을 만족하는 동안만 다음 값을 만든다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'upsertInsert',
+      title: '업서트(UPSERT): INSERT ... ON CONFLICT',
+      ready: true,
+      summary: '이미 있으면 수정하고, 없으면 새로 추가하는 "업서트" 패턴을 INSERT ... ON CONFLICT로 구현하는 법을 배워요.',
+      goals: ['INSERT ... ON CONFLICT 문법', 'DO UPDATE로 충돌 시 값 바꾸기', 'DO NOTHING으로 충돌 시 무시하기'],
+      blocks: [
+        {
+          h: '있으면 수정, 없으면 추가: 업서트(UPSERT)',
+          html: `<p>"이 이메일을 가진 사용자가 있으면 이름만 바꾸고, 없으면 새로 추가해줘"처럼, INSERT와 UPDATE를 한 문장으로 처리하는 걸 <b>업서트(UPSERT)</b>라고 해요.</p>`,
+          code: {
+            label: 'upsert_basic.sql',
+            lang: 'sql',
+            src: `CREATE TABLE users (
+  email TEXT PRIMARY KEY,
+  name TEXT
+);
+
+INSERT INTO users (email, name) VALUES ('a@test.com', '지수')
+ON CONFLICT (email) DO UPDATE SET name = '지수(수정됨)';`,
+            out: `1개 행이 추가되거나 수정됨`
+          }
+        },
+        {
+          h: '충돌 시 아무것도 안 하기: DO NOTHING',
+          html: `<p>이미 있으면 그냥 무시하고 싶다면 <code>DO UPDATE</code> 대신 <code>DO NOTHING</code>을 써요.</p>`,
+          code: {
+            label: 'upsert_do_nothing.sql',
+            lang: 'sql',
+            src: `INSERT INTO users (email, name) VALUES ('a@test.com', '민준')
+ON CONFLICT (email) DO NOTHING;`,
+            out: `이미 있으므로 아무 변화 없음`
+          },
+          after: `<div class="note"><b>주의</b> — ON CONFLICT는 그 열에 UNIQUE나 PRIMARY KEY 제약조건이 있어야 "무엇이 충돌인지" 판단할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const doUpdate = Math.random() < 0.5;
+          return {
+            type: 'blank',
+            q: `email이 PRIMARY KEY인 users 표에 이미 'a@test.com'이 있을 때, <code>INSERT INTO users (email, name) VALUES ('a@test.com', '서연') ON CONFLICT (email) ${doUpdate ? "DO UPDATE SET name = '서연'" : 'DO NOTHING'};</code>을 실행하면 name은 어떻게 될까요? ("서연" 또는 "안 바뀜")`,
+            prefix: '', suffix: '', accept: [doUpdate ? '서연' : '안 바뀜'], placeholder: '값',
+            why: doUpdate ? 'DO UPDATE라서 충돌 시 name이 "서연"으로 바뀌어요.' : 'DO NOTHING이라서 충돌해도 아무 것도 바뀌지 않아요.',
+            hint: 'ON CONFLICT 뒤에 DO UPDATE인지 DO NOTHING인지 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          'UPSERT가 필요한 상황은?',
+          '같은 값이 있으면 수정하고, 없으면 새로 추가해야 할 때', ['항상 새 행만 추가해야 할 때', '항상 모든 행을 지워야 할 때', '정렬만 필요할 때'],
+          'UPSERT는 INSERT와 UPDATE를 한 문장으로 처리해서, 있으면 수정하고 없으면 추가해요.',
+          '"UPdate" + "inSERT"를 합친 이름이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `INSERT에서 충돌(중복)이 발생했을 때 어떻게 할지 정하는 절의 키워드 두 개를 쓰세요.`,
+          prefix: 'INSERT INTO users (email, name) VALUES (...) ', suffix: ' (email) DO UPDATE SET name = ...', accept: ['ON CONFLICT', 'on conflict'], placeholder: '키워드',
+          why: '<code>ON CONFLICT (열)</code> 뒤에 충돌 시 어떻게 할지(DO UPDATE / DO NOTHING)를 적어요.',
+          hint: '"충돌(conflict)이 있을 때(on)"라는 뜻이에요.'
+        }),
+        () => makeChoice(
+          '<code>ON CONFLICT (email) DO NOTHING</code>의 의미는?',
+          '이미 같은 email이 있으면 그 INSERT를 조용히 무시한다', ['이미 있으면 오류를 발생시킨다', '이미 있으면 그 행을 삭제한다', 'email 열을 아예 없앤다'],
+          'DO NOTHING은 충돌이 나도 아무 일도 하지 않고 조용히 넘어가요.',
+          '이름 그대로 "아무것도 안 한다"는 뜻이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: "email이 PRIMARY KEY인 users 표에, 이미 있는 email('b@test.com')로 INSERT를 시도했을 때 name을 '갱신됨'으로 바꾸는 UPSERT INSERT 문을 작성하세요.",
+          starter: '',
+          rows: 2,
+          placeholder: "INSERT INTO users (email, name) VALUES ('b@test.com', '갱신됨')\nON CONFLICT (email) DO UPDATE SET name = '갱신됨';",
+          accept: ["INSERT INTO users (email, name) VALUES ('b@test.com', '갱신됨')\nON CONFLICT (email) DO UPDATE SET name = '갱신됨';"],
+          why: 'ON CONFLICT (email) DO UPDATE SET ...로 충돌 시 값을 갱신해요.',
+          hint: "INSERT INTO users (email, name) VALUES ('b@test.com', '갱신됨') 다음 줄에 ON CONFLICT (email) DO UPDATE SET name = '갱신됨';를 쓰세요."
+        }),
+      ],
+      boss: () => {
+        const exists = Math.random() < 0.5;
+        const newName = pick(['하늘', '유진', '태윤']);
+        return {
+          type: 'blank',
+          q: `email이 PRIMARY KEY인 users 표에 'c@test.com'이 ${exists ? '이미 있고' : '아직 없고'}, <code>INSERT INTO users (email, name) VALUES ('c@test.com', '${newName}') ON CONFLICT (email) DO UPDATE SET name = '${newName}';</code>를 실행하면, users 표의 행 개수는 어떻게 될까요? ("그대로" 또는 "1개 증가")`,
+          prefix: '', suffix: '', accept: [exists ? '그대로' : '1개 증가'], placeholder: '값',
+          why: exists ? '이미 있으면 UPDATE만 일어나서 행 개수는 그대로예요.' : '없으면 새로 INSERT되어 행 개수가 1개 늘어나요.',
+          hint: '충돌이 있으면 UPDATE(개수 그대로), 없으면 새로 INSERT(개수 증가)돼요.'
+        };
+      }
+    },
+    {
+      id: 'queryExecutionOrder',
+      title: '쿼리 실행 순서',
+      ready: true,
+      summary: 'SELECT문을 작성하는 순서와 실제로 데이터베이스가 처리하는 순서가 다르다는 것을 이해하고, 왜 그런지 배워요.',
+      goals: ['작성 순서 vs 실행(논리적) 순서', 'WHERE와 HAVING이 다른 단계에서 실행되는 이유', 'SELECT의 별칭을 WHERE에서 못 쓰는 이유'],
+      blocks: [
+        {
+          h: '쓰는 순서와 실행되는 순서는 달라요',
+          html: `<p>우리는 <code>SELECT ... FROM ... WHERE ... GROUP BY ... HAVING ... ORDER BY ...</code> 순서로 쿼리를 <b>작성</b>하지만, 데이터베이스는 실제로 <code>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</code> 순서로 <b>처리</b>해요.</p>`,
+          code: {
+            label: 'execution_order.sql',
+            lang: 'sql',
+            src: `SELECT age AS student_age
+FROM students
+WHERE age >= 15;`,
+            out: `student_age\n-----------\n17\n16\n18`
+          }
+        },
+        {
+          h: '왜 SELECT의 별칭을 WHERE에서 못 쓸까요',
+          html: `<p>위 코드에서 <code>WHERE student_age >= 15</code>라고 쓰면 오류가 나요. <b>WHERE는 SELECT보다 먼저 실행</b>되기 때문에, 아직 <code>student_age</code>라는 별칭이 만들어지기 전이라서 그 이름을 알 수 없어요. (단, GROUP BY/ORDER BY/HAVING은 SELECT 이후 단계라 별칭을 쓸 수 있는 DB가 많아요.)</p>`
+        },
+        {
+          h: '전체 논리적 실행 순서',
+          html: `<p>FROM(표를 가져오고) → WHERE(행을 거르고) → GROUP BY(묶고) → HAVING(그룹을 거르고) → SELECT(보여줄 열을 고르고) → ORDER BY(정렬하고) → LIMIT(개수를 제한) 순서로 처리돼요. 이 순서를 알면 "왜 이건 되고 저건 안 될까"를 훨씬 잘 이해할 수 있어요.</p>`,
+          after: `<div class="note"><b>정리</b> — 쿼리를 "쓰는" 순서(SELECT부터)와 "실행되는" 순서(FROM부터)가 다르다는 걸 기억해두면, 오류 메시지를 이해하기 훨씬 쉬워져요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `쿼리의 실제 실행(논리적) 순서에서 가장 먼저 처리되는 절은? (SELECT, FROM, WHERE, GROUP BY 중에서)`,
+          prefix: '', suffix: '', accept: ['FROM', 'from'], placeholder: '절 이름',
+          why: 'FROM이 표를 가져오는 것부터 시작해서, WHERE → GROUP BY → HAVING → SELECT → ORDER BY 순서로 이어져요.',
+          hint: '데이터를 어디서 가져올지부터 정해야 나머지 처리를 할 수 있어요.'
+        }),
+        () => makeChoice(
+          'WHERE와 SELECT 중 실제로 먼저 실행되는 건?',
+          'WHERE', ['SELECT', '둘은 동시에 실행된다', '상황에 따라 다르다'],
+          '논리적 실행 순서는 FROM → WHERE → ... → SELECT라서, WHERE가 SELECT보다 먼저예요.',
+          '행을 거르는 게 먼저인지, 보여줄 열을 고르는 게 먼저인지 생각해보세요.'
+        ),
+        () => makeChoice(
+          'SELECT에서 만든 별칭(AS)을 WHERE에서 바로 쓸 수 없는 이유는?',
+          'WHERE가 SELECT보다 먼저 실행되어서, 그 시점엔 별칭이 아직 존재하지 않기 때문에', ['별칭은 원래 절대 아무 데서도 못 써서', 'WHERE는 별칭이라는 개념 자체를 지원하지 않아서', 'SELECT가 항상 제일 먼저 실행되기 때문에'],
+          'WHERE가 실행되는 시점엔 아직 SELECT의 별칭이 만들어지지 않았어요.',
+          '실행 순서에서 WHERE와 SELECT 중 뭐가 먼저인지 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `GROUP BY로 묶은 후, 그 그룹 결과에 조건을 거는 절(HAVING)은 SELECT보다 먼저 실행될까요, 나중에 실행될까요? ("먼저" 또는 "나중")`,
+          prefix: '', suffix: '', accept: ['먼저'], placeholder: '먼저/나중',
+          why: '논리적 실행 순서는 FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY라서, HAVING이 SELECT보다 먼저예요.',
+          hint: '전체 순서를 다시 떠올려보면, HAVING은 SELECT 앞에 있어요.'
+        }),
+        () => ({
+          type: 'code',
+          q: 'students 표에서 age가 15 이상인 학생만 골라, city별로 묶어서 학생 수를 세고, 그중 2명 이상인 도시만, city 기준 오름차순으로 보여주는 SQL을 작성하세요. (WHERE, GROUP BY, HAVING, ORDER BY를 모두 사용하세요)',
+          starter: '',
+          rows: 5,
+          placeholder: 'SELECT city, COUNT(*)\nFROM students\nWHERE age >= 15\nGROUP BY city\nHAVING COUNT(*) >= 2\nORDER BY city;',
+          accept: ['SELECT city, COUNT(*)\nFROM students\nWHERE age >= 15\nGROUP BY city\nHAVING COUNT(*) >= 2\nORDER BY city;'],
+          why: '작성 순서(SELECT...FROM...WHERE...GROUP BY...HAVING...ORDER BY)를 그대로 지키면서, 각 절의 역할대로 조건을 넣어요.',
+          hint: 'SELECT city, COUNT(*) FROM students WHERE age >= 15 GROUP BY city HAVING COUNT(*) >= 2 ORDER BY city; 순서를 그대로 따라가세요.'
+        }),
+      ],
+      boss: () => {
+        const clauses = ['FROM', 'WHERE', 'GROUP BY', 'HAVING', 'SELECT', 'ORDER BY'];
+        const idx = randInt(0, clauses.length - 1);
+        return {
+          type: 'blank',
+          q: `쿼리의 논리적 실행 순서 FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY에서, ${idx + 1}번째로 실행되는 절은?`,
+          prefix: '', suffix: '', accept: [clauses[idx]], placeholder: '절 이름',
+          why: `${idx + 1}번째 순서는 ${clauses[idx]}예요.`,
+          hint: '순서를 하나씩 세어보세요: FROM(1) → WHERE(2) → GROUP BY(3) → HAVING(4) → SELECT(5) → ORDER BY(6).'
+        };
+      }
+    },
+    {
+      id: 'jsonColumns',
+      title: 'JSON 데이터 다루기',
+      ready: true,
+      summary: '표의 한 열에 JSON 형태로 저장된 데이터를 json_extract 같은 함수로 꺼내서 활용하는 법을 배워요.',
+      goals: ['JSON 형태로 저장된 열 이해하기', 'json_extract로 특정 값 꺼내기', 'JSON을 쓸 때와 별도 열로 나눌 때의 차이'],
+      blocks: [
+        {
+          h: '한 열에 여러 정보를 JSON으로 저장하기',
+          html: `<p>취미 목록처럼 "몇 개가 될지 정해지지 않은" 정보는, 별도 표를 만드는 대신 하나의 열에 <b>JSON 문자열</b>로 저장하기도 해요.</p>`,
+          code: {
+            label: 'json_basic.sql',
+            lang: 'sql',
+            src: `CREATE TABLE students (
+  id INTEGER PRIMARY KEY,
+  name TEXT,
+  info TEXT
+);
+
+INSERT INTO students (name, info)
+VALUES ('지수', '{"city": "서울", "age": 17}');`,
+            out: `1개 행이 추가됨`
+          }
+        },
+        {
+          h: 'JSON 안의 값 꺼내기: json_extract',
+          html: `<p><code>json_extract(열, '$.키')</code>로 JSON 문자열 안의 특정 값을 꺼낼 수 있어요. <code>$</code>는 JSON 전체를, <code>$.city</code>는 그 안의 city 값을 가리켜요.</p>`,
+          code: {
+            label: 'json_extract.sql',
+            lang: 'sql',
+            src: `SELECT name, json_extract(info, '$.city') AS city
+FROM students;`,
+            out: `name | city\n-----+-----\n지수  | 서울`
+          },
+          after: `<div class="note"><b>언제 별도 열로 나눌까요</b> — 그 값으로 자주 검색하거나 정렬해야 한다면 별도 열(예: city TEXT)로 만드는 게 더 빠르고 안전해요. JSON은 "가끔 보는, 구조가 자주 바뀌는" 부가 정보에 어울려요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const city = pick(['서울', '부산', '대전']);
+          const age = randInt(14, 19);
+          return {
+            type: 'blank',
+            q: `<code>info</code> 열에 <code>'{"city": "${city}", "age": ${age}}'</code>가 저장되어 있을 때, <code>json_extract(info, '$.city')</code>의 결과는? (따옴표 없이)`,
+            prefix: '', suffix: '', accept: [city], placeholder: '값',
+            why: `$.city는 JSON 안의 city 키의 값을 꺼내므로 "${city}"가 나와요.`,
+            hint: '$.키 형태로 JSON 안의 특정 값을 지정해서 꺼내요.'
+          };
+        },
+        () => makeChoice(
+          'JSON 형태로 열에 저장하기 알맞은 경우는?',
+          '항목 개수가 정해지지 않았거나 구조가 자주 바뀌는 부가 정보를 담을 때', ['자주 검색하고 정렬해야 하는 핵심 값을 담을 때', '표의 기본 키(PRIMARY KEY)를 담을 때', '숫자 계산에 항상 써야 하는 값을 담을 때'],
+          'JSON은 구조가 유연해서, 개수나 형태가 자주 바뀌는 부가 정보에 어울려요.',
+          '반대로 자주 검색/정렬할 값은 별도 열이 더 낫다는 점과 비교해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `JSON 문자열이 담긴 열에서 특정 키의 값을 꺼낼 때 쓰는 함수를 쓰세요.`,
+          prefix: '', suffix: "(info, '$.city')", accept: ['json_extract'], placeholder: '함수 이름',
+          why: `<code>json_extract(열, '$.키')</code>로 JSON 안의 값을 꺼내요.`,
+          hint: '"JSON을 꺼낸다(extract)"는 뜻 그대로예요.'
+        }),
+        () => makeChoice(
+          'JSON 열 대신 별도 열(예: city TEXT)로 나누는 게 더 나은 경우는?',
+          '그 값으로 자주 검색하거나 정렬해야 할 때', ['절대로 검색할 필요가 없을 때', 'JSON이 사람이 읽기 더 어려울 때만', '값이 하나도 없을 때만'],
+          '자주 검색·정렬하는 값은 별도 열로 두면 인덱스도 걸 수 있어 더 빠르고 안전해요.',
+          'json_extract는 매번 문자열을 해석해야 해서, 색인 없이는 느릴 수 있어요.'
+        ),
+        () => ({
+          type: 'code',
+          q: "students 표의 info 열(JSON)에서 age 값을 꺼내 student_age라는 이름으로 name과 함께 조회하는 SQL을 작성하세요.",
+          starter: '',
+          placeholder: "SELECT name, json_extract(info, '$.age') AS student_age FROM students;",
+          accept: ["SELECT name, json_extract(info, '$.age') AS student_age FROM students;"],
+          why: "json_extract(info, '$.age')로 age 값을 꺼내고, AS로 별칭을 붙여요.",
+          hint: "SELECT name, json_extract(info, '$.age') AS student_age FROM students;를 그대로 쓰세요."
+        }),
+      ],
+      boss: () => {
+        const city = pick(['서울', '부산', '대전', '광주']);
+        const age = randInt(14, 19);
+        return {
+          type: 'blank',
+          q: `<code>info</code>가 <code>'{"city": "${city}", "age": ${age}}'</code>일 때, <code>json_extract(info, '$.age')</code>의 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(age)], placeholder: '숫자',
+          why: `$.age는 JSON 안의 age 키의 값을 꺼내므로 ${age}가 나와요.`,
+          hint: '$.age는 age 키에 해당하는 값을 가리켜요.'
+        };
+      }
+    },
+    {
+      id: 'checkConstraint',
+      title: 'CHECK 제약조건',
+      ready: true,
+      summary: '열에 들어갈 수 있는 값의 조건을 직접 정하는 CHECK 제약조건으로, 잘못된 값이 아예 들어오지 못하게 막는 법을 배워요.',
+      goals: ['CHECK로 값의 조건 정하기', 'CHECK 위반 시 어떻게 되는지', '다른 제약조건들과의 역할 차이'],
+      blocks: [
+        {
+          h: '값의 조건을 직접 정하기: CHECK',
+          html: `<p><code>CHECK (조건)</code>을 열 뒤에 붙이면, 그 조건을 만족하는 값만 들어올 수 있어요. 나이가 음수이거나 너무 큰 값이 들어오는 걸 막을 때 유용해요.</p>`,
+          code: {
+            label: 'check_basic.sql',
+            lang: 'sql',
+            src: `CREATE TABLE students (
+  id INTEGER PRIMARY KEY,
+  age INTEGER CHECK (age >= 0 AND age <= 100)
+);`
+          }
+        },
+        {
+          h: 'CHECK를 어기면 어떻게 될까요',
+          html: `<p>CHECK 조건을 만족하지 않는 값으로 INSERT나 UPDATE를 시도하면, 데이터베이스가 그 자리에서 오류를 내고 거부해요.</p>`,
+          code: {
+            label: 'check_violation.sql',
+            lang: 'sql',
+            src: `INSERT INTO students (id, age) VALUES (1, -5);
+-- 오류! age는 0 이상이어야 해요`
+          }
+        },
+        {
+          h: '다른 제약조건과의 역할 차이',
+          html: `<p>NOT NULL은 "값이 있어야 한다", UNIQUE는 "중복되면 안 된다", FOREIGN KEY는 "다른 표를 가리켜야 한다"를 강제해요. CHECK는 그 외에 <b>내가 직접 정한 조건</b>(범위, 형식 등)을 강제할 때 써요.</p>`,
+          after: `<div class="note"><b>정리</b> — CHECK는 열 하나에만 걸 수도 있고, 표 수준에 두면 여러 열을 함께 검사하는 조건(예: 시작일이 종료일보다 앞서야 한다)도 만들 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const age = randInt(-10, 110);
+          const valid = age >= 0 && age <= 100;
+          return {
+            type: 'blank',
+            q: `<code>age INTEGER CHECK (age >= 0 AND age <= 100)</code>일 때, <code>INSERT INTO students (id, age) VALUES (1, ${age});</code>는 성공할까요? ("성공" 또는 "오류")`,
+            prefix: '', suffix: '', accept: [valid ? '성공' : '오류'], placeholder: '성공/오류',
+            why: valid ? `${age}는 0 이상 100 이하라서 CHECK 조건을 만족해요.` : `${age}는 CHECK 조건(0 이상 100 이하)을 만족하지 않아서 오류가 나요.`,
+            hint: '값이 CHECK에 적힌 조건을 만족하는지 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          'CHECK 제약조건이 하는 일은?',
+          '열에 들어갈 수 있는 값의 조건을 직접 정해서, 그 조건을 벗어나는 값을 막는다', ['값이 중복되지 않게만 막는다', '다른 표를 반드시 참조하게만 강제한다', '열의 기본값을 자동으로 정해준다'],
+          'CHECK는 내가 직접 정한 조건(범위, 형식 등)을 만족하는 값만 허용해요.',
+          'UNIQUE, FOREIGN KEY, DEFAULT와 역할이 어떻게 다른지 비교해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `열에 들어갈 값의 조건을 직접 정할 때 쓰는 제약조건 키워드를 쓰세요.`,
+          prefix: 'age INTEGER ', suffix: ' (age >= 0 AND age <= 100)', accept: ['CHECK', 'check'], placeholder: '키워드',
+          why: '<code>CHECK (조건)</code>으로 값이 만족해야 하는 조건을 직접 정해요.',
+          hint: '"확인하다, 검사하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'CHECK 조건을 만족하지 않는 값으로 INSERT를 시도하면?',
+          '데이터베이스가 그 INSERT를 거부하고 오류를 낸다', ['조용히 무시하고 넘어간다', '값을 자동으로 조건에 맞게 고쳐준다', 'CHECK는 INSERT에는 적용되지 않는다'],
+          'CHECK 조건을 어기면 그 INSERT/UPDATE 자체가 거부되고 오류가 나요.',
+          '다른 제약조건(NOT NULL 등)을 어겼을 때와 똑같이 동작해요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>score</code> 열이 0 이상 100 이하의 값만 가지도록 CHECK 제약조건을 붙인 <code>scores</code> 표를 만드는 SQL을 작성하세요. (id는 INTEGER PRIMARY KEY)',
+          starter: '',
+          rows: 4,
+          placeholder: 'CREATE TABLE scores (\n  id INTEGER PRIMARY KEY,\n  score INTEGER CHECK (score >= 0 AND score <= 100)\n);',
+          accept: ['CREATE TABLE scores (\n  id INTEGER PRIMARY KEY,\n  score INTEGER CHECK (score >= 0 AND score <= 100)\n);'],
+          why: 'score 열 뒤에 CHECK (score >= 0 AND score <= 100)을 붙여서 값의 범위를 강제해요.',
+          hint: 'score INTEGER 뒤에 CHECK (score >= 0 AND score <= 100)을 붙이세요.'
+        }),
+      ],
+      boss: () => {
+        const score = randInt(-20, 120);
+        const valid = score >= 0 && score <= 100;
+        return {
+          type: 'blank',
+          q: `<code>score INTEGER CHECK (score >= 0 AND score <= 100)</code>일 때, <code>INSERT INTO scores (id, score) VALUES (1, ${score});</code>는 성공할까요? ("성공" 또는 "오류")`,
+          prefix: '', suffix: '', accept: [valid ? '성공' : '오류'], placeholder: '성공/오류',
+          why: valid ? `${score}는 조건을 만족해서 성공해요.` : `${score}는 CHECK 조건을 벗어나서 오류가 나요.`,
+          hint: '0 이상 100 이하인지 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'correlatedSubquery',
+      title: '상관 서브쿼리 (Correlated Subquery)',
+      ready: true,
+      summary: '바깥 쿼리의 값을 안쪽 서브쿼리에서 참조하는 상관 서브쿼리로, "각 그룹 안에서"의 조건을 표현하는 법을 배워요.',
+      goals: ['상관 서브쿼리와 일반 서브쿼리의 차이', '바깥 행마다 서브쿼리가 다시 실행된다는 것', '"각 도시에서 가장 나이 많은 학생" 같은 문제 풀기'],
+      blocks: [
+        {
+          h: '서브쿼리가 바깥 값을 참조할 수도 있어요',
+          html: `<p>지금까지 본 서브쿼리는 한 번만 계산되는 "독립된" 쿼리였어요. 하지만 서브쿼리 안에서 <b>바깥 쿼리의 열</b>을 참조하면, 그 서브쿼리는 <b>바깥의 행마다 다시 계산</b>돼요. 이걸 <b>상관 서브쿼리</b>라고 해요.</p>`,
+          code: {
+            label: 'correlated_basic.sql',
+            lang: 'sql',
+            src: `SELECT s1.name, s1.city, s1.age
+FROM students s1
+WHERE s1.age = (
+  SELECT MAX(s2.age)
+  FROM students s2
+  WHERE s2.city = s1.city
+);`,
+            out: `name | city | age\n-----+------+----\n민준  | 부산  | 16\n서연  | 서울  | 18`
+          }
+        },
+        {
+          h: '왜 "상관(correlated)"이라고 부를까요',
+          html: `<p>서브쿼리 안의 <code>s2.city = s1.city</code>가 바깥 행(s1)마다 다른 값을 참조해요. 그래서 이 서브쿼리는 딱 한 번이 아니라, <b>바깥의 각 행에 대해 한 번씩</b> 다시 계산돼요. 이렇게 바깥과 "서로 연관되어" 있어서 상관 서브쿼리라고 불러요.</p>`,
+          after: `<div class="note"><b>비교</b> — 이전에 배운 일반 서브쿼리(예: 평균보다 나이 많은 학생)는 딱 한 번만 계산되는 "독립된" 값이었지만, 상관 서브쿼리는 바깥 행마다 다시 계산되는 "의존적인" 값이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const cities = ['서울', '부산', '대구'];
+          const students = [
+            { name: '지수', city: cities[0], age: randInt(14, 19) },
+            { name: '민준', city: cities[0], age: randInt(14, 19) },
+            { name: '서연', city: cities[1], age: randInt(14, 19) },
+          ];
+          const seoulStudents = students.filter(s => s.city === cities[0]);
+          const maxSeoul = Math.max(...seoulStudents.map(s => s.age));
+          const winner = seoulStudents.find(s => s.age === maxSeoul);
+          const listText = seoulStudents.map(s => `${s.name}(${s.age}세)`).join(', ');
+          return {
+            type: 'blank',
+            q: `${cities[0]}에 사는 학생이 ${listText}일 때, "각 도시에서 가장 나이 많은 학생"을 찾는 상관 서브쿼리로 ${cities[0]} 학생 중 뽑히는 사람은 누구일까요? (이름만 입력)`,
+            prefix: '', suffix: '', accept: [winner.name], placeholder: '이름',
+            why: `${cities[0]}에서 가장 나이가 많은 사람은 ${winner.name}(${maxSeoul}세)이에요.`,
+            hint: '같은 도시 학생들 중 나이가 가장 많은 사람을 찾아보세요.'
+          };
+        },
+        () => makeChoice(
+          '상관 서브쿼리가 일반(독립) 서브쿼리와 다른 점은?',
+          '바깥 쿼리의 열 값을 참조해서, 바깥의 각 행마다 다시 계산된다', ['항상 딱 한 번만 계산된다', 'WHERE 절에서는 절대 쓸 수 없다', 'GROUP BY와 함께 쓸 수 없다'],
+          '상관 서브쿼리는 바깥 행의 값을 참조하기 때문에, 바깥 행마다 새로 계산돼요.',
+          '"상관(correlated)"이라는 이름이 바깥과의 관계를 나타내요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>WHERE s1.age = (SELECT MAX(s2.age) FROM students s2 WHERE s2.city = s1.city)</code>에서, 서브쿼리 안의 <code>s1.city</code>는 무엇을 가리킬까요? ("바깥 쿼리의 city" 또는 "서브쿼리 자신의 city")`,
+          prefix: '', suffix: '', accept: ['바깥 쿼리의 city'], placeholder: '값',
+          why: 's1은 바깥 쿼리(FROM students s1)의 별칭이라서, s1.city는 바깥 쿼리 현재 행의 city를 가리켜요.',
+          hint: 's1은 서브쿼리 밖, 바깥 FROM에서 정의된 별칭이에요.'
+        }),
+        () => makeChoice(
+          '상관 서브쿼리를 실무에서 쓰기 좋은 경우는?',
+          '"각 그룹 안에서" 조건을 걸어야 할 때(예: 각 도시에서 가장 나이 많은 사람)', ['표 전체에서 딱 하나의 값만 필요할 때', '정렬만 하면 충분할 때', '아무 조건도 필요 없을 때'],
+          '상관 서브쿼리는 "그룹별로 다시 계산해야 하는" 조건을 표현하기에 알맞아요.',
+          '바깥 행마다 다시 계산된다는 특징이 언제 필요한지 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '각 도시(city)에서 나이(age)가 가장 많은 학생을 찾는 상관 서브쿼리를 작성하세요. (별칭 s1, s2를 사용하세요)',
+          starter: '',
+          rows: 5,
+          placeholder: 'SELECT s1.name, s1.city, s1.age\nFROM students s1\nWHERE s1.age = (\n  SELECT MAX(s2.age) FROM students s2 WHERE s2.city = s1.city\n);',
+          accept: ['SELECT s1.name, s1.city, s1.age\nFROM students s1\nWHERE s1.age = (\n  SELECT MAX(s2.age) FROM students s2 WHERE s2.city = s1.city\n);'],
+          why: '서브쿼리 안에서 s2.city = s1.city로 바깥 행의 도시를 참조해서, 같은 도시 안에서만 MAX(age)를 구해요.',
+          hint: '서브쿼리 조건에 WHERE s2.city = s1.city를 넣어서 바깥 행과 같은 도시로 한정하세요.'
+        }),
+      ],
+      boss: () => {
+        const students = [
+          { name: '지수', city: '서울', age: randInt(14, 19) },
+          { name: '민준', city: '서울', age: randInt(14, 19) },
+          { name: '서연', city: '부산', age: randInt(14, 19) },
+          { name: '하늘', city: '부산', age: randInt(14, 19) },
+        ];
+        const cities = [...new Set(students.map(s => s.city))];
+        const winners = cities.map(c => {
+          const inCity = students.filter(s => s.city === c);
+          const maxAge = Math.max(...inCity.map(s => s.age));
+          return inCity.find(s => s.age === maxAge).name;
+        });
+        const studentText = students.map(s => `${s.name}(${s.city}, ${s.age}세)`).join(', ');
+        return {
+          type: 'blank',
+          q: `학생이 ${studentText}일 때, "각 도시에서 가장 나이 많은 학생"을 찾는 상관 서브쿼리의 결과로 뽑히는 이름들은? (배열 형태로, 예: [이름, 이름])`,
+          prefix: '', suffix: '', accept: [`[${winners.join(', ')}]`], placeholder: '[이름, 이름]',
+          why: `각 도시별로 가장 나이 많은 학생을 고르면 [${winners.join(', ')}]이 나와요.`,
+          hint: '도시별로 나눠서, 그 안에서 가장 나이 많은 사람을 각각 찾아보세요.'
+        };
+      }
+    },
+    {
+      id: 'multiRowInsert',
+      title: '여러 행 한 번에 INSERT하기',
+      ready: true,
+      summary: '한 번의 INSERT문으로 여러 행을 동시에 추가하는 방법과, 왜 이 방식이 더 효율적인지 배워요.',
+      goals: ['VALUES 뒤에 여러 묶음 나열하기', '한 번에 여러 행 추가하기', '여러 번 INSERT하는 것과의 차이'],
+      blocks: [
+        {
+          h: '한 번에 여러 행 추가하기',
+          html: `<p><code>VALUES</code> 뒤에 <code>(값들)</code>을 쉼표로 구분해서 여러 개 나열하면, INSERT문 하나로 여러 행을 한꺼번에 추가할 수 있어요.</p>`,
+          code: {
+            label: 'multi_insert_basic.sql',
+            lang: 'sql',
+            src: `INSERT INTO students (name, age, city) VALUES
+  ('하늘', 16, '대전'),
+  ('유진', 17, '광주'),
+  ('태윤', 15, '수원');`,
+            out: `3개 행이 추가됨`
+          }
+        },
+        {
+          h: '왜 한 번에 넣는 게 더 효율적일까요',
+          html: `<p>INSERT문을 3번 따로 실행하는 것보다, 한 번의 INSERT문에 3개 행을 담아 보내는 게 데이터베이스와 <b>주고받는 횟수를 줄여줘서</b> 훨씬 빨라요. 많은 행을 한꺼번에 넣어야 할 때 특히 유리해요.</p>`,
+          after: `<div class="note"><b>정리</b> — 각 행은 괄호로 묶고, 행과 행 사이는 쉼표로 구분해요. 열 이름과 값의 순서·개수는 모든 행에서 똑같이 맞춰야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(2, 6);
+          const rows = Array.from({ length: n }, () => `('${pick(['하늘', '유진', '태윤', '민서'])}', ${randInt(14, 19)}, '${pick(['대전', '광주', '수원'])}')`);
+          const rowsText = rows.join(', ');
+          return {
+            type: 'blank',
+            q: `<code>INSERT INTO students (name, age, city) VALUES ${rowsText};</code>를 실행하면 몇 개의 행이 추가될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `VALUES 뒤에 괄호로 묶인 값 묶음이 ${n}개 있으므로 ${n}개 행이 추가돼요.`,
+            hint: 'VALUES 뒤에 나열된 괄호 묶음의 개수를 세어보세요.'
+          };
+        },
+        () => makeChoice(
+          '여러 행을 한 번의 INSERT문으로 넣는 것과, 여러 번 INSERT문을 따로 실행하는 것의 차이는?',
+          '한 번에 넣는 게 데이터베이스와 주고받는 횟수가 줄어서 더 효율적이다', ['결과는 완전히 다르게 저장된다', '여러 번 나눠 실행하는 게 항상 더 빠르다', '한 번에 넣으면 최대 1개 행만 넣을 수 있다'],
+          '한 번의 INSERT문에 여러 행을 담으면 주고받는 횟수가 줄어서 더 효율적이에요.',
+          '왕복 횟수가 줄어드는 것과 관련이 있어요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `VALUES 뒤에 여러 행을 나열할 때, 각 괄호 묶음 사이에 넣는 문장 부호를 쓰세요.`,
+          prefix: "VALUES ('하늘', 16, '대전')", suffix: " ('유진', 17, '광주')", accept: [','], placeholder: '문장 부호',
+          why: '각 행(괄호로 묶인 값들) 사이는 쉼표(,)로 구분해요.',
+          hint: '목록을 나열할 때 흔히 쓰는 문장 부호예요.'
+        }),
+        () => makeChoice(
+          '여러 행을 한 번에 INSERT할 때 지켜야 하는 것은?',
+          '모든 행에서 열의 순서와 개수가 똑같아야 한다', ['첫 번째 행만 열 이름과 맞으면 된다', '각 행마다 다른 개수의 값을 넣어도 된다', '마지막 행은 열 이름이 없어도 된다'],
+          '모든 값 묶음이 앞서 정의한 열 순서·개수와 똑같이 맞아야 해요.',
+          '열 이름은 한 번만 적지만, 그 규칙은 모든 값 묶음에 똑같이 적용돼요.'
+        ),
+        () => ({
+          type: 'code',
+          q: "students 표에 ('민서', 15, '인천')과 ('도윤', 16, '제주') 두 학생을 한 번의 INSERT문으로 추가하는 SQL을 작성하세요.",
+          starter: '',
+          rows: 3,
+          placeholder: "INSERT INTO students (name, age, city) VALUES\n  ('민서', 15, '인천'),\n  ('도윤', 16, '제주');",
+          accept: ["INSERT INTO students (name, age, city) VALUES\n  ('민서', 15, '인천'),\n  ('도윤', 16, '제주');"],
+          why: 'VALUES 뒤에 두 개의 괄호 묶음을 쉼표로 구분해서 나열하면 한 번에 두 행이 추가돼요.',
+          hint: "VALUES 뒤에 ('민서', 15, '인천'), ('도윤', 16, '제주')를 쉼표로 이어서 쓰세요."
+        }),
+      ],
+      boss: () => {
+        const n = randInt(3, 8);
+        return {
+          type: 'blank',
+          q: `<code>INSERT INTO students (name, age, city) VALUES</code> 뒤에 괄호 묶음이 ${n}개 나열된 SQL을 실행하면, 몇 개의 행이 추가될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+          why: `괄호 묶음 하나가 행 하나에 대응되므로 ${n}개 행이 추가돼요.`,
+          hint: '괄호로 묶인 값들 하나가 새 행 하나를 뜻해요.'
+        };
+      }
+    },
+    {
+      id: 'lagLeadFunctions',
+      title: '이전/다음 행 값 가져오기 (LAG/LEAD)',
+      ready: true,
+      summary: '정렬된 결과 안에서 바로 이전 행이나 다음 행의 값을 끌어오는 LAG와 LEAD 윈도우 함수를 배워요.',
+      goals: ['LAG()로 이전 행 값 가져오기', 'LEAD()로 다음 행 값 가져오기', '맨 앞/맨 뒤 행에서 NULL이 나오는 이유'],
+      blocks: [
+        {
+          h: '바로 이전 행 값 가져오기: LAG()',
+          html: `<p><code>LAG(열) OVER (ORDER BY 정렬기준)</code>은 지금 행 기준으로 <b>바로 이전 행</b>의 값을 가져와요. "내 앞 순위 학생의 점수는 몇 점이었지?" 같은 비교에 딱이에요.</p>`,
+          code: {
+            label: 'lag_basic.sql',
+            lang: 'sql',
+            src: `SELECT name, score,
+  LAG(score) OVER (ORDER BY score DESC) AS prev_score
+FROM scores JOIN students ON students.id = scores.student_id;`,
+            out: `name | score | prev_score\n-----+-------+-----------\n지수  | 95    | NULL\n민준  | 88    | 95\n서연  | 72    | 88`
+          }
+        },
+        {
+          h: '바로 다음 행 값 가져오기: LEAD()',
+          html: `<p><code>LEAD(열) OVER (ORDER BY 정렬기준)</code>은 <code>LAG</code>와 반대로, 지금 행 기준 <b>바로 다음 행</b>의 값을 가져와요.</p>`,
+          code: {
+            label: 'lead_basic.sql',
+            lang: 'sql',
+            src: `SELECT name, score,
+  LEAD(score) OVER (ORDER BY score DESC) AS next_score
+FROM scores JOIN students ON students.id = scores.student_id;`,
+            out: `name | score | next_score\n-----+-------+-----------\n지수  | 95    | 88\n민준  | 88    | 72\n서연  | 72    | NULL`
+          }
+        },
+        {
+          h: '맨 앞/맨 뒤에는 가져올 행이 없어요',
+          html: `<p>첫 번째 행은 <b>이전 행이 없어서</b> <code>LAG</code>의 결과가 <code>NULL</code>이고, 마지막 행은 <b>다음 행이 없어서</b> <code>LEAD</code>의 결과가 <code>NULL</code>이에요. <code>LAG(열, n, 기본값)</code>처럼 세 번째 인자로 NULL 대신 쓸 기본값을 지정할 수도 있어요.</p>`,
+          after: `<div class="note"><b>활용 예</b> — 이번 달 매출과 지난 달 매출을 나란히 놓고 증감을 비교할 때, PARTITION BY로 지점별로 나눠서 각각 LAG를 적용하면 지점별 "전월 대비"를 구할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const scores = shuffle([95, 88, 72, 60, 55]).slice(0, 4);
+          const sorted = [...scores].sort((a, b) => b - a);
+          const idx = randInt(1, sorted.length - 1);
+          const target = sorted[idx];
+          const prev = sorted[idx - 1];
+          return {
+            type: 'blank',
+            q: `점수를 내림차순(${sorted.join(', ')})으로 정렬했을 때, <code>LAG(score) OVER (ORDER BY score DESC)</code>로 점수 ${target}인 행이 가져오는 값은? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(prev)], placeholder: '숫자',
+            why: `${target} 바로 앞 행(더 높은 점수)은 ${prev}이므로, LAG의 결과는 ${prev}예요.`,
+            hint: '정렬된 순서에서 그 행 바로 위(이전) 행의 값을 찾아보세요.'
+          };
+        },
+        () => makeChoice(
+          '<code>LAG()</code>와 <code>LEAD()</code>의 차이는?',
+          'LAG는 이전 행의 값을, LEAD는 다음 행의 값을 가져온다', ['LAG는 그룹 전체 평균을, LEAD는 합계를 구한다', '둘 다 완전히 같은 함수다', 'LAG는 다음 행, LEAD는 이전 행을 가져온다'],
+          'LAG는 "뒤처지다"라는 뜻으로 이전 행을, LEAD는 "앞서가다"라는 뜻으로 다음 행을 가져와요.',
+          '단어 뜻(뒤처지다 vs 앞서가다)을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `정렬된 결과에서 맨 첫 번째 행에 <code>LAG(score) OVER (ORDER BY score DESC)</code>를 적용하면 어떤 값이 나올까요? (대문자로)`,
+          prefix: '', suffix: '', accept: ['NULL'], placeholder: '값',
+          why: '첫 번째 행은 그 이전에 가져올 행이 없어서 LAG의 결과가 NULL이에요.',
+          hint: '"이전 행이 아예 없다"는 상황을 떠올려보세요.'
+        }),
+        () => makeChoice(
+          'LAG와 LEAD를 쓸 때 반드시 필요한 것은?',
+          'OVER 안에 어떤 순서로 이전/다음을 판단할지 정하는 ORDER BY', ['GROUP BY 없이는 절대 쓸 수 없다', 'WHERE 절이 반드시 있어야 한다', '표에 인덱스가 반드시 있어야 한다'],
+          'LAG/LEAD는 "무엇을 기준으로 이전/다음인지" 알아야 하므로 OVER 안에 ORDER BY가 꼭 필요해요.',
+          '"이전"이라는 개념 자체가 순서를 전제로 한다는 걸 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '점수(score) 내림차순으로 정렬한 뒤, 각 행마다 바로 다음 행의 점수를 next_score라는 이름으로 가져오는 SQL을 작성하세요. (students와 scores가 이미 JOIN된 결과라고 가정하고 FROM 절은 students JOIN scores ON students.id = scores.student_id로 쓰세요)',
+          starter: '',
+          rows: 3,
+          placeholder: 'SELECT name, LEAD(score) OVER (ORDER BY score DESC) AS next_score\nFROM students JOIN scores ON students.id = scores.student_id;',
+          accept: ['SELECT name, LEAD(score) OVER (ORDER BY score DESC) AS next_score\nFROM students JOIN scores ON students.id = scores.student_id;'],
+          why: 'LEAD(열) OVER (ORDER BY 열 DESC) AS 별명 형태로 다음 행의 값을 가져와요.',
+          hint: 'LEAD(score) OVER (ORDER BY score DESC) AS next_score를 SELECT에 추가하세요.'
+        }),
+      ],
+      boss: () => {
+        const scores = shuffle([100, 92, 85, 70, 63]).slice(0, 4).sort((a, b) => b - a);
+        const idx = randInt(0, scores.length - 2);
+        const target = scores[idx];
+        const next = scores[idx + 1];
+        return {
+          type: 'blank',
+          q: `점수를 내림차순(${scores.join(', ')})으로 정렬했을 때, <code>LEAD(score) OVER (ORDER BY score DESC)</code>로 점수 ${target}인 행이 가져오는 값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(next)], placeholder: '숫자',
+          why: `${target} 바로 다음 행(더 낮은 점수)은 ${next}이므로, LEAD의 결과는 ${next}예요.`,
+          hint: '정렬된 순서에서 그 행 바로 아래(다음) 행의 값을 찾아보세요.'
+        };
+      }
+    },
+    {
+      id: 'ntileFunction',
+      title: 'NTILE로 데이터 N등분하기',
+      ready: true,
+      summary: '전체 데이터를 원하는 개수의 그룹으로 최대한 고르게 나눠주는 NTILE 윈도우 함수를 배워요.',
+      goals: ['NTILE(n)으로 N개 그룹으로 나누기', '성적을 상위/중위/하위 그룹으로 나누기', '행 개수가 그룹 수로 안 나눠떨어질 때의 처리'],
+      blocks: [
+        {
+          h: '전체를 N개 그룹으로 나누기: NTILE()',
+          html: `<p><code>NTILE(n) OVER (ORDER BY 정렬기준)</code>은 정렬된 전체 행을 <b>n개의 그룹</b>으로 최대한 고르게 나눠서, 각 행이 몇 번째 그룹인지 번호(1~n)를 매겨줘요. 성적을 "상위 33%, 중위 33%, 하위 33%"로 나누고 싶을 때 유용해요.</p>`,
+          code: {
+            label: 'ntile_basic.sql',
+            lang: 'sql',
+            src: `SELECT name, score,
+  NTILE(3) OVER (ORDER BY score DESC) AS score_group
+FROM scores JOIN students ON students.id = scores.student_id;`,
+            out: `name | score | score_group\n-----+-------+------------\n지수  | 95    | 1\n민준  | 88    | 1\n서연  | 75    | 2\n하늘  | 60    | 3`
+          }
+        },
+        {
+          h: '그룹 번호가 작을수록 앞쪽 그룹이에요',
+          html: `<p><code>ORDER BY score DESC</code>와 함께 썼으니, <b>그룹 1</b>이 점수가 가장 높은 학생들이에요. 만약 <code>ORDER BY score ASC</code>였다면 그룹 1은 점수가 가장 낮은 학생들이 돼요. 기준이 되는 <code>ORDER BY</code> 방향이 그룹의 의미를 결정해요.</p>`
+        },
+        {
+          h: '나누어떨어지지 않을 때는?',
+          html: `<p>행이 10개인데 <code>NTILE(3)</code>을 쓰면 3, 3, 4개(또는 비슷하게)로 <b>앞쪽 그룹에 한 명씩 더</b> 배분돼요. 완벽하게 똑같이 나눌 수 없을 땐 앞쪽 그룹부터 하나씩 더 채워요.</p>`,
+          after: `<div class="note"><b>PARTITION BY도 함께 쓸 수 있어요</b> — 도시별로 따로 3등분하고 싶다면 <code>NTILE(3) OVER (PARTITION BY city ORDER BY score DESC)</code>처럼 쓰면 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(2, 4);
+          return {
+            type: 'blank',
+            q: `학생 성적을 <code>NTILE(${n})</code>으로 나누면 총 몇 개의 그룹으로 나뉠까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `NTILE(n)의 n이 곧 나뉘는 그룹의 개수라서, NTILE(${n})은 ${n}개 그룹으로 나눠요.`,
+            hint: 'NTILE 괄호 안의 숫자가 곧 그룹 개수예요.'
+          };
+        },
+        () => makeChoice(
+          '<code>NTILE(3) OVER (ORDER BY score DESC)</code>에서 그룹 번호 1은 무엇을 뜻할까요?',
+          '점수가 가장 높은 상위 그룹', ['점수가 가장 낮은 하위 그룹', '점수가 중간인 그룹', '아무 의미도 없는 임의의 번호'],
+          'ORDER BY score DESC로 정렬했으므로, 그룹 1은 점수가 가장 높은 학생들이 속한 그룹이에요.',
+          'ORDER BY의 정렬 방향과 그룹 번호의 관계를 생각해보세요.'
+        ),
+        () => {
+          const total = randInt(7, 11);
+          const groups = 3;
+          const base = Math.floor(total / groups);
+          const extra = total % groups;
+          const firstGroupSize = base + (extra > 0 ? 1 : 0);
+          return {
+            type: 'blank',
+            q: `학생이 총 ${total}명일 때 <code>NTILE(3)</code>을 적용하면, 1번 그룹에는 몇 명이 들어갈까요? 숫자만 쓰세요. (나누어떨어지지 않으면 앞쪽 그룹부터 한 명씩 더 배정)`,
+            prefix: '', suffix: '', accept: [String(firstGroupSize)], placeholder: '숫자',
+            why: `${total}명을 3그룹으로 나누면 기본 ${base}명씩이고, 나머지 ${extra}명은 앞쪽 그룹부터 하나씩 더 배정되므로 1번 그룹은 ${firstGroupSize}명이에요.`,
+            hint: '전체를 그룹 수로 나눈 몫과 나머지를 생각해보고, 나머지는 앞쪽 그룹에 먼저 배정돼요.'
+          };
+        },
+        () => makeChoice(
+          '도시별로 따로 성적을 3등분하고 싶을 때 NTILE과 함께 쓰는 키워드는?',
+          'PARTITION BY city', ['GROUP BY city만 단독으로', 'WHERE city IS NOT NULL', 'HAVING city = city'],
+          'PARTITION BY city를 OVER 안에 추가하면 도시별로 따로 NTILE 그룹이 매겨져요.',
+          '앞서 배운 ROW_NUMBER의 PARTITION BY 활용법과 똑같은 원리예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '점수(score) 내림차순으로 정렬한 뒤, NTILE(4)로 4개 그룹으로 나눠 score_group이라는 이름으로 name과 함께 조회하는 SQL을 작성하세요. (students와 scores가 이미 JOIN된 결과라고 가정하고 FROM 절은 students JOIN scores ON students.id = scores.student_id로 쓰세요)',
+          starter: '',
+          rows: 3,
+          placeholder: 'SELECT name, NTILE(4) OVER (ORDER BY score DESC) AS score_group\nFROM students JOIN scores ON students.id = scores.student_id;',
+          accept: ['SELECT name, NTILE(4) OVER (ORDER BY score DESC) AS score_group\nFROM students JOIN scores ON students.id = scores.student_id;'],
+          why: 'NTILE(4) OVER (ORDER BY score DESC) AS 별명 형태로 4개 그룹으로 나눠요.',
+          hint: 'NTILE(4) OVER (ORDER BY score DESC) AS score_group을 SELECT에 추가하세요.'
+        }),
+      ],
+      boss: () => {
+        const total = randInt(9, 14);
+        const groups = randInt(2, 4);
+        const base = Math.floor(total / groups);
+        const extra = total % groups;
+        return {
+          type: 'blank',
+          q: `학생이 총 ${total}명이고 <code>NTILE(${groups})</code>를 적용할 때, 나머지가 앞쪽 그룹부터 배정된다면 <b>마지막(${groups}번) 그룹</b>에는 몇 명이 들어갈까요? 숫자만 쓰세요. (나머지가 0이면 모든 그룹이 같은 크기예요)`,
+          prefix: '', suffix: '', accept: [String(base)], placeholder: '숫자',
+          why: `${total}명을 ${groups}그룹으로 나누면 기본 ${base}명씩 배정되고, 나머지 ${extra}명은 앞쪽 그룹에 먼저 배정되므로 마지막 그룹은 기본값인 ${base}명이에요.`,
+          hint: '나머지는 앞쪽 그룹부터 채워지므로, 마지막 그룹은 몫(기본 크기)만큼만 받는다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'materializedViewConcept',
+      title: '구체화된 뷰 (Materialized View) 개념',
+      ready: true,
+      summary: '매번 다시 계산하는 일반 VIEW와 달리, 결과를 미리 계산해서 저장해두는 구체화된 뷰의 개념과 트레이드오프를 배워요.',
+      goals: ['일반 VIEW와 구체화된 뷰의 차이', '구체화된 뷰가 빠른 이유', '오래된 데이터를 보여줄 수 있다는 단점'],
+      blocks: [
+        {
+          h: '일반 VIEW는 매번 다시 계산해요',
+          html: `<p>앞서 배운 <code>VIEW</code>는 쿼리 자체만 저장해두고, 조회할 때마다 그 쿼리를 <b>매번 다시 실행</b>해요. 그래서 결과는 항상 최신이지만, 원본 쿼리가 무겁다면(예: 수백만 행 집계) 조회할 때마다 느려요.</p>`,
+          code: {
+            label: 'normal_view.sql',
+            lang: 'sql',
+            src: `CREATE VIEW city_avg_score AS
+SELECT city, AVG(score) AS avg_score
+FROM students JOIN scores ON students.id = scores.student_id
+GROUP BY city;
+-- 조회할 때마다 JOIN과 AVG를 처음부터 다시 계산해요`
+          }
+        },
+        {
+          h: '결과를 미리 저장해두는 구체화된 뷰',
+          html: `<p><b>구체화된 뷰(Materialized View)</b>는 쿼리 결과를 <b>실제 표처럼 미리 계산해서 저장</b>해둬요. 조회할 때 매번 다시 계산하지 않고 저장된 결과를 바로 읽기 때문에 훨씬 빨라요. SQLite에는 전용 문법이 없어서, 보통 결과를 <b>진짜 표(TABLE)로 만들어두고 주기적으로 다시 채우는 방식</b>으로 흉내 내요.</p>`,
+          code: {
+            label: 'materialized_simulate.sql',
+            lang: 'sql',
+            src: `CREATE TABLE city_avg_score_snapshot AS
+SELECT city, AVG(score) AS avg_score
+FROM students JOIN scores ON students.id = scores.student_id
+GROUP BY city;
+-- 이후 데이터가 바뀌면, 이 표를 DROP하고 같은 SQL로 다시 만들어(REFRESH) 최신화해요`,
+            out: `city_avg_score_snapshot 표가 만들어짐 (계산된 결과가 실제로 저장됨)`
+          }
+        },
+        {
+          h: '트레이드오프: 속도 vs 최신성',
+          html: `<p>구체화된 뷰는 <b>조회는 빠르지만</b>, 원본 데이터가 바뀌어도 <b>자동으로 갱신되지 않아요</b>. 누군가 다시 채워주기(REFRESH) 전까지는 <b>오래된(stale) 데이터</b>를 보여줄 수 있어요. "매번 최신이어야 하는가"와 "얼마나 빨라야 하는가" 사이에서 선택해야 해요.</p>`,
+          after: `<div class="note"><b>비교 정리</b> — 일반 VIEW: 항상 최신, 매번 다시 계산(느릴 수 있음). 구체화된 뷰: 조회는 빠름, 갱신 전까지 오래된 데이터일 수 있음.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '일반 VIEW와 구체화된 뷰(Materialized View)의 가장 큰 차이는?',
+          '일반 VIEW는 조회 때마다 다시 계산하고, 구체화된 뷰는 결과를 미리 계산해 저장해둔다',
+          ['구체화된 뷰는 데이터를 절대 저장하지 않는다', '일반 VIEW가 항상 더 빠르다', '둘은 완전히 같은 것이다'],
+          '구체화된 뷰는 쿼리 결과를 실제로 저장해두기 때문에 조회할 때 다시 계산할 필요가 없어요.',
+          '"미리 계산해서 저장"이라는 이름의 뜻을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `구체화된 뷰가 조회가 빠른 이유는, 조회할 때마다 쿼리를 다시 계산하지 않고 이미 ___된 결과를 읽기 때문이에요. (한글 두 글자, "미리 ___")`,
+          prefix: '미리 ', suffix: '', accept: ['계산'], placeholder: '단어',
+          why: '결과를 미리 계산해서 저장해두기 때문에, 조회할 때는 그 저장된 값을 바로 읽기만 하면 돼요.',
+          hint: '조회 시점이 아니라 미리 해두는 작업이 뭔지 생각해보세요.'
+        }),
+        () => makeChoice(
+          '구체화된 뷰의 대표적인 단점은?',
+          '원본 데이터가 바뀌어도 다시 채우기(REFRESH) 전까지 오래된 데이터를 보여줄 수 있다',
+          ['저장 공간을 전혀 쓰지 않는다', '조회 속도가 항상 느리다', 'INSERT를 아예 할 수 없게 만든다'],
+          '구체화된 뷰는 미리 계산된 스냅샷이라서, 다시 채우기 전까지는 최신 데이터가 반영되지 않아요.',
+          '"미리 저장해둔 값"이라는 특징이 낳는 부작용을 생각해보세요.'
+        ),
+        () => makeChoice(
+          'SQLite에서 구체화된 뷰를 흉내 낼 때 흔히 쓰는 방법은?',
+          '쿼리 결과를 진짜 TABLE로 만들어두고, 필요할 때 다시 만들어 최신화한다',
+          ['CREATE MATERIALIZED VIEW 문법을 그대로 쓴다', 'INDEX만 만들면 자동으로 구체화된다', 'TRIGGER 없이는 절대 불가능하다'],
+          'SQLite에는 전용 문법이 없어서, 결과를 담은 TABLE을 만들고 주기적으로 다시 채우는 방식으로 흉내 내요.',
+          '"전용 문법이 없다"고 했던 점을 다시 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'students와 scores를 JOIN해서 city별 평균 점수(avg_score)를 구한 결과를, city_avg_score_snapshot이라는 진짜 표로 만드는 SQL을 작성하세요. (CREATE TABLE ... AS SELECT 형태를 사용하세요)',
+          starter: '',
+          rows: 4,
+          placeholder: 'CREATE TABLE city_avg_score_snapshot AS\nSELECT city, AVG(score) AS avg_score\nFROM students JOIN scores ON students.id = scores.student_id\nGROUP BY city;',
+          accept: ['CREATE TABLE city_avg_score_snapshot AS\nSELECT city, AVG(score) AS avg_score\nFROM students JOIN scores ON students.id = scores.student_id\nGROUP BY city;'],
+          why: 'CREATE TABLE 이름 AS SELECT ...로, 쿼리 결과를 실제 표로 저장할 수 있어요. 이게 구체화된 뷰를 흉내 내는 방식이에요.',
+          hint: 'CREATE TABLE city_avg_score_snapshot AS 뒤에 city별 AVG(score)를 구하는 SELECT를 이어 쓰세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '매일 자정에 한 번씩만 계산해도 되는 "어제까지의 누적 매출 통계"를 대시보드에 아주 빠르게 보여주고 싶어요. 매번 무거운 집계 쿼리를 실행하는 대신 무엇이 적합할까요?',
+        '결과를 미리 계산해 저장해두는 구체화된 뷰(스냅샷 표)를 만들고 매일 갱신한다',
+        ['매번 EXPLAIN QUERY PLAN만 확인한다', '표에 인덱스를 지운다', '아무 조치도 필요 없다'],
+        '매번 실시간으로 최신일 필요가 없다면, 미리 계산해둔 구체화된 뷰(스냅샷)로 조회 속도를 크게 높일 수 있어요.',
+        '"최신성보다 속도가 중요한 상황"이라는 힌트를 떠올려보세요.'
+      )
+    },
+    {
+      id: 'compositeIndexes',
+      title: '복합 인덱스 (여러 열을 묶은 인덱스)',
+      ready: true,
+      summary: '두 개 이상의 열을 하나로 묶어 인덱스를 만드는 복합 인덱스와, 열 순서가 왜 중요한지 배워요.',
+      goals: ['CREATE INDEX로 복합 인덱스 만들기', '열 순서(왼쪽 우선 원칙)의 중요성', '커버링 인덱스 맛보기'],
+      blocks: [
+        {
+          h: '두 열을 묶어 인덱스 만들기',
+          html: `<p>단일 열 인덱스처럼, <b>두 개 이상의 열</b>을 괄호 안에 순서대로 나열해서 <b>복합 인덱스</b>를 만들 수 있어요. "도시별로, 그 안에서 나이순으로" 자주 검색한다면 이렇게 묶는 게 효과적이에요.</p>`,
+          code: {
+            label: 'composite_index.sql',
+            lang: 'sql',
+            src: `CREATE INDEX idx_city_age ON students(city, age);`
+          }
+        },
+        {
+          h: '열 순서가 중요해요: 왼쪽 우선 원칙',
+          html: `<p>복합 인덱스 <code>(city, age)</code>는 <b>city를 먼저 정렬하고, 같은 city 안에서 age로 정렬</b>한 것과 같아요. 그래서 <code>WHERE city = '서울'</code>이나 <code>WHERE city = '서울' AND age &gt; 15</code>에는 이 인덱스를 잘 활용하지만, <b>city 조건 없이 age만으로 검색</b>하면 이 인덱스를 제대로 활용하지 못해요. 마치 책의 찾아보기가 "이름(성) → 이름(이름)" 순으로 되어 있으면, 성을 모르고 이름만으로는 빠르게 찾기 어려운 것과 같아요.</p>`,
+          code: {
+            label: 'composite_where.sql',
+            lang: 'sql',
+            src: `-- 이 인덱스를 잘 활용함 (city가 조건의 맨 앞)
+SELECT * FROM students WHERE city = '서울' AND age > 15;
+
+-- 이 인덱스를 제대로 활용하지 못함 (city 조건이 없음)
+SELECT * FROM students WHERE age > 15;`
+          }
+        },
+        {
+          h: '조회할 열까지 담아두는 커버링 인덱스',
+          html: `<p>인덱스에 <b>조회에 필요한 모든 열</b>이 이미 들어있다면, 원본 표까지 갈 필요 없이 인덱스만 보고 답을 낼 수 있어요. 이런 인덱스를 <b>커버링 인덱스</b>라고 불러요. 예를 들어 <code>(city, age)</code> 인덱스로 <code>SELECT city, age FROM students WHERE city = '서울'</code>를 조회하면, 표를 따로 뒤지지 않고 인덱스만으로 끝낼 수 있어요.</p>`,
+          after: `<div class="note"><b>기억하기</b> — 복합 인덱스의 열 순서는 "자주 등호(=)로 비교하는 열을 앞에" 두는 게 일반적인 원칙이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>students</code> 표의 <code>city</code>와 <code>age</code> 두 열을 묶어 <code>idx_city_age</code>라는 이름의 인덱스를 만드는 SQL을 완성하세요.`,
+          prefix: '', suffix: ' idx_city_age ON students(city, age);', accept: ['CREATE INDEX', 'create index'], placeholder: '키워드',
+          why: '단일 열과 마찬가지로 <code>CREATE INDEX 이름 ON 표(열1, 열2)</code>로 복합 인덱스를 만들어요.',
+          hint: '단일 열 인덱스를 만들 때와 똑같은 키워드예요.'
+        }),
+        () => makeChoice(
+          '<code>(city, age)</code> 복합 인덱스가 잘 활용되는 조건은?',
+          '<code>WHERE city = \'서울\'</code> (또는 city와 age를 함께 쓰는 조건)',
+          ['<code>WHERE age &gt; 15</code> (city 조건 없이 age만)', '조건이 전혀 없을 때', 'ORDER BY 없이 SELECT *만 쓸 때'],
+          '복합 인덱스는 왼쪽부터 순서대로 활용되므로, 맨 앞 열인 city가 조건에 있어야 잘 활용돼요.',
+          '왼쪽 우선 원칙: 인덱스의 첫 번째 열이 조건에 있어야 해요.'
+        ),
+        () => makeChoice(
+          '인덱스에 조회할 열이 이미 다 들어있어서, 원본 표를 따로 뒤지지 않아도 되는 인덱스를 뭐라고 부를까요?',
+          '커버링 인덱스', ['프라이머리 인덱스', '유니크 인덱스', '풀텍스트 인덱스'],
+          '조회에 필요한 열을 모두 "덮고(cover)" 있어서 커버링 인덱스라고 불러요.',
+          '"덮다, 커버하다"라는 뜻의 영어 단어에서 온 이름이에요.'
+        ),
+        () => makeChoice(
+          '<code>(city, age)</code> 순서로 만든 복합 인덱스에서, city 조건 없이 age만으로 검색하면 어떻게 될까요?',
+          '이 인덱스를 제대로 활용하지 못하고 풀 스캔에 가깝게 동작할 수 있다',
+          ['항상 city 조건이 있을 때보다 더 빠르다', '오류가 발생한다', '자동으로 age 우선 인덱스로 바뀐다'],
+          '복합 인덱스는 왼쪽(city)부터 정렬되어 있어서, city 조건 없이 age만 찾으면 인덱스를 순서대로 활용하기 어려워요.',
+          '책 찾아보기가 "성 → 이름" 순인데 이름만 아는 상황을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'scores 표의 student_id와 score 두 열을 묶어 idx_student_score라는 복합 인덱스를 만드는 SQL을 작성하세요. (열 순서는 student_id, score)',
+          starter: '',
+          placeholder: 'CREATE INDEX idx_student_score ON scores(student_id, score);',
+          accept: ['CREATE INDEX idx_student_score ON scores(student_id, score);'],
+          why: 'CREATE INDEX 이름 ON 표(열1, 열2); 형태로 복합 인덱스를 만들어요.',
+          hint: 'CREATE INDEX idx_student_score ON scores(student_id, score);를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '자주 실행하는 쿼리가 <code>WHERE city = ? AND age = ?</code>처럼 항상 city와 age를 함께 조건으로 쓴다면, 어떤 인덱스가 가장 효과적일까요?',
+        '(city, age) 순서의 복합 인덱스 하나', ['city 단독 인덱스와 age 단독 인덱스를 각각 따로 만든다', '인덱스를 아예 만들지 않는다', 'age 단독 인덱스 하나만 만든다'],
+        '두 조건을 항상 함께 쓴다면, (city, age) 복합 인덱스 하나가 두 조건을 한 번에 효율적으로 처리해줘요.',
+        '항상 같이 쓰이는 조건이라면 각각 따로보다 묶는 게 유리하다는 걸 생각해보세요.'
+      )
+    },
+    {
+      id: 'savepoints',
+      title: 'SAVEPOINT로 트랜잭션 일부만 되돌리기',
+      ready: true,
+      summary: '트랜잭션 전체를 취소하지 않고, 중간 지점까지만 되돌릴 수 있게 해주는 SAVEPOINT를 배워요.',
+      goals: ['SAVEPOINT로 중간 지점 표시하기', 'ROLLBACK TO로 그 지점까지만 되돌리기', 'RELEASE로 저장점 없애기'],
+      blocks: [
+        {
+          h: '트랜잭션 중간에 "표시점" 남기기: SAVEPOINT',
+          html: `<p>트랜잭션 안에서 <code>SAVEPOINT 이름</code>으로 중간 지점을 표시해두면, 나중에 문제가 생겼을 때 <b>트랜잭션 전체가 아니라 그 지점까지만</b> 되돌릴 수 있어요.</p>`,
+          code: {
+            label: 'savepoint_basic.sql',
+            lang: 'sql',
+            src: `BEGIN;
+INSERT INTO students (name, age, city) VALUES ('하늘', 16, '대전');
+
+SAVEPOINT before_score;
+INSERT INTO scores (student_id, score) VALUES (999, 150); -- 잘못된 값!`
+          }
+        },
+        {
+          h: '그 지점까지만 되돌리기: ROLLBACK TO',
+          html: `<p><code>ROLLBACK TO SAVEPOINT 이름</code>을 쓰면, 그 저장점 <b>이후에 한 변경만 취소</b>되고 저장점 이전 변경(위 예시의 학생 INSERT)은 그대로 남아요. 트랜잭션 전체를 <code>ROLLBACK</code>하는 것과 다르게, <b>일부만 되돌리는 것</b>이에요.</p>`,
+          code: {
+            label: 'rollback_to.sql',
+            lang: 'sql',
+            src: `ROLLBACK TO SAVEPOINT before_score;
+-- 잘못된 성적 INSERT만 취소되고, 학생 INSERT는 그대로 남아있음
+COMMIT;`
+          }
+        },
+        {
+          h: '저장점 정리하기: RELEASE',
+          html: `<p>더 이상 그 저장점이 필요 없어지면 <code>RELEASE SAVEPOINT 이름</code>으로 정리할 수 있어요(트랜잭션 자체를 끝내는 건 아니에요). 저장점은 하나의 트랜잭션 안에 <b>여러 개를 중첩</b>해서 만들 수도 있어요.</p>`,
+          after: `<div class="note"><b>비유</b> — 게임하다가 저장(SAVE)해두고, 실수하면 그 저장 지점으로만 되돌아가는 것과 비슷해요. 처음부터 다시 시작(전체 ROLLBACK)하지 않아도 돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `트랜잭션 중간에 <code>before_score</code>라는 이름으로 저장점을 만드는 SQL을 완성하세요.`,
+          prefix: '', suffix: ' before_score;', accept: ['SAVEPOINT', 'savepoint'], placeholder: '키워드',
+          why: '<code>SAVEPOINT 이름</code>으로 트랜잭션 안에 중간 지점을 표시해요.',
+          hint: '"저장 지점"이라는 뜻 그대로의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>ROLLBACK TO SAVEPOINT before_score;</code>를 실행하면 어떻게 될까요?',
+          'before_score 저장점 이후의 변경만 취소되고, 그 이전 변경은 남는다',
+          ['트랜잭션 전체가 취소된다', '아무 변경도 취소되지 않는다', '저장점 이전 변경까지 모두 취소된다'],
+          'ROLLBACK TO SAVEPOINT는 그 저장점 이후의 변경만 취소해요. 트랜잭션 자체는 계속 진행 중이에요.',
+          '전체 ROLLBACK과 달리 "부분적으로만" 되돌린다는 점을 생각해보세요.'
+        ),
+        () => makeChoice(
+          '트랜잭션 전체를 취소하는 <code>ROLLBACK</code>과 <code>ROLLBACK TO SAVEPOINT</code>의 차이는?',
+          'ROLLBACK은 트랜잭션 전체를 취소하고, ROLLBACK TO SAVEPOINT는 지정한 지점까지만 되돌린다',
+          ['둘은 완전히 같은 동작이다', 'ROLLBACK TO SAVEPOINT가 항상 더 넓은 범위를 취소한다', 'SAVEPOINT 없이는 ROLLBACK을 아예 쓸 수 없다'],
+          'ROLLBACK은 트랜잭션 시작 지점까지 전부 되돌리고, ROLLBACK TO SAVEPOINT는 그 저장점까지만 부분적으로 되돌려요.',
+          '"전체" vs "지정한 지점까지"라는 범위 차이를 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `저장점이 더 이상 필요 없을 때, 트랜잭션은 유지한 채 저장점만 정리하는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' SAVEPOINT before_score;', accept: ['RELEASE', 'release'], placeholder: '키워드',
+          why: '<code>RELEASE SAVEPOINT 이름</code>으로 저장점을 정리할 수 있어요. 트랜잭션 자체는 끝나지 않아요.',
+          hint: '"놓아주다, 해제하다"라는 뜻의 영어 단어예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '트랜잭션을 시작(BEGIN)하고, mid라는 이름의 저장점을 만든 뒤, 그 저장점까지 되돌리는(ROLLBACK TO) SQL을 순서대로 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'BEGIN;\nSAVEPOINT mid;\nROLLBACK TO SAVEPOINT mid;',
+          accept: ['BEGIN;\nSAVEPOINT mid;\nROLLBACK TO SAVEPOINT mid;'],
+          why: 'BEGIN으로 트랜잭션을 시작하고, SAVEPOINT mid;로 지점을 표시한 뒤, ROLLBACK TO SAVEPOINT mid;로 그 지점까지 되돌려요.',
+          hint: 'BEGIN;, SAVEPOINT mid;, ROLLBACK TO SAVEPOINT mid;를 순서대로 한 줄씩 쓰세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '트랜잭션 안에서 학생 3명을 INSERT한 뒤, 저장점(SAVEPOINT s1)을 만들고, 그 다음 잘못된 성적 데이터를 INSERT했어요. 학생 3명은 그대로 남기고 잘못된 성적만 취소하려면?',
+        'ROLLBACK TO SAVEPOINT s1;을 실행한다', ['ROLLBACK;으로 트랜잭션 전체를 취소한다', 'COMMIT;을 바로 실행한다', 'DELETE FROM students;를 실행한다'],
+        'ROLLBACK TO SAVEPOINT s1;은 저장점 이후 변경(잘못된 성적)만 취소하고, 그 이전 변경(학생 3명 INSERT)은 그대로 남겨요.',
+        '트랜잭션 전체를 취소하면 학생 INSERT까지 사라진다는 점을 생각해보세요.'
+      )
+    },
+    {
+      id: 'stringAggregation',
+      title: 'GROUP_CONCAT으로 문자열 합치기',
+      ready: true,
+      summary: '그룹으로 묶은 여러 행의 값을, 구분자로 이어붙인 하나의 문자열로 만들어주는 GROUP_CONCAT을 배워요.',
+      goals: ['GROUP_CONCAT으로 여러 값 한 줄로 합치기', '구분자 직접 지정하기', 'GROUP BY와 함께 그룹별로 합치기'],
+      blocks: [
+        {
+          h: '여러 값을 한 줄로 합치기: GROUP_CONCAT',
+          html: `<p><code>GROUP_CONCAT(열)</code>은 여러 행의 값을 <b>쉼표로 이어붙인 하나의 문자열</b>로 만들어주는 집계 함수예요. COUNT/SUM처럼 여러 행을 하나의 결과로 요약하지만, 숫자가 아니라 문자열을 합쳐준다는 점이 달라요.</p>`,
+          code: {
+            label: 'group_concat_basic.sql',
+            lang: 'sql',
+            src: `SELECT GROUP_CONCAT(name) FROM students;`,
+            out: `GROUP_CONCAT(name)\n-------------------\n지수,민준,서연`
+          }
+        },
+        {
+          h: '구분자 직접 정하기',
+          html: `<p>기본 구분자는 쉼표(,)지만, <code>GROUP_CONCAT(열, '구분자')</code>처럼 두 번째 자리에 원하는 구분자를 넣으면 그 구분자로 이어붙여요.</p>`,
+          code: {
+            label: 'group_concat_sep.sql',
+            lang: 'sql',
+            src: `SELECT GROUP_CONCAT(name, ' / ') FROM students;`,
+            out: `지수 / 민준 / 서연`
+          }
+        },
+        {
+          h: '도시별로 묶어서 학생 이름 합치기',
+          html: `<p><code>GROUP BY</code>와 함께 쓰면, 그룹마다 <b>따로</b> 문자열을 만들어줘요. "도시별로 그 도시에 사는 학생 이름 목록"을 한 줄씩 보고 싶을 때 유용해요.</p>`,
+          code: {
+            label: 'group_concat_group.sql',
+            lang: 'sql',
+            src: `SELECT city, GROUP_CONCAT(name) AS names
+FROM students
+GROUP BY city;`,
+            out: `city | names\n-----+----------\n서울  | 지수,서연\n부산  | 민준`
+          },
+          after: `<div class="note"><b>비유</b> — 여러 이름표를 실 하나로 꿰어서 한 줄짜리 목록으로 보여주는 것과 비슷해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `여러 행의 값을 쉼표로 이어붙인 하나의 문자열로 만들어주는 집계 함수를 쓰세요.`,
+          prefix: 'SELECT ', suffix: '(name) FROM students;', accept: ['GROUP_CONCAT', 'group_concat'], placeholder: '함수 이름',
+          why: '<code>GROUP_CONCAT(열)</code>은 여러 행의 값을 쉼표로 이어붙인 문자열을 만들어줘요.',
+          hint: '"그룹으로 묶어서 이어붙인다(concatenate)"는 뜻의 두 단어가 합쳐진 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>GROUP_CONCAT(name)</code>의 기본 구분자는?',
+          '쉼표(,)', ['공백( )', '세미콜론(;)', '줄바꿈'],
+          '구분자를 따로 지정하지 않으면 기본값은 쉼표(,)예요.',
+          '두 번째 인자를 생략했을 때 기본으로 쓰이는 문장 부호를 떠올려보세요.'
+        ),
+        () => {
+          const sep = pick([' / ', ' | ', ', ']);
+          return {
+            type: 'blank',
+            q: `학생 이름들을 "${sep}"로 구분해서 합치려고 해요. 빈칸을 채우세요.`,
+            prefix: `SELECT GROUP_CONCAT(name, `, suffix: `) FROM students;`, accept: [`'${sep}'`], placeholder: "'구분자'",
+            why: `<code>GROUP_CONCAT(열, '구분자')</code>처럼 두 번째 자리에 원하는 구분자를 넣어요.`,
+            hint: '두 번째 인자 자리에 원하는 구분자를 작은따옴표로 감싸서 넣어요.'
+          };
+        },
+        () => makeChoice(
+          '도시별로 그 도시 학생 이름 목록을 한 줄씩 보고 싶을 때, GROUP_CONCAT과 함께 꼭 필요한 절은?',
+          '<code>GROUP BY city</code>', ['<code>ORDER BY city</code>', '<code>HAVING city</code>', '<code>WHERE city</code>'],
+          'GROUP BY city로 도시별로 묶어야, 그 그룹 안에서만 GROUP_CONCAT이 따로 합쳐줘요.',
+          'GROUP BY 없이 GROUP_CONCAT만 쓰면 전체가 한 줄로 합쳐진다는 걸 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '도시(city)별로 그 도시에 사는 학생 이름을 GROUP_CONCAT으로 합쳐서 names라는 이름으로 city와 함께 조회하는 SQL을 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'SELECT city, GROUP_CONCAT(name) AS names\nFROM students\nGROUP BY city;',
+          accept: ['SELECT city, GROUP_CONCAT(name) AS names\nFROM students\nGROUP BY city;'],
+          why: 'GROUP_CONCAT(name)으로 이름을 합치고, GROUP BY city로 도시별로 묶어요.',
+          hint: 'SELECT city, GROUP_CONCAT(name) AS names FROM students GROUP BY city; 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '서울에 사는 학생이 "지수", "서연" 두 명일 때, <code>SELECT GROUP_CONCAT(name) FROM students WHERE city = \'서울\';</code>의 결과는?',
+        '지수,서연', ['지수', '서연', '지수 그리고 서연'],
+        'GROUP_CONCAT은 조건에 맞는 행들의 값을 기본 구분자(쉼표)로 이어붙여서 "지수,서연"이 돼요.',
+        '기본 구분자가 쉼표라는 점을 떠올려보세요.'
+      )
+    },
+    {
+      id: 'jsonAggregation',
+      title: '집계 결과를 JSON으로 모으기',
+      ready: true,
+      summary: '여러 행을 하나의 JSON 배열이나 객체로 모아주는 json_group_array / json_group_object를 배워요.',
+      goals: ['json_group_array로 여러 값을 배열로 모으기', 'json_group_object로 키-값 쌍 모으기', 'GROUP BY와 함께 그룹별 JSON 만들기'],
+      blocks: [
+        {
+          h: '여러 값을 JSON 배열로 모으기: json_group_array',
+          html: `<p><code>json_group_array(열)</code>은 여러 행의 값을 <b>JSON 배열 문자열</b>로 모아줘요. GROUP_CONCAT이 단순 문자열이라면, 이건 JSON을 다루는 코드에서 바로 파싱할 수 있는 배열 형태예요.</p>`,
+          code: {
+            label: 'json_group_array.sql',
+            lang: 'sql',
+            src: `SELECT json_group_array(name) FROM students;`,
+            out: `["지수","민준","서연"]`
+          }
+        },
+        {
+          h: '키-값 쌍으로 모으기: json_group_object',
+          html: `<p><code>json_group_object(키, 값)</code>은 각 행을 "키: 값" 쌍으로 삼아, 하나의 JSON 객체로 모아줘요.</p>`,
+          code: {
+            label: 'json_group_object.sql',
+            lang: 'sql',
+            src: `SELECT json_group_object(name, age) FROM students;`,
+            out: `{"지수":17,"민준":16,"서연":18}`
+          }
+        },
+        {
+          h: 'GROUP BY와 함께: 그룹별 JSON 배열',
+          html: `<p>GROUP BY와 함께 쓰면, 그룹마다 따로 JSON 배열을 만들어줘요. API 응답처럼 "도시별 학생 이름 배열"이 필요할 때 바로 쓸 수 있어요.</p>`,
+          code: {
+            label: 'json_group_by.sql',
+            lang: 'sql',
+            src: `SELECT city, json_group_array(name) AS names
+FROM students
+GROUP BY city;`,
+            out: `city | names\n-----+-------------------\n서울  | ["지수","서연"]\n부산  | ["민준"]`
+          },
+          after: `<div class="note"><b>참고</b> — 앞서 배운 <code>json_extract</code>가 JSON을 "꺼내는" 함수라면, <code>json_group_array</code>/<code>json_group_object</code>는 여러 행을 JSON으로 "모으는" 집계 함수예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `여러 행의 값을 하나의 JSON 배열 문자열로 모아주는 함수를 쓰세요.`,
+          prefix: 'SELECT ', suffix: '(name) FROM students;', accept: ['json_group_array'], placeholder: '함수 이름',
+          why: '<code>json_group_array(열)</code>은 여러 값을 JSON 배열로 모아줘요.',
+          hint: '"JSON 배열로 모은다"는 뜻 그대로의 이름이에요.'
+        }),
+        () => makeChoice(
+          '<code>json_group_object(name, age)</code>가 만드는 결과 형태는?',
+          '{"이름":나이, "이름":나이, ...} 형태의 JSON 객체', ['["이름", "나이", ...] 형태의 배열', '이름과 나이를 쉼표로 이어붙인 단순 문자열', '가장 나이 많은 사람 한 명만'],
+          'json_group_object(키, 값)은 각 행을 키-값 쌍으로 삼아 하나의 JSON 객체로 모아요.',
+          '"object(객체)"라는 이름에서 키-값 쌍이라는 걸 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'json_group_array와 GROUP_CONCAT의 가장 큰 차이는?',
+          'json_group_array는 JSON 배열 형태라 코드에서 바로 파싱할 수 있다', ['json_group_array는 숫자만 모을 수 있다', 'GROUP_CONCAT은 그룹별로 못 쓴다', '둘은 완전히 같은 결과를 만든다'],
+          'json_group_array는 결과가 JSON 배열 문법이라, 애플리케이션 코드에서 바로 JSON으로 읽을 수 있어요.',
+          '결과 문자열의 모양([...] vs 그냥 콤마로 나열)을 비교해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `도시별로 학생 이름을 JSON 배열로 모으려고 해요. 빈칸을 채우세요.`,
+          prefix: 'SELECT city, json_group_array(name) AS names FROM students ', suffix: ' city;', accept: ['GROUP BY', 'group by'], placeholder: '키워드',
+          why: 'GROUP BY city로 묶어야 도시별로 따로 JSON 배열이 만들어져요.',
+          hint: '"묶는다"는 뜻의 두 단어짜리 키워드예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: 'students 표의 name을 json_group_array로 모아서 조회하는 SQL을 작성하세요.',
+          starter: '',
+          placeholder: 'SELECT json_group_array(name) FROM students;',
+          accept: ['SELECT json_group_array(name) FROM students;'],
+          why: 'json_group_array(name)으로 모든 학생 이름을 하나의 JSON 배열로 모아요.',
+          hint: 'SELECT json_group_array(name) FROM students;를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '부산에 사는 학생이 "민준" 한 명일 때, <code>SELECT json_group_array(name) FROM students WHERE city = \'부산\';</code>의 결과는?',
+        '["민준"]', ['민준', '{"민준"}', '[민준]'],
+        '학생이 한 명이어도 json_group_array는 배열 형태를 유지해서, 큰따옴표로 감싼 "민준"을 대괄호 안에 넣은 ["민준"]이 돼요.',
+        'JSON 배열에서 문자열 값은 큰따옴표로 감싸진다는 걸 떠올려보세요.'
+      )
+    },
+    {
+      id: 'nPlusOneProblem',
+      title: 'N+1 문제: 반복되는 쿼리 줄이기',
+      ready: true,
+      summary: '학생마다 성적을 따로따로 조회하면 쿼리가 N번 더 실행되는 N+1 문제와, JOIN으로 한 번에 해결하는 법을 배워요.',
+      goals: ['N+1 문제가 무엇인지 이해하기', '왜 성능에 나쁜지 알기', 'JOIN 한 번으로 해결하기'],
+      blocks: [
+        {
+          h: 'N+1 문제란?',
+          html: `<p>학생 목록을 먼저 조회(쿼리 1번)한 뒤, 각 학생마다 "이 학생의 점수는?"이라는 쿼리를 <b>따로따로</b> 또 실행하면, 학생이 N명일 때 총 <code>1 + N</code>번의 쿼리가 실행돼요. 이걸 <b>N+1 문제</b>라고 불러요.</p>`,
+          code: {
+            label: 'n_plus_one_bad.sql',
+            lang: 'sql',
+            src: `-- (1) 학생 목록 조회 (쿼리 1번)
+SELECT id, name FROM students;
+
+-- (2) 학생마다 반복해서 실행 (학생 수만큼, 즉 N번)
+SELECT score FROM scores WHERE student_id = 1;
+SELECT score FROM scores WHERE student_id = 2;
+SELECT score FROM scores WHERE student_id = 3;`
+          }
+        },
+        {
+          h: '왜 느려질까요',
+          html: `<p>학생이 3명이면 4번(1+3)이지만, 학생이 10,000명이면 <b>10,001번</b>의 쿼리가 실행돼요. 쿼리 하나하나는 빨라도, 데이터베이스를 오가는 왕복 횟수 자체가 너무 많아져서 전체는 매우 느려져요.</p>`
+        },
+        {
+          h: 'JOIN 한 번으로 해결하기',
+          html: `<p>학생과 성적을 <code>JOIN</code>으로 한 번에 이어붙이면, 쿼리를 <b>딱 1번만</b> 실행해서 필요한 데이터를 전부 가져올 수 있어요.</p>`,
+          code: {
+            label: 'n_plus_one_fix.sql',
+            lang: 'sql',
+            src: `SELECT students.id, students.name, scores.score
+FROM students
+JOIN scores ON students.id = scores.student_id;`
+          },
+          after: `<div class="note"><b>기억하기</b> — "반복문 안에서 쿼리를 또 실행하고 있다"는 게 보이면 N+1을 의심하고, JOIN으로 한 번에 가져올 수 없는지 먼저 확인해보세요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = randInt(3, 20);
+          return {
+            type: 'blank',
+            q: `학생 목록을 조회하는 쿼리 1번에 이어, 학생 ${n}명마다 성적을 따로 조회하는 쿼리를 각각 실행한다면 총 몇 번의 쿼리가 실행될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n + 1)], placeholder: '숫자',
+            why: `학생 목록 조회 1번 + 학생마다 반복하는 ${n}번 = ${n + 1}번이에요. 이게 N+1 문제예요.`,
+            hint: '처음 1번의 쿼리에, 학생 수만큼의 쿼리를 더해보세요.'
+          };
+        },
+        () => makeChoice(
+          'N+1 문제가 발생하는 전형적인 패턴은?',
+          '목록을 한 번 조회한 뒤, 그 목록의 각 항목마다 관련 데이터를 또 따로 조회한다', ['하나의 쿼리 안에서 JOIN을 여러 번 쓴다', 'INDEX를 너무 많이 만든다', 'GROUP BY 없이 집계 함수를 쓴다'],
+          'N+1은 "목록 1번 + 각 항목마다 반복 조회 N번"의 패턴에서 생겨요.',
+          '이름 그대로 "1번 + N번"이 어디서 나오는지 떠올려보세요.'
+        ),
+        () => makeChoice(
+          'N+1 문제를 해결하는 가장 기본적인 방법은?',
+          '반복해서 따로 조회하던 것을 JOIN으로 한 번에 가져온다', ['반복문을 더 빠른 언어로 다시 짠다', '쿼리마다 SAVEPOINT를 추가한다', 'WHERE 조건을 모두 없앤다'],
+          '따로따로 조회하던 관련 데이터를 JOIN으로 한 번에 가져오면 쿼리 횟수가 크게 줄어요.',
+          '이 유닛의 "해결하기" 부분에서 어떤 키워드를 썼는지 떠올려보세요.'
+        ),
+        () => makeChoice(
+          '학생이 10,000명일 때 N+1 패턴으로 조회하면, JOIN 한 번으로 조회할 때보다 어떤 점이 나빠질까요?',
+          '데이터베이스를 오가는 쿼리 왕복 횟수가 훨씬 많아져서 전체가 느려진다', ['결과 데이터가 아예 달라진다', 'JOIN보다 항상 더 정확한 결과가 나온다', '메모리를 전혀 쓰지 않게 된다'],
+          '쿼리 하나하나는 빨라도, 수천 번 왕복하면 그 통신 비용이 쌓여서 전체 성능이 크게 나빠져요.',
+          '쿼리 자체의 속도가 아니라 "횟수"가 문제라는 점을 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'students와 scores를 JOIN해서, 학생마다 따로 조회하지 않고 한 번의 쿼리로 id, name, score를 함께 조회하는 SQL을 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'SELECT students.id, students.name, scores.score\nFROM students\nJOIN scores ON students.id = scores.student_id;',
+          accept: ['SELECT students.id, students.name, scores.score\nFROM students\nJOIN scores ON students.id = scores.student_id;'],
+          why: 'JOIN으로 한 번에 이어붙이면 학생마다 반복 조회할 필요가 없어져요.',
+          hint: 'students JOIN scores ON students.id = scores.student_id 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const n = randInt(5, 50);
+        return {
+          type: 'blank',
+          q: `학생 목록 조회 쿼리 1번에, 학생 ${n}명마다 성적을 따로 조회하는 N+1 패턴을 JOIN 한 번으로 바꾸면, 실행되는 쿼리는 총 몇 번이 될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: ['1'], placeholder: '숫자',
+          why: `JOIN으로 한 번에 가져오면, 학생이 ${n}명이든 몇 명이든 쿼리는 딱 1번만 실행돼요.`,
+          hint: 'JOIN으로 합치면 반복 조회 자체가 사라진다는 걸 떠올려보세요.'
+        };
+      }
+    },
+    {
+      id: 'updateWithJoin',
+      title: 'UPDATE ... FROM으로 다른 표 참고해서 수정하기',
+      ready: true,
+      summary: '다른 표의 값을 참고해서 조건에 맞는 행을 한 번에 수정하는 UPDATE ... FROM 문법을 배워요.',
+      goals: ['UPDATE ... FROM으로 다른 표 참고하기', 'JOIN 조건을 WHERE에 적기', '실무에서 자주 쓰는 이유 이해하기'],
+      blocks: [
+        {
+          h: '다른 표를 참고해서 수정하기: UPDATE ... FROM',
+          html: `<p>기본 <code>UPDATE</code>는 그 표 안의 값만 보고 수정하지만, 다른 표의 값을 <b>참고해서</b> 수정해야 할 때도 많아요. SQLite는 <code>UPDATE 표 SET ... FROM 다른표 WHERE 연결조건</code> 형태로 이걸 지원해요.</p>`,
+          code: {
+            label: 'update_from.sql',
+            lang: 'sql',
+            src: `UPDATE scores
+SET score = score + 5
+FROM students
+WHERE students.id = scores.student_id
+  AND students.city = '서울';`,
+            out: `1개 행이 수정됨`
+          }
+        },
+        {
+          h: '읽는 순서: 조건이 어떻게 연결될까요',
+          html: `<p><code>FROM students</code>는 "students 표를 참고 자료로 함께 보겠다"는 뜻이고, <code>WHERE students.id = scores.student_id</code>는 "어느 학생 행과 어느 성적 행이 짝인지" 연결해주는 조건이에요. 그 다음 <code>AND students.city = '서울'</code>로 서울 학생만 골라내요.</p>`
+        },
+        {
+          h: '왜 이 문법이 필요할까요',
+          html: `<p>"서울에 사는 학생들의 점수만 5점씩 올려줘" 같은 요구는 <code>scores</code> 표만 봐서는 알 수 없어요(도시 정보는 <code>students</code>에 있으니까요). <code>UPDATE ... FROM</code>은 이렇게 <b>다른 표의 조건에 따라</b> 값을 수정해야 하는 실무 상황에서 자주 쓰여요.</p>`,
+          after: `<div class="note"><b>참고</b> — MySQL은 <code>UPDATE a JOIN b ON ...</code> 문법을 쓰지만, SQLite는 표준 SQL에 가까운 <code>UPDATE ... FROM</code> 문법을 써요. 데이터베이스마다 문법이 조금씩 다르다는 점을 기억해두세요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `<code>UPDATE scores SET score = score + 5</code> 뒤에, students 표를 참고 자료로 함께 보겠다고 알리는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' students WHERE students.id = scores.student_id;', accept: ['FROM', 'from'], placeholder: '키워드',
+          why: '<code>UPDATE 표 SET ... FROM 다른표</code>로 다른 표를 함께 참고해서 수정할 수 있어요.',
+          hint: 'SELECT에서 표를 가져올 때 쓰는 것과 똑같은 키워드예요.'
+        }),
+        () => makeChoice(
+          '<code>UPDATE scores SET score = score + 5 FROM students WHERE students.id = scores.student_id AND students.city = \'서울\';</code>가 하는 일은?',
+          '서울에 사는 학생의 성적만 5점씩 올린다', ['모든 학생의 성적을 5점씩 올린다', 'students 표의 age를 5씩 올린다', 'scores 표를 통째로 삭제한다'],
+          'FROM students로 도시 정보를 참고하고, WHERE로 서울인 학생의 성적만 골라서 5점을 더해요.',
+          '도시 정보가 어느 표에 있는지, 그리고 WHERE의 AND 조건이 무엇을 걸러내는지 생각해보세요.'
+        ),
+        () => makeChoice(
+          'UPDATE ... FROM 문법이 필요한 상황은?',
+          '수정할 조건이 수정하려는 표가 아니라 다른 표에 들어있을 때', ['그냥 WHERE 조건 없이 전체를 수정하고 싶을 때', 'INSERT를 대신하고 싶을 때', 'DELETE 대신 쓰고 싶을 때'],
+          '수정 조건(예: 도시)이 students에 있고, 수정 대상(성적)은 scores에 있을 때, 두 표를 연결해서 조건을 판단해야 해요.',
+          '이 유닛 예시에서 "도시"가 어느 표에 있었는지 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>UPDATE scores SET score = score + 5 FROM students</code> 뒤에, 어느 학생 행과 어느 성적 행이 짝인지 연결하는 조건을 시작하는 키워드를 쓰세요.`,
+          prefix: '', suffix: ' students.id = scores.student_id;', accept: ['WHERE', 'where'], placeholder: '키워드',
+          why: 'WHERE로 두 표를 연결할 조건(id = student_id)을 적어줘야 해요.',
+          hint: '조건을 걸 때 항상 쓰는 그 키워드예요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '부산에 사는 학생들의 성적을 3점씩 올리는 UPDATE ... FROM 문을 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: "UPDATE scores\nSET score = score + 3\nFROM students\nWHERE students.id = scores.student_id\n  AND students.city = '부산';",
+          accept: ["UPDATE scores\nSET score = score + 3\nFROM students\nWHERE students.id = scores.student_id\n  AND students.city = '부산';"],
+          why: 'FROM students로 도시 정보를 참고하고, WHERE로 부산인 학생만 골라 성적을 3점 올려요.',
+          hint: "UPDATE scores SET score = score + 3 FROM students WHERE students.id = scores.student_id AND students.city = '부산'; 형태를 그대로 써보세요."
+        }),
+      ],
+      boss: () => makeChoice(
+        '서울 학생의 점수가 90점일 때, <code>UPDATE scores SET score = score + 5 FROM students WHERE students.id = scores.student_id AND students.city = \'서울\';</code>를 실행하면 그 학생의 점수는?',
+        '95점', ['90점', '5점', '100점'],
+        '서울 학생이라는 조건에 맞으니 score = score + 5가 적용돼서 90 + 5 = 95점이 돼요.',
+        '조건에 맞는 행에 score + 5가 그대로 적용된다는 걸 생각해보세요.'
+      )
+    },
+    {
+      id: 'deleteWithSubquery',
+      title: 'DELETE에서 서브쿼리로 조건 지정하기',
+      ready: true,
+      summary: '다른 표를 참고한 조건으로 행을 지워야 할 때, DELETE 안에 서브쿼리를 넣는 법을 배워요.',
+      goals: ['DELETE에 IN + 서브쿼리 넣기', 'NOT IN으로 반대 조건 지우기', '지우기 전에 SELECT로 먼저 확인하는 습관'],
+      blocks: [
+        {
+          h: '다른 표를 참고해서 지우기: DELETE ... WHERE IN (서브쿼리)',
+          html: `<p>"부산에 사는 학생들의 성적을 지워줘"처럼, 지울 대상(<code>scores</code>)의 조건이 <b>다른 표</b>(<code>students</code>)에 있을 때는 <code>WHERE 열 IN (서브쿼리)</code> 형태로 지울 수 있어요.</p>`,
+          code: {
+            label: 'delete_in_subquery.sql',
+            lang: 'sql',
+            src: `DELETE FROM scores
+WHERE student_id IN (
+  SELECT id FROM students WHERE city = '부산'
+);`,
+            out: `1개 행이 삭제됨`
+          }
+        },
+        {
+          h: '반대 조건으로 지우기: NOT IN',
+          html: `<p><code>NOT IN</code>을 쓰면 반대로, "성적이 없는 학생"처럼 <b>서브쿼리 결과에 없는</b> 것들을 대상으로 삼을 수 있어요.</p>`,
+          code: {
+            label: 'delete_not_in.sql',
+            lang: 'sql',
+            src: `DELETE FROM students
+WHERE id NOT IN (
+  SELECT student_id FROM scores
+);`,
+            out: `1개 행이 삭제됨`
+          }
+        },
+        {
+          h: '지우기 전에 먼저 SELECT로 확인하기',
+          html: `<p>DELETE는 되돌리기 어려운 명령이에요. 같은 조건으로 <b>먼저 SELECT를 실행</b>해서 "정말 이 행들이 지워질 대상이 맞는지" 확인한 뒤 DELETE로 바꾸는 습관을 들이면 실수를 크게 줄일 수 있어요.</p>`,
+          after: `<div class="note"><b>기억하기</b> — <code>SELECT * FROM scores WHERE student_id IN (...);</code>로 먼저 확인하고, 결과가 맞으면 그때 <code>DELETE FROM scores WHERE student_id IN (...);</code>로 바꾸세요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `부산에 사는 학생들의 성적을 지우려고 해요. 빈칸을 채우세요.`,
+          prefix: `DELETE FROM scores WHERE student_id `, suffix: ` (SELECT id FROM students WHERE city = '부산');`, accept: ['IN', 'in'], placeholder: '키워드',
+          why: '<code>IN (서브쿼리)</code>로, 서브쿼리 결과에 포함된 student_id만 골라 지워요.',
+          hint: '여러 값 중 하나와 같은지 비교할 때 쓰는 그 키워드예요.'
+        }),
+        () => makeChoice(
+          '<code>DELETE FROM students WHERE id NOT IN (SELECT student_id FROM scores);</code>가 지우는 대상은?',
+          '성적표(scores)에 기록이 하나도 없는 학생', ['성적이 있는 모든 학생', '부산에 사는 학생', 'scores 표의 모든 행'],
+          'NOT IN은 서브쿼리 결과에 없는 값을 찾으므로, scores에 student_id가 없는(=성적이 없는) 학생이 대상이에요.',
+          '"IN"의 반대이니, 서브쿼리 결과에 "없는" 것을 찾는다는 점을 생각해보세요.'
+        ),
+        () => makeChoice(
+          'DELETE 문을 실행하기 전에 권장되는 안전한 습관은?',
+          '같은 조건으로 먼저 SELECT를 실행해서 지워질 대상을 확인한다', ['항상 WHERE 없이 먼저 실행해본다', 'DELETE 대신 무조건 DROP TABLE을 쓴다', '트랜잭션을 절대 쓰지 않는다'],
+          '같은 WHERE 조건으로 SELECT를 먼저 실행해보면, DELETE가 지울 행이 예상과 맞는지 미리 확인할 수 있어요.',
+          '"지우기 전에 먼저 본다"는 원칙을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `성적이 없는 학생을 찾아 지우려고 해요. IN의 반대 뜻으로 쓰는 키워드를 쓰세요.`,
+          prefix: 'DELETE FROM students WHERE id ', suffix: ' (SELECT student_id FROM scores);', accept: ['NOT IN', 'not in'], placeholder: '키워드',
+          why: 'NOT IN은 서브쿼리 결과에 없는 값을 찾아요. 그래서 성적 기록이 없는 학생을 찾을 수 있어요.',
+          hint: 'IN 앞에 부정을 뜻하는 단어를 붙이세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '서울에 사는 학생들의 성적(scores)을 서브쿼리를 이용해 지우는 SQL을 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: "DELETE FROM scores\nWHERE student_id IN (\n  SELECT id FROM students WHERE city = '서울'\n);",
+          accept: ["DELETE FROM scores\nWHERE student_id IN (\n  SELECT id FROM students WHERE city = '서울'\n);"],
+          why: "WHERE student_id IN (SELECT id FROM students WHERE city = '서울')로, 서울 학생의 성적만 골라 지워요.",
+          hint: "DELETE FROM scores WHERE student_id IN (SELECT id FROM students WHERE city = '서울'); 형태를 그대로 써보세요."
+        }),
+      ],
+      boss: () => makeChoice(
+        'students에 서연(id=3)만 scores에 성적 기록이 없을 때, <code>DELETE FROM students WHERE id NOT IN (SELECT student_id FROM scores);</code>를 실행하면 지워지는 학생은?',
+        '서연', ['지수', '민준', '아무도 지워지지 않는다'],
+        '서연만 scores에 기록이 없으니, NOT IN 조건에 맞는 유일한 학생이 서연이에요.',
+        '서브쿼리(SELECT student_id FROM scores)에 없는 id를 가진 학생을 찾아보세요.'
+      )
+    },
+    {
+      id: 'temporaryTables',
+      title: '임시 표: TEMP TABLE',
+      ready: true,
+      summary: '지금 세션에서만 쓰고 사라지는 임시 표를 만들어, 복잡한 작업의 중간 결과를 잠깐 담아두는 법을 배워요.',
+      goals: ['CREATE TEMPORARY TABLE로 임시 표 만들기', '임시 표가 언제 사라지는지 이해하기', 'CTE와 무엇이 다른지 구분하기'],
+      blocks: [
+        {
+          h: '잠깐만 쓰고 버릴 표: CREATE TEMPORARY TABLE',
+          html: `<p><code>CREATE TEMPORARY TABLE</code>(줄여서 <code>CREATE TEMP TABLE</code>)은 일반 표처럼 데이터를 저장하지만, <b>지금 연결(세션)이 끝나면 자동으로 사라져요</b>. 여러 단계를 거쳐야 하는 복잡한 작업의 중간 결과를 잠깐 담아두기에 좋아요.</p>`,
+          code: {
+            label: 'temp_table_create.sql',
+            lang: 'sql',
+            src: `CREATE TEMP TABLE high_scorers AS
+SELECT student_id FROM scores WHERE score >= 90;`
+          }
+        },
+        {
+          h: '임시 표도 진짜 표처럼 조회/수정하기',
+          html: `<p>한 번 만들어두면, 그 뒤로는 <code>SELECT</code>·<code>INSERT</code>·<code>UPDATE</code> 등 <b>일반 표와 똑같이</b> 다룰 수 있어요. 다른 점은 딱 하나, 연결이 끊기면 사라진다는 거예요.</p>`,
+          code: {
+            label: 'temp_table_use.sql',
+            lang: 'sql',
+            src: `SELECT students.name
+FROM students
+JOIN high_scorers ON students.id = high_scorers.student_id;`
+          }
+        },
+        {
+          h: 'CTE(WITH 절)와 무엇이 다를까요',
+          html: `<p><code>WITH</code>로 만드는 CTE는 <b>그 쿼리 한 번 실행하는 동안만</b> 존재하지만, <code>TEMP TABLE</code>은 <b>여러 쿼리에 걸쳐 계속</b> 남아있어요. 중간 결과를 한 번만 쓰면 CTE로 충분하지만, 여러 단계에서 반복해서 참고해야 한다면 TEMP TABLE이 더 편해요.</p>`,
+          after: `<div class="note"><b>비유</b> — CTE가 "메모지에 잠깐 적어두고 바로 버리는 것"이라면, TEMP TABLE은 "이번 방문(세션) 동안만 쓰는 사물함"에 가까워요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `연결(세션)이 끝나면 자동으로 사라지는 표를 만드는 두 단어짜리 시작 키워드(TABLE 앞부분)를 쓰세요.`,
+          prefix: 'CREATE ', suffix: ' TABLE high_scorers AS SELECT student_id FROM scores WHERE score >= 90;', accept: ['TEMPORARY', 'temporary', 'TEMP', 'temp'], placeholder: '키워드',
+          why: '<code>CREATE TEMPORARY TABLE</code> (또는 줄여서 <code>CREATE TEMP TABLE</code>)로 세션이 끝나면 사라지는 표를 만들어요.',
+          hint: '"임시의"라는 뜻의 영어 단어, 혹은 그 줄임말이에요.'
+        }),
+        () => makeChoice(
+          'TEMP TABLE의 가장 큰 특징은?',
+          '지금 연결(세션)이 끝나면 자동으로 사라진다', ['한 번도 수정할 수 없다', 'JOIN에 쓸 수 없다', '항상 다른 모든 사용자와 공유된다'],
+          'TEMP TABLE은 일반 표처럼 쓰이지만, 세션이 끝나면 데이터베이스에서 자동으로 사라져요.',
+          '"임시(TEMPORARY)"라는 이름이 뜻하는 바를 생각해보세요.'
+        ),
+        () => makeChoice(
+          'TEMP TABLE과 CTE(WITH 절)의 가장 큰 차이는?',
+          'CTE는 그 쿼리 한 번만 유효하고, TEMP TABLE은 여러 쿼리에 걸쳐 계속 남는다', ['TEMP TABLE은 SELECT를 쓸 수 없다', 'CTE는 세션이 끝나도 영구히 남는다', '둘은 완전히 똑같은 것이다'],
+          'CTE는 한 쿼리 안에서만 임시로 존재하지만, TEMP TABLE은 세션이 끝날 때까지 여러 쿼리에서 반복해서 쓸 수 있어요.',
+          '"한 번의 쿼리"와 "세션 전체" 중 어느 쪽이 더 오래 유지되는지 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `TEMP TABLE을 만든 뒤에는 SELECT, JOIN 등에서 어떻게 다뤄야 할까요? 빈칸에 알맞은 단어를 쓰세요. ("____ 표처럼 다룬다")`,
+          prefix: '', suffix: '', accept: ['일반', '진짜'], placeholder: '단어',
+          why: 'TEMP TABLE도 만들어진 뒤에는 일반(진짜) 표와 똑같이 SELECT/JOIN/UPDATE 등에 쓸 수 있어요.',
+          hint: '"임시"의 반대 개념을 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: '점수(score)가 90점 이상인 학생의 student_id만 모은 high_scorers라는 임시 표를 만드는 SQL을 작성하세요.',
+          starter: '',
+          placeholder: 'CREATE TEMP TABLE high_scorers AS\nSELECT student_id FROM scores WHERE score >= 90;',
+          accept: ['CREATE TEMP TABLE high_scorers AS\nSELECT student_id FROM scores WHERE score >= 90;', 'CREATE TEMPORARY TABLE high_scorers AS\nSELECT student_id FROM scores WHERE score >= 90;'],
+          why: 'CREATE TEMP TABLE 이름 AS 쿼리; 형태로 임시 표를 만들어요.',
+          hint: 'CREATE TEMP TABLE high_scorers AS SELECT student_id FROM scores WHERE score >= 90;를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '복잡한 리포트를 만들면서, 같은 중간 결과를 여러 단계의 쿼리에서 반복해서 참고해야 해요. CTE와 TEMP TABLE 중 어느 쪽이 더 적합할까요?',
+        'TEMP TABLE — 여러 쿼리에 걸쳐 계속 남아있기 때문에', ['CTE — 세션이 끝나야만 결과가 만들어지기 때문에', '둘 다 여러 쿼리에서 쓸 수 없어서 의미 없다', 'VIEW만 유일하게 가능하다'],
+        '여러 쿼리에 걸쳐 반복 참고해야 한다면, 한 쿼리에서만 유효한 CTE보다 세션 동안 계속 남는 TEMP TABLE이 더 적합해요.',
+        '"한 번의 쿼리"만 유지되는 것과 "세션 내내" 유지되는 것 중 어느 게 필요한지 생각해보세요.'
+      )
+    },
+    {
+      id: 'erRelationshipTypes',
+      title: '관계 모델링: 1:N과 N:M',
+      ready: true,
+      summary: '한 학생이 성적을 여러 개 가지는 1:N 관계와, 중간 표(junction table)로 표현하는 N:M 관계를 배워요.',
+      goals: ['1:N(일대다) 관계 이해하기', 'N:M(다대다) 관계가 왜 표 하나로 안 되는지 알기', '중간 표(junction table)로 N:M 표현하기'],
+      blocks: [
+        {
+          h: '한 명이 여러 개를 가지는 관계: 1:N',
+          html: `<p>학생 한 명은 성적을 <b>여러 개</b> 가질 수 있지만, 성적 한 행은 학생 <b>딱 한 명</b>에만 속해요. 이런 관계를 <b>1:N(일대다)</b> 관계라고 불러요. <code>scores.student_id</code>가 <code>students.id</code>를 가리키는 <code>FOREIGN KEY</code>로 이 관계를 표현해요.</p>`,
+          code: {
+            label: 'one_to_many.sql',
+            lang: 'sql',
+            src: `-- 학생(1) : 성적(N) 관계
+CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT);
+CREATE TABLE scores (
+  id INTEGER PRIMARY KEY,
+  student_id INTEGER REFERENCES students(id),
+  score INTEGER
+);`
+          }
+        },
+        {
+          h: '여러 명이 여러 개를 함께 가지는 관계: N:M',
+          html: `<p>"학생 한 명이 여러 과목을 듣고, 한 과목도 여러 학생이 들을 수 있다"처럼 <b>양쪽 다 여러 개</b>를 가질 수 있는 관계를 <b>N:M(다대다)</b> 관계라고 해요. 이건 <code>students</code>나 <code>courses</code> 표에 <code>FOREIGN KEY</code>를 하나만 추가하는 걸로는 표현할 수 없어요(어느 쪽에 넣어도 "여러 개"를 저장할 자리가 없으니까요).</p>`
+        },
+        {
+          h: '중간 표로 N:M 표현하기: junction table',
+          html: `<p>N:M 관계는 두 표 사이에 <b>중간 표(junction table, 연결 표)</b>를 하나 더 만들어서 해결해요. 이 중간 표는 양쪽의 id를 각각 FOREIGN KEY로 가지는 행 하나하나가 "이 학생이 이 과목을 듣는다"는 관계 하나를 나타내요.</p>`,
+          code: {
+            label: 'many_to_many.sql',
+            lang: 'sql',
+            src: `CREATE TABLE courses (id INTEGER PRIMARY KEY, name TEXT);
+
+-- 중간 표(junction table): 학생과 과목을 잇는 관계 하나하나를 행으로 저장
+CREATE TABLE enrollments (
+  student_id INTEGER REFERENCES students(id),
+  course_id INTEGER REFERENCES courses(id),
+  PRIMARY KEY (student_id, course_id)
+);`
+          },
+          after: `<div class="note"><b>비유</b> — 1:N은 "한 부모 아래 여러 자식"이라면, N:M은 "여러 사람이 여러 동아리에 겹쳐서 가입하는 것"과 비슷해요. 그래서 "누가 어느 동아리에 가입했는지"를 적어두는 명단(중간 표)이 하나 더 필요해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '학생 한 명이 성적을 여러 개 가질 수 있는 students-scores 관계는 어떤 관계일까요?',
+          '1:N(일대다)', ['N:M(다대다)', '1:1(일대일)', '관계가 아니다'],
+          '학생(1) 쪽은 하나지만 성적(N) 쪽은 여러 개일 수 있어서 1:N 관계예요.',
+          '학생 한 명 vs 성적 여러 개, 어느 쪽이 "여러 개"인지 생각해보세요.'
+        ),
+        () => makeChoice(
+          '"학생 한 명이 여러 과목을 듣고, 한 과목도 여러 학생이 들을 수 있다"는 관계는?',
+          'N:M(다대다)', ['1:N(일대다)', '1:1(일대일)', 'FOREIGN KEY 없이 표현 가능한 관계'],
+          '양쪽 다 "여러 개"를 가질 수 있으니 N:M(다대다) 관계예요.',
+          '학생 쪽도, 과목 쪽도 둘 다 여러 개일 수 있다는 점에 주목해보세요.'
+        ),
+        () => makeChoice(
+          'N:M 관계를 표현하려면 왜 중간 표(junction table)가 필요할까요?',
+          '학생이나 과목 표에 FOREIGN KEY를 하나만 넣어서는 "여러 개"의 관계를 저장할 자리가 없기 때문에', ['성능을 높이기 위한 장식용 표일 뿐이라서', 'PRIMARY KEY를 만들 수 없어서', '중간 표가 있어야 SELECT를 쓸 수 있어서'],
+          '학생 표에 course_id 하나만 넣으면 그 학생이 들을 수 있는 과목이 하나로 제한돼요. 여러 관계를 저장하려면 관계 하나하나를 행으로 담는 중간 표가 필요해요.',
+          '한 열에는 값을 하나만 넣을 수 있다는 점을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `학생과 과목의 N:M 관계를 나타내는 중간 표(enrollments)는, 무엇과 무엇을 각각 FOREIGN KEY로 가져야 할까요? 빈칸에 두 값을 쉼표로 구분해 쓰세요. (예: student_id, course_id)`,
+          prefix: '', suffix: '', accept: ['student_id, course_id', 'student_id,course_id'], placeholder: 'a_id, b_id',
+          why: '중간 표는 양쪽 표의 id를 각각 FOREIGN KEY로 가져서, 그 조합 하나하나가 관계 하나를 뜻해요.',
+          hint: '학생 쪽 id와 과목 쪽 id, 두 개를 나란히 떠올려보세요.'
+        }),
+        () => ({
+          type: 'code',
+          q: 'student_id와 course_id를 FOREIGN KEY로 가지고, 둘을 합쳐 PRIMARY KEY로 삼는 enrollments 중간 표를 만드는 SQL을 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'CREATE TABLE enrollments (\n  student_id INTEGER REFERENCES students(id),\n  course_id INTEGER REFERENCES courses(id),\n  PRIMARY KEY (student_id, course_id)\n);',
+          accept: ['CREATE TABLE enrollments (\n  student_id INTEGER REFERENCES students(id),\n  course_id INTEGER REFERENCES courses(id),\n  PRIMARY KEY (student_id, course_id)\n);'],
+          why: '두 FOREIGN KEY를 열로 넣고, 그 조합을 PRIMARY KEY (student_id, course_id)로 지정해서 같은 조합이 중복 저장되지 않게 해요.',
+          hint: '두 FOREIGN KEY 열을 만들고, 마지막 줄에 PRIMARY KEY (student_id, course_id)를 추가하세요.'
+        }),
+      ],
+      boss: () => makeChoice(
+        '"한 학생은 여러 동아리에 가입할 수 있고, 한 동아리도 여러 학생을 받을 수 있다"를 표로 설계하려고 해요. 가장 알맞은 방법은?',
+        'students와 clubs 사이에 student_id, club_id를 가진 중간 표(junction table)를 만든다', ['students 표에 club_id 열 하나만 추가한다', 'clubs 표에 student_id 열 하나만 추가한다', '표를 하나로 합쳐서 모든 정보를 다 담는다'],
+        '양쪽 다 "여러 개"를 가질 수 있는 N:M 관계이므로, 두 id를 함께 담는 중간 표가 필요해요.',
+        '학생 표나 동아리 표에 열을 하나만 추가해서는 "여러 개"를 담을 자리가 없다는 걸 떠올려보세요.'
+      )
+    },
+    {
+      id: 'nullifFunction',
+      title: 'NULLIF로 특정 값을 NULL로 바꾸기',
+      ready: true,
+      summary: '두 값이 같으면 NULL로 바꿔주는 NULLIF로, 0으로 나누기 같은 위험한 상황을 안전하게 막는 법을 배워요.',
+      goals: ['NULLIF(값1, 값2) 동작 이해하기', '0으로 나누기 오류 막기', 'COALESCE와 함께 조합해서 쓰기'],
+      blocks: [
+        {
+          h: '두 값이 같으면 NULL로: NULLIF',
+          html: `<p><code>NULLIF(값1, 값2)</code>는 두 값이 <b>같으면 NULL</b>을, 다르면 <b>값1을 그대로</b> 돌려줘요. "특정 값이면 없는 것으로 취급하고 싶을 때" 유용해요.</p>`,
+          code: {
+            label: 'nullif_basic.sql',
+            lang: 'sql',
+            src: `SELECT NULLIF(score, 0) FROM scores;
+-- score가 0이면 NULL, 아니면 원래 값 그대로`
+          }
+        },
+        {
+          h: '실무에서 가장 흔한 쓰임: 0으로 나누기 막기',
+          html: `<p>어떤 값을 <code>0</code>으로 나누면 오류가 나거나 이상한 값이 나올 수 있어요. <code>나눌값 / NULLIF(나누는값, 0)</code>처럼 쓰면, 나누는 값이 0일 때 <b>NULL</b>이 되어 <b>안전하게</b> "값 없음"으로 처리돼요.</p>`,
+          code: {
+            label: 'nullif_division.sql',
+            lang: 'sql',
+            src: `SELECT student_id, score / NULLIF(attempt_count, 0) AS avg_per_attempt
+FROM scores;`
+          }
+        },
+        {
+          h: 'COALESCE와 함께 쓰기',
+          html: `<p><code>NULLIF</code>로 만든 NULL을, 다시 <code>COALESCE</code>로 기본값을 채우면 "0이면 대신 이 값을 보여줘" 같은 흐름도 만들 수 있어요.</p>`,
+          code: {
+            label: 'nullif_coalesce.sql',
+            lang: 'sql',
+            src: `SELECT COALESCE(NULLIF(score, 0), -1) AS score_or_default
+FROM scores;`
+          },
+          after: `<div class="note"><b>기억하기</b> — COALESCE는 "NULL이면 기본값", NULLIF는 "이 값이면 NULL로"예요. 서로 반대 방향으로 짝을 이루는 함수라고 생각하면 기억하기 쉬워요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const same = Math.random() < 0.5;
+          const a = randInt(1, 20);
+          const b = same ? a : a + randInt(1, 10);
+          return {
+            type: 'blank',
+            q: `<code>NULLIF(${a}, ${b})</code>의 결과는? 같으면 NULL, 다르면 첫 번째 값을 숫자로 쓰세요.`,
+            prefix: '', suffix: '', accept: [same ? 'NULL' : String(a)], placeholder: 'NULL 또는 숫자',
+            why: same ? `두 값이 ${a}로 같아서 NULL이 돼요.` : `두 값이 달라서(${a} ≠ ${b}) 첫 번째 값 ${a}가 그대로 나와요.`,
+            hint: '두 값이 같은지 다른지부터 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          '<code>NULLIF(값1, 값2)</code>가 NULL을 돌려주는 경우는?',
+          '값1과 값2가 서로 같을 때', ['값1이 0일 때만', '값2가 NULL일 때만', '항상 NULL을 돌려준다'],
+          'NULLIF는 두 값이 정확히 같을 때만 NULL을 돌려주고, 다르면 값1을 그대로 돌려줘요.',
+          '"두 값이 같다면"이라는 조건에 집중해보세요.'
+        ),
+        () => makeChoice(
+          '<code>score / NULLIF(attempt_count, 0)</code>처럼 쓰는 이유는?',
+          'attempt_count가 0일 때 나누기 오류 대신 NULL이 되게 하려고', ['항상 결과를 0으로 만들려고', 'score를 무조건 두 배로 만들려고', 'attempt_count를 삭제하려고'],
+          'attempt_count가 0이면 NULLIF가 NULL로 바꿔줘서, 0으로 나누는 대신 안전하게 NULL이 돼요.',
+          '0으로 나누면 어떤 문제가 생기는지 떠올려보고, NULLIF가 그걸 어떻게 막는지 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `score가 0이면 NULL로 바꾸는 표현을 완성하세요.`,
+          prefix: '', suffix: '(score, 0)', accept: ['NULLIF', 'nullif'], placeholder: '함수 이름',
+          why: 'NULLIF(score, 0)은 score가 0과 같으면 NULL을, 아니면 score 값을 그대로 돌려줘요.',
+          hint: '"NULL로 만든다(NULL if)"는 뜻을 그대로 담은 이름이에요.'
+        }),
+        () => ({
+          type: 'code',
+          q: 'scores 표에서 score가 0이면 NULL로, 아니면 원래 값을 보여주는 SQL을 작성하세요.',
+          starter: '',
+          placeholder: 'SELECT NULLIF(score, 0) FROM scores;',
+          accept: ['SELECT NULLIF(score, 0) FROM scores;'],
+          why: 'NULLIF(score, 0)로 0인 값만 NULL로 바꿔요.',
+          hint: 'SELECT NULLIF(score, 0) FROM scores;를 그대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const score = pick([0, 85, 90]);
+        return {
+          type: 'blank',
+          q: `<code>score</code>가 ${score}일 때, <code>COALESCE(NULLIF(score, 0), -1)</code>의 결과는? 숫자로 쓰세요.`,
+          prefix: '', suffix: '', accept: [score === 0 ? '-1' : String(score)], placeholder: '숫자',
+          why: score === 0 ? `score가 0이라 NULLIF가 NULL로 바꾸고, COALESCE가 그 NULL을 기본값 -1로 채워요.` : `score가 0이 아니라서(${score}) NULLIF는 그대로 ${score}를 돌려주고, COALESCE도 NULL이 아니니 원래 값을 그대로 둬요.`,
+          hint: '먼저 NULLIF가 무엇을 돌려주는지 확인한 뒤, COALESCE가 그 결과를 어떻게 처리하는지 생각해보세요.'
+        };
+      }
+    },
+    {
+      id: 'updatableViews',
+      title: '수정 가능한 뷰: Updatable View',
+      ready: true,
+      summary: '단순한 구조의 VIEW는 SELECT뿐 아니라 INSERT/UPDATE/DELETE도 가능하다는 것과 그 한계를 배워요.',
+      goals: ['단순한 VIEW는 수정도 가능하다는 것 알기', '어떤 VIEW가 수정 가능한지 이해하기', '복잡한 VIEW의 한계 이해하기'],
+      blocks: [
+        {
+          h: 'VIEW인데 UPDATE가 된다고요?',
+          html: `<p>대부분 VIEW는 조회(SELECT)용으로만 생각하지만, <b>표 하나만 가져오는 단순한 VIEW</b>는 실제로는 <code>UPDATE</code>·<code>DELETE</code>·<code>INSERT</code>도 할 수 있어요. 데이터베이스가 그 수정을 <b>원본 표</b>에 그대로 반영해주기 때문이에요.</p>`,
+          code: {
+            label: 'updatable_view.sql',
+            lang: 'sql',
+            src: `CREATE VIEW seoul_students AS
+SELECT * FROM students WHERE city = '서울';
+
+UPDATE seoul_students SET age = 18 WHERE name = '지수';
+-- 실제로는 students 표의 '지수' 행이 수정됨`
+          }
+        },
+        {
+          h: '어떤 VIEW가 "수정 가능"할까요',
+          html: `<p>표 <b>하나만</b> 그대로 가져오고, <code>GROUP BY</code>·집계 함수·<code>DISTINCT</code>·여러 표의 <code>JOIN</code> 같은 게 없는 <b>단순한 VIEW</b>일수록 수정 가능해요. 어떤 행을 바꿔야 할지 데이터베이스가 <b>명확하게 원본과 연결</b>할 수 있어야 하기 때문이에요.</p>`
+        },
+        {
+          h: '복잡한 VIEW는 수정할 수 없어요',
+          html: `<p>여러 표를 JOIN했거나, <code>COUNT</code>/<code>SUM</code> 같은 집계가 들어간 VIEW는 "이 한 행을 수정하면 원본의 어느 행을 바꿔야 하는지" <b>알 수 없어서</b> 수정이 안 돼요. 이럴 때 수정이 꼭 필요하면 <code>INSTEAD OF</code> 트리거로 직접 규칙을 정해줘야 해요.</p>`,
+          after: `<div class="note"><b>기억하기</b> — "표 하나 + 조건만 있는 단순한 VIEW"는 수정 가능, "여러 표 JOIN + 집계가 있는 VIEW"는 조회 전용이라고 기억해두면 편해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '<code>CREATE VIEW seoul_students AS SELECT * FROM students WHERE city = \'서울\';</code>처럼 표 하나만 가져온 단순한 VIEW에 대해 옳은 것은?',
+          'UPDATE/DELETE/INSERT를 실행하면 원본 students 표에 그대로 반영된다', ['SELECT만 가능하고 다른 명령은 전혀 안 된다', 'VIEW를 조회할 때마다 새로운 표가 만들어진다', '원본 표와는 완전히 분리되어 아무 영향도 주지 않는다'],
+          '표 하나만 그대로 가져오는 단순한 VIEW는 원본과 명확히 연결되어 있어서, 수정하면 원본 표가 실제로 바뀌어요.',
+          '"단순한 VIEW"라는 조건에 주목해보세요.'
+        ),
+        () => makeChoice(
+          'VIEW가 수정 가능하려면 어떤 조건에 가까워야 할까요?',
+          '표 하나만 그대로 가져오고, JOIN이나 집계 함수가 없어야 한다', ['반드시 인덱스가 있어야 한다', '반드시 TRIGGER가 함께 있어야 한다', 'WHERE 조건이 전혀 없어야 한다'],
+          '단순히 표 하나를 그대로 보여주는 VIEW여야, 어떤 원본 행을 수정할지 명확해요.',
+          '"명확하게 원본 행과 연결될 수 있는가"를 기준으로 생각해보세요.'
+        ),
+        () => makeChoice(
+          '여러 표를 JOIN하거나 COUNT 같은 집계가 들어간 VIEW를 수정할 수 없는 이유는?',
+          '결과의 한 행이 원본의 어느 행(들)에 해당하는지 명확하게 알 수 없어서', ['VIEW 이름이 너무 길어서', 'JOIN은 원래 느려서', '집계 함수는 원래 오류를 자주 내서'],
+          'JOIN이나 집계가 섞이면, 결과의 한 행을 수정했을 때 원본의 어느 행을 어떻게 바꿔야 할지 애매해져서 자동으로 수정을 반영할 수 없어요.',
+          '결과 행과 원본 행 사이의 "1:1 대응"이 되는지를 생각해보세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `복잡한 VIEW(JOIN/집계 포함)에서도 수정이 꼭 필요할 때, 직접 규칙을 정의할 수 있게 해주는 트리거 종류를 쓰세요. (예: ${'{이것}'} 트리거)`,
+          prefix: '', suffix: '', accept: ['INSTEAD OF', 'instead of'], placeholder: '키워드',
+          why: 'INSTEAD OF 트리거를 쓰면, VIEW에 대한 UPDATE/INSERT/DELETE가 일어날 때 어떻게 처리할지 직접 정의할 수 있어요.',
+          hint: '"~ 대신에"라는 뜻의 두 단어짜리 영어 표현이에요.'
+        }),
+        () => ({
+          type: 'code',
+          q: 'seoul_students 뷰(students 표에서 city가 서울인 행만 보여주는 단순한 뷰)를 통해, 이름이 "지수"인 학생의 age를 18로 바꾸는 UPDATE문을 작성하세요.',
+          starter: '',
+          placeholder: "UPDATE seoul_students SET age = 18 WHERE name = '지수';",
+          accept: ["UPDATE seoul_students SET age = 18 WHERE name = '지수';"],
+          why: '단순한 VIEW는 표처럼 UPDATE를 실행할 수 있고, 그 결과가 원본 students 표에 반영돼요.',
+          hint: "UPDATE seoul_students SET age = 18 WHERE name = '지수'; 형태를 그대로 써보세요."
+        }),
+      ],
+      boss: () => makeChoice(
+        '<code>CREATE VIEW city_counts AS SELECT city, COUNT(*) FROM students GROUP BY city;</code>라는 VIEW에 <code>UPDATE city_counts SET count = 100 WHERE city = \'서울\';</code>를 실행하면 어떻게 될까요?',
+        'GROUP BY와 집계 함수가 있어서 수정할 수 없어 오류가 난다', ['서울 학생 수가 실제로 100명으로 바뀐다', 'students 표의 모든 행이 삭제된다', '아무 오류 없이 조용히 무시된다'],
+        '집계(COUNT)와 GROUP BY가 있는 VIEW는 결과 행이 원본의 어느 행에 대응하는지 알 수 없어서 수정이 불가능해요.',
+        '이 VIEW가 "단순한 VIEW"의 조건(표 하나 + 집계 없음)을 만족하는지 확인해보세요.'
+      )
+    },
+    {
+      id: 'windowFrameClause',
+      title: '윈도우 프레임: ROWS BETWEEN',
+      ready: true,
+      summary: '윈도우 함수가 계산에 포함할 행의 범위를 직접 정하는 ROWS BETWEEN(프레임)으로, 누적 합계 같은 값을 구하는 법을 배워요.',
+      goals: ['프레임(frame)이 무엇인지 이해하기', 'ROWS BETWEEN으로 범위 정하기', '누적 합계(running total) 만들기'],
+      blocks: [
+        {
+          h: '윈도우 함수가 보는 범위: 프레임(frame)',
+          html: `<p><code>ROW_NUMBER()</code>나 <code>RANK()</code>는 전체 정렬 순서를 보지만, <code>SUM()</code> 같은 함수를 윈도우로 쓸 때는 "지금 행 기준으로 <b>어디부터 어디까지</b> 더할지" 범위를 정해야 할 때가 있어요. 이 범위를 <b>프레임(frame)</b>이라고 불러요.</p>`,
+          code: {
+            label: 'frame_default.sql',
+            lang: 'sql',
+            src: `SELECT student_id, score,
+  SUM(score) OVER (ORDER BY student_id) AS running_total
+FROM scores;`
+          }
+        },
+        {
+          h: '범위를 직접 정하기: ROWS BETWEEN',
+          html: `<p><code>ROWS BETWEEN 시작 AND 끝</code>으로 정확한 범위를 정할 수 있어요. <code>UNBOUNDED PRECEDING</code>은 "맨 처음부터", <code>CURRENT ROW</code>는 "지금 행까지"를 뜻해요.</p>`,
+          code: {
+            label: 'rows_between.sql',
+            lang: 'sql',
+            src: `SELECT student_id, score,
+  SUM(score) OVER (
+    ORDER BY student_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS running_total
+FROM scores;`
+          }
+        },
+        {
+          h: '누적 합계(running total) 만들기',
+          html: `<p>위 쿼리는 "지금 행까지의 누적 합계"를 계산해요. 첫 행은 자기 점수만, 두 번째 행은 첫 번째+두 번째 점수 합, 이런 식으로 <b>순서대로 쌓여가는 값</b>을 만들 수 있어요.</p>`,
+          after: `<div class="note"><b>참고</b> — <code>ORDER BY</code>만 쓰고 <code>ROWS BETWEEN</code>을 생략해도, 대부분의 데이터베이스는 기본으로 "맨 처음부터 지금 행까지"를 프레임으로 써요. 그래서 첫 번째 예시와 두 번째 예시의 결과가 같아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => ({
+          type: 'blank',
+          q: `윈도우 함수가 계산에 포함할 행의 범위를 직접 정할 때 쓰는 절을 쓰세요. (예: ${'{이것}'} UNBOUNDED PRECEDING AND CURRENT ROW)`,
+          prefix: '', suffix: '', accept: ['ROWS BETWEEN', 'rows between'], placeholder: '키워드',
+          why: '<code>ROWS BETWEEN 시작 AND 끝</code>으로 윈도우 함수가 볼 행의 범위(프레임)를 정해요.',
+          hint: '"행(ROWS)"과 "~사이(BETWEEN)"가 합쳐진 두 단어예요.'
+        }),
+        () => makeChoice(
+          '<code>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>가 뜻하는 범위는?',
+          '맨 처음 행부터 지금 행까지', ['지금 행부터 맨 마지막 행까지', '지금 행 바로 앞뒤 한 행씩만', '전체 표 전부(정렬 무관)'],
+          'UNBOUNDED PRECEDING은 "맨 처음부터", CURRENT ROW는 "지금 행까지"를 뜻해서, 둘을 합치면 처음부터 지금까지의 누적 범위예요.',
+          '"PRECEDING(앞선)"과 "CURRENT ROW(지금 행)"이라는 단어 뜻을 생각해보세요.'
+        ),
+        () => {
+          const scores = [80, 90, 70];
+          const running = scores.map((_, i) => scores.slice(0, i + 1).reduce((a, b) => a + b, 0));
+          const idx = randInt(0, scores.length - 1);
+          return {
+            type: 'blank',
+            q: `student_id 순서대로 점수가 ${scores.join(', ')}일 때, <code>SUM(score) OVER (ORDER BY student_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)</code>의 ${idx + 1}번째 행 결과는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(running[idx])], placeholder: '숫자',
+            why: `${idx + 1}번째 행까지의 누적 합계는 ${scores.slice(0, idx + 1).join(' + ')} = ${running[idx]}이에요.`,
+            hint: '맨 처음 행부터 그 행까지의 점수를 순서대로 다 더해보세요.'
+          };
+        },
+        () => makeChoice(
+          'ORDER BY만 쓰고 ROWS BETWEEN을 생략하면 어떻게 될까요?',
+          '기본값으로 "맨 처음부터 지금 행까지"가 프레임으로 쓰인다', ['오류가 나서 실행이 안 된다', '전체 표가 항상 프레임이 된다', '프레임 없이 각 행이 자기 자신만 본다'],
+          'ORDER BY만 있고 프레임을 생략하면, 대부분 "맨 처음부터 지금 행까지"가 기본 프레임으로 쓰여요.',
+          '생략했을 때의 기본 동작이 누적 합계와 같은 결과를 낸다는 걸 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: 'student_id 순서대로 score의 누적 합계(running_total)를 ROWS BETWEEN을 이용해 구하는 SQL을 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'SELECT student_id, score,\n  SUM(score) OVER (\n    ORDER BY student_id\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n  ) AS running_total\nFROM scores;',
+          accept: ['SELECT student_id, score,\n  SUM(score) OVER (\n    ORDER BY student_id\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n  ) AS running_total\nFROM scores;'],
+          why: 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW로 맨 처음부터 지금 행까지 누적해서 더해요.',
+          hint: 'SUM(score) OVER (ORDER BY student_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const scores = [90, 85, 60, 100];
+        const running = scores.map((_, i) => scores.slice(0, i + 1).reduce((a, b) => a + b, 0));
+        return {
+          type: 'blank',
+          q: `student_id 순서대로 점수가 ${scores.join(', ')}일 때, 누적 합계(ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)의 마지막(4번째) 행 결과는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(running[3])], placeholder: '숫자',
+          why: `맨 처음부터 마지막 행까지 다 더하면 ${scores.join(' + ')} = ${running[3]}이에요.`,
+          hint: '마지막 행의 누적 합계는 결국 전체 합계와 같다는 걸 떠올려보세요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({

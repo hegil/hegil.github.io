@@ -3016,6 +3016,1877 @@ for _, name := range keys {
           hint: '한글 이름을 문자열로 정렬했을 때 가장 먼저 오는 게 무엇인지 생각해보세요.'
         };
       }
+    },
+    {
+      id: 'pointerReceivers',
+      title: '포인터 리시버 vs 값 리시버',
+      ready: true,
+      summary: '메서드가 원본을 바꿔야 할 때는 포인터 리시버를, 읽기만 할 때는 값 리시버를 쓰는 기준을 배워요.',
+      goals: ['값 리시버는 구조체의 복사본에서 동작하기', '포인터 리시버는 원본 필드를 직접 수정하기', '어떤 상황에 어떤 리시버를 골라야 하는지'],
+      blocks: [
+        {
+          h: '값 리시버: 복사본이라 원본은 그대로',
+          html: `<p>값 리시버(<code>func (c Counter) ...</code>)는 메서드가 호출될 때 구조체를 <b>통째로 복사</b>해서 써요. 그래서 메서드 안에서 필드를 바꿔도, 원본(호출한 쪽의 변수)은 전혀 영향을 받지 않아요.</p>`,
+          code: {
+            label: 'value_receiver.go',
+            lang: 'go',
+            src: `type Counter struct {
+	count int
+}
+
+func (c Counter) IncreaseWrong() {
+	c.count++ // 복사본만 바뀜
+}
+
+func main() {
+	c := Counter{count: 0}
+	c.IncreaseWrong()
+	fmt.Println(c.count) // 여전히 0
+}`,
+            out: `0`
+          }
+        },
+        {
+          h: '포인터 리시버: 원본을 직접 수정',
+          html: `<p>포인터 리시버(<code>func (c *Counter) ...</code>)는 구조체의 <b>주소</b>를 받아서, 메서드 안에서 <code>*c</code>가 가리키는 원본을 직접 바꿔요. 필드를 변경해야 하는 메서드는 거의 항상 포인터 리시버를 써요.</p>`,
+          code: {
+            label: 'pointer_receiver.go',
+            lang: 'go',
+            src: `func (c *Counter) Increase() {
+	c.count++ // 원본이 바뀜
+}
+
+func main() {
+	c := Counter{count: 0}
+	c.Increase()
+	fmt.Println(c.count) // 1
+}`,
+            out: `1`
+          },
+          after: `<div class="note"><b>정리</b> — "이 메서드가 원본을 바꿔야 하는가?"가 리시버 선택의 기준이에요. 바꿔야 하면 포인터 리시버, 읽기만 한다면 값 리시버로 충분해요. 참고로 한 타입에 포인터 리시버 메서드가 하나라도 있으면, 나머지도 포인터 리시버로 통일하는 게 관례예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const start = randInt(0, 5);
+          return {
+            type: 'blank',
+            q: `<code>func (c Counter) IncreaseWrong() { c.count++ }</code>이고 <code>c := Counter{count: ${start}}</code>에서 <code>c.IncreaseWrong()</code>을 3번 호출한 뒤 <code>c.count</code>는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(start)], placeholder: '숫자',
+            why: `값 리시버는 매번 복사본에서만 바뀌므로, 몇 번을 호출해도 원본 count는 여전히 ${start}예요.`,
+            hint: '값 리시버는 원본에 전혀 영향을 주지 않아요.'
+          };
+        },
+        () => makeChoice(
+          '메서드가 구조체의 필드를 실제로 바꿔야 할 때 사용해야 하는 리시버는?',
+          '포인터 리시버', ['값 리시버', '인터페이스 리시버', '제네릭 리시버'],
+          '포인터 리시버는 원본 구조체의 주소를 받아서, 그 필드를 직접 수정할 수 있어요.',
+          '"주소를 받아 원본을 직접 건드린다"는 게 포인터 리시버의 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `필드를 실제로 수정해야 하는 메서드에 포인터 리시버를 쓰는 이유를 설명하면? ("메서드 안에서 원본 구조체의 필드를 직접 수정할 수 있기 때문에"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['메서드 안에서 원본 구조체의 필드를 직접 수정할 수 있기 때문에'], placeholder: '설명',
+          why: '값 리시버는 복사본만 바꾸지만, 포인터 리시버는 원본 자체를 바꿀 수 있어요.',
+          hint: '복사본이 아니라 "원본"을 바꾼다는 점이 핵심이에요.'
+        }),
+        () => makeChoice(
+          '값 리시버로 정의된 메서드가 호출될 때 일어나는 일은?',
+          '구조체 전체가 복사되어, 메서드 안에서는 그 복사본을 사용한다', ['구조체의 주소만 전달되어 원본이 바로 바뀐다', '아무 것도 전달되지 않고 전역 변수만 사용한다', '컴파일 오류가 발생한다'],
+          '값 리시버는 호출 시점에 구조체를 복사해서 메서드에 넘겨요.',
+          '"복사본"이라는 단어를 기억하세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Counter</code> 구조체(필드 <code>count int</code>)에 대해, <code>count</code>를 1 늘리는 포인터 리시버 메서드 <code>Increase</code>를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'func (c *Counter) Increase() {\n\tc.count++\n}',
+          accept: ['func (c *Counter) Increase() {\n\tc.count++\n}'],
+          why: '포인터 리시버 (c *Counter)로 받아서, c.count++로 원본을 직접 늘려요.',
+          hint: 'func (c *Counter) Increase() { c.count++ } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const start = randInt(0, 10);
+        const calls = randInt(1, 5);
+        const isPointer = Math.random() < 0.5;
+        const finalCount = isPointer ? start + calls : start;
+        return {
+          type: 'blank',
+          q: `<code>c := Counter{count: ${start}}</code>이고, ${isPointer ? '포인터 리시버 메서드 Increase' : '값 리시버 메서드 IncreaseWrong'}를 ${calls}번 호출했어요. 최종 <code>c.count</code>는? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(finalCount)], placeholder: '숫자',
+          why: isPointer
+            ? `포인터 리시버는 원본을 직접 바꾸므로 ${start} + ${calls} = ${finalCount}예요.`
+            : `값 리시버는 복사본만 바꾸므로 원본은 그대로 ${start}예요.`,
+          hint: '리시버가 포인터인지 값인지에 따라 원본이 실제로 바뀌는지가 결정돼요.'
+        };
+      }
+    },
+    {
+      id: 'rwMutex',
+      title: 'sync.RWMutex로 읽기와 쓰기 분리하기',
+      ready: true,
+      summary: '읽기는 여러 고루틴이 동시에, 쓰기는 한 번에 하나만 하도록 나누는 sync.RWMutex를 배워요.',
+      goals: ['RLock/RUnlock으로 동시 읽기 허용하기', 'Lock/Unlock으로 쓰기는 배타적으로 하기', 'Mutex 대신 RWMutex를 쓰면 좋은 상황'],
+      blocks: [
+        {
+          h: '여러 고루틴이 동시에 읽기: RLock',
+          html: `<p><code>sync.RWMutex</code>는 읽기 잠금(<code>RLock</code>)과 쓰기 잠금(<code>Lock</code>)을 구분해요. 읽기만 할 때는 <b>여러 고루틴이 동시에</b> RLock을 잡을 수 있어서, 읽기가 많고 쓰기가 적은 상황에서 훨씬 효율적이에요.</p>`,
+          code: {
+            label: 'rwmutex_read.go',
+            lang: 'go',
+            src: `var mu sync.RWMutex
+var data = map[string]int{"지수": 90}
+
+func read(key string) int {
+	mu.RLock()
+	defer mu.RUnlock()
+	return data[key]
+}`
+          }
+        },
+        {
+          h: '쓰기는 배타적으로: Lock',
+          html: `<p>값을 바꾸는 쓰기 작업은 여전히 <code>Lock</code>/<code>Unlock</code>으로 한 번에 하나만 실행되게 막아요. 쓰기 중에는 읽기(RLock)도 기다려야, 쓰는 도중의 어중간한 값을 읽는 일이 없어요.</p>`,
+          code: {
+            label: 'rwmutex_write.go',
+            lang: 'go',
+            src: `func write(key string, value int) {
+	mu.Lock()
+	defer mu.Unlock()
+	data[key] = value
+}`
+          },
+          after: `<div class="note"><b>정리</b> — 읽기가 압도적으로 많고 쓰기가 드물다면 RWMutex가 유리해요. 쓰기가 잦다면 그냥 Mutex와 성능 차이가 크지 않아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'sync.RWMutex에서 RLock()의 특징은?',
+          '여러 고루틴이 동시에 RLock을 잡아 함께 읽을 수 있다', ['RLock도 한 번에 하나의 고루틴만 잡을 수 있다', 'RLock을 부르면 다른 모든 잠금이 풀린다', 'RLock은 쓰기 작업에만 사용한다'],
+          'RLock은 읽기 전용 잠금이라 여러 고루틴이 동시에 잡을 수 있어요.',
+          '"읽기(Read)는 여럿이 함께"라는 게 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `쓰기 작업을 보호할 때 사용하는 배타적 잠금 메서드를 쓰세요. (Unlock과 짝을 이루는 쪽)`,
+          prefix: 'mu.', suffix: '() ... mu.Unlock()', accept: ['Lock'], placeholder: '메서드 이름',
+          why: '쓰기는 RLock이 아니라 일반 Lock/Unlock으로 배타적으로 보호해요.',
+          hint: '읽기 전용이 아닌, 값을 바꿀 때 쓰는 잠금이에요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `일반 Mutex 대신 RWMutex를 쓰면 좋은 상황을 설명하면? ("읽기가 많고 쓰기가 드문 상황"이라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['읽기가 많고 쓰기가 드문 상황'], placeholder: '설명',
+          why: '읽기끼리는 동시에 허용되므로, 읽기가 압도적으로 많을 때 RWMutex가 유리해요.',
+          hint: '읽기와 쓰기의 "비율"이 핵심이에요.'
+        }),
+        () => makeChoice(
+          '한 고루틴이 <code>mu.Lock()</code>(쓰기)을 잡고 있는 동안, 다른 고루틴이 <code>mu.RLock()</code>을 호출하면?',
+          '쓰기가 끝날 때까지 기다려야 한다', ['즉시 함께 읽을 수 있다', '쓰기 잠금이 자동으로 풀린다', '오류가 발생하며 프로그램이 종료된다'],
+          '쓰기 잠금이 걸려 있으면, 읽기 잠금도 그 쓰기가 끝날 때까지 기다려야 해요.',
+          '쓰기 중에는 읽기도 안전을 위해 잠시 멈춰요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>mu sync.RWMutex</code>와 <code>data map[string]int</code>가 있을 때, key로 값을 읽어 반환하는 함수 <code>read</code>를 RLock/RUnlock으로 보호해서 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'func read(key string) int {\n\tmu.RLock()\n\tdefer mu.RUnlock()\n\treturn data[key]\n}',
+          accept: ['func read(key string) int {\n\tmu.RLock()\n\tdefer mu.RUnlock()\n\treturn data[key]\n}'],
+          why: 'RLock으로 읽기 잠금을 걸고, defer RUnlock으로 확실히 풀어준 다음 값을 반환해요.',
+          hint: 'func read(key string) int { mu.RLock(); defer mu.RUnlock(); return data[key] } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const bothRead = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: bothRead
+            ? `두 고루틴이 동시에 <code>mu.RLock()</code>을 호출했어요. 서로 상대방이 RUnlock할 때까지 기다려야 할까요? (예/아니오)`
+            : `한 고루틴이 <code>mu.Lock()</code>(쓰기)을 잡고 있는 동안, 다른 고루틴이 <code>mu.RLock()</code>을 호출했어요. 기다려야 할까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: bothRead ? ['아니오'] : ['예'], placeholder: '예 / 아니오',
+          why: bothRead
+            ? 'RLock끼리는 서로 막지 않으므로, 기다리지 않고 함께 읽을 수 있어요.'
+            : '쓰기 잠금(Lock)이 걸려 있으면 읽기 잠금(RLock)도 쓰기가 끝날 때까지 기다려야 해요.',
+          hint: '읽기끼리는 함께, 쓰기와는 항상 배타적이에요.'
+        };
+      }
+    },
+    {
+      id: 'syncOnce',
+      title: 'sync.Once로 딱 한 번만 실행하기',
+      ready: true,
+      summary: '여러 고루틴이 동시에 호출해도 초기화 코드가 정확히 한 번만 실행되게 하는 sync.Once를 배워요.',
+      goals: ['once.Do로 한 번만 실행되는 코드 만들기', '여러 고루틴이 동시에 불러도 안전한 이유', '싱글턴·초기화 패턴에 활용하기'],
+      blocks: [
+        {
+          h: '문제: 초기화를 딱 한 번만 하고 싶다면',
+          html: `<p>불리언 변수로 "이미 초기화했는지" 확인하는 방식은, 여러 고루틴이 <b>동시에</b> 그 확인을 통과해버리면 초기화가 두 번 이상 실행될 수 있어요(레이스 컨디션).</p>`,
+          code: {
+            label: 'naive_once.go',
+            lang: 'go',
+            src: `var initialized bool
+var config string
+
+func loadConfig() {
+	if !initialized {
+		config = "설정 로딩 완료"
+		initialized = true // 동시에 실행되면 두 번 로딩될 수도 있음
+	}
+}`
+          }
+        },
+        {
+          h: '해결: sync.Once',
+          html: `<p><code>sync.Once</code>의 <code>Do</code> 메서드에 넘긴 함수는, 몇 번을 호출하든 <b>딱 한 번만</b> 실행돼요. 여러 고루틴이 동시에 <code>Do</code>를 불러도 Go가 내부적으로 안전하게 처리해줘요.</p>`,
+          code: {
+            label: 'sync_once.go',
+            lang: 'go',
+            src: `var once sync.Once
+var config string
+
+func loadConfig() {
+	once.Do(func() {
+		config = "설정 로딩 완료"
+		fmt.Println("로딩 실행됨")
+	})
+}
+
+func main() {
+	loadConfig()
+	loadConfig()
+	loadConfig()
+}`,
+            out: `로딩 실행됨`
+          },
+          after: `<div class="note"><b>정리</b> — sync.Once는 "몇 번을 불러도 결국 1번만"을 보장해요. 설정 로딩, 싱글턴 인스턴스 생성처럼 딱 한 번만 해야 하는 초기화에 자주 써요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const calls = randInt(2, 10);
+          return {
+            type: 'blank',
+            q: `<code>var once sync.Once</code>이고 <code>loadConfig</code>를 총 ${calls}번 호출했어요(내부에서 <code>once.Do(func(){ fmt.Println("로딩 실행됨") })</code>를 호출). "로딩 실행됨"은 몇 번 출력될까요? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: ['1'], placeholder: '숫자',
+            why: `once.Do에 넘긴 함수는 몇 번을 호출하든 정확히 1번만 실행되므로, ${calls}번을 불러도 "로딩 실행됨"은 1번만 출력돼요.`,
+            hint: '이름 그대로 "Once"— 딱 한 번이에요.'
+          };
+        },
+        () => makeChoice(
+          'sync.Once의 Do 메서드가 보장하는 것은?',
+          '넘겨진 함수가 몇 번 호출되든 딱 한 번만 실행된다', ['넘겨진 함수가 매번 새로운 고루틴에서 실행된다', '넘겨진 함수가 정확히 두 번 실행된다', '넘겨진 함수의 실행 순서를 무작위로 바꾼다'],
+          'Once.Do는 최초 호출에서만 함수를 실행하고, 이후 호출은 아무 일도 하지 않아요.',
+          '"딱 한 번"이라는 이름이 곧 동작이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `sync.Once를 여러 고루틴이 동시에 호출해도 안전한 이유를 설명하면? ("내부적으로 동시에 호출되어도 단 한 번만 실행되도록 보장하기 때문에"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['내부적으로 동시에 호출되어도 단 한 번만 실행되도록 보장하기 때문에'], placeholder: '설명',
+          why: 'sync.Once는 내부적으로 동시 호출을 안전하게 처리해서, 경쟁 상태 없이 정확히 한 번만 실행돼요.',
+          hint: '직접 불리언 변수로 확인하는 방식과 달리, 동시성 문제가 없어요.'
+        }),
+        () => makeChoice(
+          'sync.Once가 자주 쓰이는 상황으로 알맞은 것은?',
+          '설정 로딩이나 싱글턴 인스턴스 생성처럼, 처음 한 번만 초기화해야 하는 경우', ['반복문을 여러 번 실행해야 하는 경우', '고루틴을 여러 개 만들어야 하는 경우', '값을 계속 바꿔야 하는 경우'],
+          '한 번만 실행되면 충분한 초기화 작업에 sync.Once가 딱 맞아요.',
+          '"초기화는 한 번만" 하면 되는 상황을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>once sync.Once</code>가 있을 때, <code>once.Do</code>로 <code>config</code>에 "설정 로딩 완료"를 대입하는 <code>loadConfig</code> 함수를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'func loadConfig() {\n\tonce.Do(func() {\n\t\tconfig = "설정 로딩 완료"\n\t})\n}',
+          accept: ['func loadConfig() {\n\tonce.Do(func() {\n\t\tconfig = "설정 로딩 완료"\n\t})\n}'],
+          why: 'once.Do에 익명 함수를 넘겨서, 그 안에서 config를 초기화해요.',
+          hint: 'func loadConfig() { once.Do(func() { config = "설정 로딩 완료" }) } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const calls = randInt(3, 50);
+        return {
+          type: 'blank',
+          q: `${calls}개의 고루틴이 동시에 <code>once.Do(func(){ fmt.Println("초기화됨") })</code>를 호출했어요. "초기화됨"은 총 몇 번 출력될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: ['1'], placeholder: '숫자',
+          why: `동시에 여러 고루틴이 Do를 호출해도, sync.Once는 단 한 번만 함수를 실행하도록 보장하므로 "초기화됨"은 1번만 출력돼요.`,
+          hint: '고루틴이 몇 개든, Once가 보장하는 실행 횟수는 정해져 있어요.'
+        };
+      }
+    },
+    {
+      id: 'atomicOperations',
+      title: 'sync/atomic으로 가벼운 카운터 만들기',
+      ready: true,
+      summary: 'Mutex 없이도 정수 값을 안전하게 더하고 읽을 수 있는 sync/atomic 패키지를 배워요.',
+      goals: ['atomic.AddInt64로 안전하게 값 더하기', 'atomic.LoadInt64로 안전하게 읽기', 'Mutex와 atomic 중 언제 무엇을 쓸지'],
+      blocks: [
+        {
+          h: '단순한 값 하나엔 atomic',
+          html: `<p>카운터처럼 <b>단순한 숫자 값 하나</b>만 여러 고루틴이 안전하게 더하거나 읽으면 될 때는, Mutex 없이 <code>sync/atomic</code> 패키지의 함수만으로 충분해요. CPU가 지원하는 원자적(atomic) 연산을 그대로 사용해서 Mutex보다 가벼워요.</p>`,
+          code: {
+            label: 'atomic_add.go',
+            lang: 'go',
+            src: `var count int64
+
+func increment() {
+	atomic.AddInt64(&count, 1)
+}`
+          }
+        },
+        {
+          h: '안전하게 값 읽기: atomic.LoadInt64',
+          html: `<p>값을 더하는 도중에 다른 고루틴이 일반적인 방법(<code>count</code>를 그냥 읽기)으로 읽으면 역시 안전하지 않을 수 있어요. 읽을 때도 <code>atomic.LoadInt64</code>를 써야 완전히 안전해요.</p>`,
+          code: {
+            label: 'atomic_load.go',
+            lang: 'go',
+            src: `func main() {
+	var wg sync.WaitGroup
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			increment()
+		}()
+	}
+	wg.Wait()
+	fmt.Println(atomic.LoadInt64(&count)) // 항상 1000
+}`,
+            out: `1000`
+          },
+          after: `<div class="note"><b>정리</b> — atomic은 단일 값에 대한 단순 연산(더하기, 읽기)에 최적화되어 있어요. 여러 필드를 함께 다루거나 복잡한 로직을 보호해야 한다면 Mutex가 더 적합해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = pick([100, 500, 1000, 2000]);
+          return {
+            type: 'blank',
+            q: `${n}개의 고루틴이 각각 <code>atomic.AddInt64(&count, 1)</code>을 한 번씩 실행해요. 모두 끝난 뒤 <code>count</code>는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+            why: `atomic.AddInt64는 각 더하기 연산을 안전하게 처리하므로, 정확히 ${n}이 나와요.`,
+            hint: 'atomic 연산은 레이스 컨디션 없이 정확한 결과를 보장해요.'
+          };
+        },
+        () => makeChoice(
+          'sync/atomic 패키지의 연산이 보장하는 것은?',
+          '더하기·읽기 같은 단일 연산을, 다른 고루틴의 간섭 없이 안전하게 처리한다', ['모든 코드를 자동으로 병렬화한다', '고루틴을 자동으로 개수를 조절한다', '항상 Mutex보다 느리게 동작하게 만든다'],
+          'atomic 연산은 CPU 수준에서 "쪼개질 수 없는" 하나의 연산으로 처리돼요.',
+          '"원자적(atomic)"이라는 말은 더 이상 쪼갤 수 없다는 뜻이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `Mutex 대신 atomic을 쓰기 적합한 경우를 설명하면? ("단순한 숫자 값 하나만 안전하게 더하거나 읽으면 되는 경우"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['단순한 숫자 값 하나만 안전하게 더하거나 읽으면 되는 경우'], placeholder: '설명',
+          why: '여러 필드를 함께 다루거나 복잡한 로직이 필요하면 Mutex가 낫지만, 값 하나만 다룰 땐 atomic이 더 가벼워요.',
+          hint: '"단순함"과 "값 하나"가 핵심 조건이에요.'
+        }),
+        () => makeChoice(
+          '값을 더하는 도중, 다른 고루틴이 <code>atomic.LoadInt64</code>가 아니라 그냥 <code>count</code>를 직접 읽으면?',
+          '더하는 도중의 값을 읽는 등, 안전하지 않은 결과를 볼 수도 있다', ['항상 정확한 최신 값을 읽는다', '프로그램이 즉시 종료된다', 'count 값이 자동으로 0이 된다'],
+          '더하기는 atomic으로 보호해도, 읽기를 일반적인 방법으로 하면 안전성이 깨질 수 있어요.',
+          '더하기와 읽기 모두 atomic 함수로 해야 완전히 안전해요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>var count int64</code>가 있을 때, <code>atomic.AddInt64</code>로 <code>count</code>를 1 늘리는 함수 <code>increment</code>를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'func increment() {\n\tatomic.AddInt64(&count, 1)\n}',
+          accept: ['func increment() {\n\tatomic.AddInt64(&count, 1)\n}'],
+          why: 'atomic.AddInt64(&count, 1)로 count의 주소에 원자적으로 1을 더해요.',
+          hint: 'func increment() { atomic.AddInt64(&count, 1) } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const n = pick([50, 200, 777, 1500]);
+        return {
+          type: 'blank',
+          q: `${n}개의 고루틴이 각각 <code>atomic.AddInt64(&count, 1)</code>을 정확히 한 번씩 실행하고 <code>wg.Wait()</code>로 모두 기다린 뒤, <code>atomic.LoadInt64(&count)</code>를 호출하면? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(n)], placeholder: '숫자',
+          why: `atomic 연산으로 더하고 읽었으므로, 레이스 컨디션 없이 정확히 ${n}이 나와요.`,
+          hint: 'atomic.AddInt64와 atomic.LoadInt64를 함께 쓰면 값이 정확히 보장돼요.'
+        };
+      }
+    },
+    {
+      id: 'selectTimeout',
+      title: 'select와 time.After로 타임아웃 걸기',
+      ready: true,
+      summary: '채널 응답을 무한정 기다리지 않도록, select와 time.After를 조합해 타임아웃을 거는 패턴을 배워요.',
+      goals: ['time.After가 반환하는 채널의 역할', 'select로 결과와 타임아웃 중 먼저 오는 것 처리하기', '무한 대기를 막는 이유'],
+      blocks: [
+        {
+          h: '문제: 응답이 영원히 안 오면?',
+          html: `<p>채널에서 값을 받는 코드(<code>result := <-resultCh</code>)는, 아무도 그 채널에 값을 보내지 않으면 <b>영원히</b> 그 자리에서 기다려요. 네트워크 요청처럼 응답이 안 올 수도 있는 작업에서는 위험해요.</p>`,
+          code: {
+            label: 'no_timeout.go',
+            lang: 'go',
+            src: `result := <-resultCh // resultCh에 아무도 값을 안 보내면 영원히 대기`
+          }
+        },
+        {
+          h: '해결: time.After와 select',
+          html: `<p><code>time.After(d)</code>는 <code>d</code> 시간이 지나면 값을 하나 보내는 채널을 돌려줘요. <code>select</code>로 원래 채널과 <code>time.After</code>를 동시에 지켜보면, "결과가 먼저 오는지, 시간이 먼저 다 되는지"에 따라 다르게 처리할 수 있어요.</p>`,
+          code: {
+            label: 'select_timeout.go',
+            lang: 'go',
+            src: `select {
+case result := <-resultCh:
+	fmt.Println("결과:", result)
+case <-time.After(3 * time.Second):
+	fmt.Println("시간 초과")
+}`
+          },
+          after: `<div class="note"><b>정리</b> — context.WithTimeout이 더 표준적인 방법이지만, 간단한 상황에서는 select + time.After만으로도 충분히 타임아웃을 구현할 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const workSec = randInt(1, 10);
+          const timeoutSec = randInt(1, 10);
+          const timesOut = timeoutSec < workSec;
+          return {
+            type: 'blank',
+            q: `<code>select { case result := <-resultCh: ...; case <-time.After(${timeoutSec} * time.Second): fmt.Println("시간 초과") }</code>이고, resultCh는 작업이 시작된 지 ${workSec}초 뒤에야 값이 와요. 무엇이 출력될까요? ("시간 초과" 또는 "결과")`,
+            prefix: '', suffix: '', accept: [timesOut ? '시간 초과' : '결과'], placeholder: '시간 초과 / 결과',
+            why: timesOut
+              ? `타임아웃(${timeoutSec}초)이 결과(${workSec}초)보다 먼저 오므로 "시간 초과"가 출력돼요.`
+              : `결과(${workSec}초)가 타임아웃(${timeoutSec}초)보다 먼저 오므로 "결과"가 출력돼요.`,
+            hint: '두 시간 중 어느 쪽이 더 짧은지 비교해보세요.'
+          };
+        },
+        () => makeChoice(
+          '<code>time.After(3 * time.Second)</code>가 하는 일은?',
+          '3초가 지나면 값을 하나 보내는 채널을 반환한다', ['3초 동안 프로그램 실행을 멈춘다', '3초마다 반복해서 값을 보내는 채널을 반환한다', '3초 뒤에 프로그램을 강제 종료한다'],
+          'time.After는 지정한 시간 뒤 딱 한 번 값을 보내는 채널을 만들어줘요.',
+          'time.Sleep과 달리, 채널을 돌려준다는 점이 달라요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `select와 time.After를 함께 쓰는 이유를 설명하면? ("채널 응답을 무한정 기다리지 않고, 일정 시간이 지나면 포기하도록 만들기 위해"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['채널 응답을 무한정 기다리지 않고, 일정 시간이 지나면 포기하도록 만들기 위해'], placeholder: '설명',
+          why: '응답이 영원히 안 올 수도 있는 상황에서, 정해진 시간이 지나면 포기하도록 만드는 안전장치예요.',
+          hint: '"무한 대기를 막는다"는 게 핵심 목적이에요.'
+        }),
+        () => makeChoice(
+          'select에 resultCh를 받는 case와 time.After를 받는 case가 함께 있을 때, 어느 case가 실행되는지 결정하는 기준은?',
+          '둘 중 먼저 준비되는(값이 오는) 쪽', ['항상 첫 번째로 적은 case', '항상 time.After 쪽', '두 case가 항상 동시에 실행된다'],
+          'select는 여러 채널 중 먼저 값이 오는 쪽의 case를 실행해요.',
+          '"먼저 오는 쪽"이라는 select의 기본 규칙을 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>resultCh</code>에서 값이 오면 <code>fmt.Println("결과:", result)</code>로 출력하고, 2초가 지나면 <code>fmt.Println("시간 초과")</code>를 출력하는 <code>select</code>문을 작성하세요.',
+          starter: '',
+          rows: 5,
+          placeholder: 'select {\ncase result := <-resultCh:\n\tfmt.Println("결과:", result)\ncase <-time.After(2 * time.Second):\n\tfmt.Println("시간 초과")\n}',
+          accept: ['select {\ncase result := <-resultCh:\n\tfmt.Println("결과:", result)\ncase <-time.After(2 * time.Second):\n\tfmt.Println("시간 초과")\n}'],
+          why: 'select 안에 resultCh case와 time.After(2 * time.Second) case를 나란히 두어요.',
+          hint: 'select { case result := <-resultCh: ... case <-time.After(2 * time.Second): ... } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const timeoutSec = pick([1, 2, 5]);
+        const workSec = timeoutSec + randInt(1, 10);
+        return {
+          type: 'blank',
+          q: `<code>select { case result := <-resultCh: fmt.Println("결과:", result); case <-time.After(${timeoutSec} * time.Second): fmt.Println("시간 초과") }</code>이고, resultCh는 작업이 끝나는 ${workSec}초 뒤에야 값이 도착해요. 무엇이 출력될까요? (그대로 입력)`,
+          prefix: '', suffix: '', accept: ['시간 초과'], placeholder: '출력 결과',
+          why: `타임아웃(${timeoutSec}초)이 실제 작업 완료(${workSec}초)보다 먼저 오므로 "시간 초과"가 출력돼요.`,
+          hint: '타임아웃 시간이 작업이 걸리는 시간보다 짧은지 확인해보세요.'
+        };
+      }
+    },
+    {
+      id: 'errorsAsCustomType',
+      title: '커스텀 에러 타입과 errors.As',
+      ready: true,
+      summary: '자신만의 에러 구조체를 만들고, errors.As로 그 구체적인 타입을 안전하게 꺼내는 방법을 배워요.',
+      goals: ['Error() 메서드로 커스텀 에러 타입 만들기', 'errors.As로 감싸진 에러에서 구체 타입 꺼내기', '에러에 추가 정보(필드) 담기'],
+      blocks: [
+        {
+          h: '나만의 에러 타입 만들기',
+          html: `<p>에러도 struct로 만들 수 있어요. <code>Error() string</code> 메서드만 있으면 <code>error</code> 인터페이스를 만족해요. 구조체라서 메시지 외에 추가 정보(예: 문제가 된 필드 이름)를 함께 담을 수 있어요.</p>`,
+          code: {
+            label: 'custom_error_type.go',
+            lang: 'go',
+            src: `type ValidationError struct {
+	Field string
+	Msg   string
+}
+
+func (e *ValidationError) Error() string {
+	return e.Field + ": " + e.Msg
+}
+
+func validate(age int) error {
+	if age < 0 {
+		return &ValidationError{Field: "age", Msg: "음수일 수 없어요"}
+	}
+	return nil
+}`
+          }
+        },
+        {
+          h: '구체 타입 꺼내기: errors.As',
+          html: `<p><code>errors.As</code>는 (감싸졌을 수도 있는) 에러 체인을 따라가면서, 지정한 타입의 포인터에 담을 수 있는 에러를 찾아 <b>그 타입으로 꺼내</b>줘요. 그러면 구조체에 담긴 추가 필드(Field 등)에 접근할 수 있어요.</p>`,
+          code: {
+            label: 'errors_as.go',
+            lang: 'go',
+            src: `err := validate(-5)
+
+var ve *ValidationError
+if errors.As(err, &ve) {
+	fmt.Println("문제 필드:", ve.Field)
+}`,
+            out: `문제 필드: age`
+          },
+          after: `<div class="note"><b>정리</b> — errors.Is는 "이 에러가 그 원본과 같은가"를 비교하고, errors.As는 "이 에러를 그 타입으로 꺼낼 수 있는가"를 확인한다는 차이가 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const field = pick(['age', 'email', 'name']);
+          const msg = pick(['형식이 올바르지 않아요', '비어 있을 수 없어요', '음수일 수 없어요']);
+          return {
+            type: 'blank',
+            q: `<code>err := &ValidationError{Field: "${field}", Msg: "${msg}"}</code>이고 <code>var ve *ValidationError; errors.As(err, &ve)</code>가 성공했을 때, <code>ve.Field</code>는? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [field], placeholder: 'Field 값',
+            why: `errors.As가 성공하면 ve는 원래의 *ValidationError를 가리키므로, ve.Field는 "${field}"예요.`,
+            hint: 'errors.As는 원본 구조체를 그대로 꺼내줘요.'
+          };
+        },
+        () => makeChoice(
+          'errors.As(err, &target)의 역할은?',
+          '에러 체인에서 target과 같은 타입의 에러를 찾아, 그 타입으로 꺼내준다', ['에러 메시지를 항상 영어로 번역한다', 'err을 무조건 nil로 만든다', '에러가 발생한 줄 번호를 계산한다'],
+          'errors.As는 (감싸졌을 수도 있는) 에러 체인을 따라가며 지정한 타입과 일치하는 에러를 찾아줘요.',
+          '"타입으로 꺼낸다(As)"는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `errors.Is와 errors.As의 차이를 설명하면? ("errors.Is는 같은 에러인지 비교하고, errors.As는 특정 타입으로 꺼낼 수 있는지 확인한다"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['errors.Is는 같은 에러인지 비교하고, errors.As는 특정 타입으로 꺼낼 수 있는지 확인한다'], placeholder: '설명',
+          why: 'Is는 값 비교(동일성)에, As는 타입 변환(구체 타입 추출)에 초점을 맞춰요.',
+          hint: '하나는 "같다", 다른 하나는 "이 타입이다"를 확인해요.'
+        }),
+        () => makeChoice(
+          '커스텀 에러 타입이 Go의 error 인터페이스를 만족하려면 반드시 구현해야 하는 것은?',
+          'Error() string 메서드', ['New() 함수', 'Wrap() 메서드', 'String() int 메서드'],
+          'error 인터페이스는 Error() string 메서드 하나만 요구해요.',
+          'error 인터페이스가 요구하는 메서드는 딱 하나예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>Field</code>(string), <code>Msg</code>(string) 필드를 가진 <code>ValidationError</code> 구조체를 정의하고, <code>e.Field + ": " + e.Msg</code>를 반환하는 포인터 리시버 <code>Error() string</code> 메서드를 작성하세요.',
+          starter: '',
+          rows: 8,
+          placeholder: 'type ValidationError struct {\n\tField string\n\tMsg   string\n}\n\nfunc (e *ValidationError) Error() string {\n\treturn e.Field + ": " + e.Msg\n}',
+          accept: ['type ValidationError struct {\n\tField string\n\tMsg   string\n}\n\nfunc (e *ValidationError) Error() string {\n\treturn e.Field + ": " + e.Msg\n}'],
+          why: '구조체를 정의하고, 포인터 리시버로 Error() string 메서드를 구현해서 error 인터페이스를 만족시켜요.',
+          hint: 'type ValidationError struct { } 다음에 func (e *ValidationError) Error() string { return e.Field + ": " + e.Msg } 형태를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const field = pick(['age', 'email', 'password']);
+        const msg = pick(['필수 항목이에요', '길이가 너무 짧아요', '형식이 잘못됐어요']);
+        return {
+          type: 'blank',
+          q: `<code>original := &ValidationError{Field: "${field}", Msg: "${msg}"}</code>, <code>wrapped := fmt.Errorf("검증 실패: %w", original)</code>이고 <code>var ve *ValidationError; errors.As(wrapped, &ve)</code>를 실행하면, <code>ve.Field</code>는? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [field], placeholder: 'Field 값',
+          why: `%w로 감싸도 errors.As는 체인을 따라가 원본 *ValidationError를 찾아내므로, ve.Field는 여전히 "${field}"예요.`,
+          hint: '감싸는 것과 상관없이, errors.As는 원본 타입을 찾아낼 수 있어요.'
+        };
+      }
+    },
+    {
+      id: 'contextCancelValues',
+      title: 'context.WithCancel과 context.WithValue',
+      ready: true,
+      summary: '직접 취소 신호를 보내는 WithCancel과, 요청 범위의 값을 전달하는 WithValue를 배워요.',
+      goals: ['context.WithCancel로 원하는 시점에 취소 신호 보내기', 'ctx.Err()로 취소 이유 확인하기', 'context.WithValue로 요청 범위 데이터 전달하기'],
+      blocks: [
+        {
+          h: '직접 취소하기: context.WithCancel',
+          html: `<p><code>WithTimeout</code>은 시간이 지나면 자동으로 취소되지만, <code>context.WithCancel</code>은 시간과 무관하게 <b>내가 원하는 시점</b>에 <code>cancel()</code>을 불러 취소 신호를 보낼 수 있어요.</p>`,
+          code: {
+            label: 'context_cancel.go',
+            lang: 'go',
+            src: `ctx, cancel := context.WithCancel(context.Background())
+
+go func() {
+	time.Sleep(1 * time.Second)
+	cancel() // 1초 뒤 직접 취소
+}()
+
+<-ctx.Done()
+fmt.Println("취소 이유:", ctx.Err())`,
+            out: `취소 이유: context canceled`
+          }
+        },
+        {
+          h: '요청 범위 값 전달하기: context.WithValue',
+          html: `<p><code>context.WithValue</code>는 요청 하나를 처리하는 동안 여러 함수에 함께 실어 나를 값(예: 요청 ID)을 담아요. 함수 매개변수를 계속 늘리지 않고도 context 하나로 전달할 수 있어요. 다만 핵심 로직 값이 아니라, 로깅·추적용 부가 정보에만 쓰는 게 권장돼요.</p>`,
+          code: {
+            label: 'context_value.go',
+            lang: 'go',
+            src: `ctx := context.WithValue(context.Background(), "requestID", "req-123")
+
+func handle(ctx context.Context) {
+	id := ctx.Value("requestID")
+	fmt.Println("처리 중:", id)
+}`,
+            out: `처리 중: req-123`
+          },
+          after: `<div class="note"><b>정리</b> — WithCancel은 "언제 취소할지 내가 결정", WithTimeout은 "정해진 시간이 지나면 자동 취소", WithValue는 "값을 함께 실어 나르기" 담당이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'context.WithCancel과 context.WithTimeout의 차이는?',
+          'WithCancel은 내가 원하는 시점에 직접 cancel()을 불러 취소하고, WithTimeout은 지정한 시간이 지나면 자동으로 취소된다', ['두 함수는 완전히 동일하게 동작한다', 'WithCancel은 취소가 아예 불가능하다', 'WithTimeout은 수동으로 취소할 수 없다'],
+          'WithCancel은 수동 취소용, WithTimeout은 자동(시간 기반) 취소용이에요.',
+          '"누가 취소를 결정하는가"가 핵심 차이예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `취소된 context에서 <code>ctx.Err()</code>가 하는 일을 설명하면? ("왜 취소되었는지(취소 이유)를 알려준다"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['왜 취소되었는지(취소 이유)를 알려준다'], placeholder: '설명',
+          why: 'ctx.Err()는 취소되지 않았으면 nil을, 취소됐다면 그 이유(취소인지 타임아웃인지)를 알려줘요.',
+          hint: '단순히 취소 여부가 아니라 "이유"를 알려준다는 점이 핵심이에요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `<code>ctx := context.WithValue(context.Background(), "requestID", "req-123")</code>일 때, 그 값을 꺼내는 메서드를 쓰세요.`,
+          prefix: 'ctx.', suffix: '("requestID")', accept: ['Value'], placeholder: '메서드 이름',
+          why: 'ctx.Value(key)로 WithValue에 담아둔 값을 꺼낼 수 있어요.',
+          hint: '"값(Value)"을 그대로 가져오는 메서드예요.'
+        }),
+        () => makeChoice(
+          'context.WithValue에 담기 적합한 값으로 알맞은 것은?',
+          '요청 ID처럼 로깅·추적용 부가 정보', ['핵심 비즈니스 로직에 반드시 필요한 필수 계산 값', '함수의 주요 반환값', '데이터베이스 연결 자체의 핵심 설정'],
+          'WithValue는 부가적인 맥락 정보를 실어 나르는 용도이지, 중요한 로직 값을 전달하는 용도가 아니에요.',
+          '"꼭 있어야만 로직이 도는가"를 기준으로 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>context.Background()</code>를 기반으로 언제든 취소할 수 있는 <code>ctx</code>와 <code>cancel</code>을 만드는 코드를 한 줄로 작성하세요.',
+          starter: '',
+          placeholder: 'ctx, cancel := context.WithCancel(context.Background())',
+          accept: ['ctx, cancel := context.WithCancel(context.Background())'],
+          why: 'context.WithCancel(부모컨텍스트)는 ctx와, 직접 부를 수 있는 cancel 함수를 함께 돌려줘요.',
+          hint: 'ctx, cancel := context.WithCancel(context.Background()) 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const cancelled = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `<code>ctx, cancel := context.WithCancel(context.Background())</code>이고, ${cancelled ? 'cancel()을 이미 호출했어요' : 'cancel()을 아직 한 번도 호출하지 않았어요'}. 지금 <code><-ctx.Done()</code>에서 즉시 값을 받을 수 있을까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [cancelled ? '예' : '아니오'], placeholder: '예 / 아니오',
+          why: cancelled
+            ? 'cancel()이 이미 호출됐으므로 ctx.Done() 채널은 이미 닫혀있어 즉시 값을 받을 수 있어요.'
+            : 'cancel()을 아직 부르지 않았으므로 ctx.Done()은 계속 대기 상태예요.',
+          hint: 'cancel()을 불렀는지 여부가 Done() 채널의 상태를 결정해요.'
+        };
+      }
+    },
+    {
+      id: 'genericConstraints',
+      title: '제네릭 제약 더 깊이: comparable과 커스텀 제약',
+      ready: true,
+      summary: '==로 비교 가능한 타입만 받는 comparable과, 인터페이스로 나만의 제네릭 제약을 만드는 법을 배워요.',
+      goals: ['comparable로 비교 가능한 타입만 허용하기', '인터페이스로 커스텀 제약 정의하기', '~ 기호로 제약의 범위 넓히기'],
+      blocks: [
+        {
+          h: '비교 가능한 타입만: comparable',
+          html: `<p><code>comparable</code>은 Go에 내장된 특별한 제약으로, <code>==</code>와 <code>!=</code>로 비교할 수 있는 모든 타입을 허용해요. 슬라이스에서 특정 값을 찾는 함수처럼, 비교가 꼭 필요한 제네릭 함수에 써요.</p>`,
+          code: {
+            label: 'comparable_basic.go',
+            lang: 'go',
+            src: `func Contains[T comparable](items []T, target T) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
+}
+
+func main() {
+	fmt.Println(Contains([]int{1, 2, 3}, 2))
+}`,
+            out: `true`
+          }
+        },
+        {
+          h: '나만의 제약 만들기: 인터페이스',
+          html: `<p>여러 특정 타입만 받고 싶다면, 인터페이스로 <b>타입 집합</b>을 정의해서 제약으로 쓸 수 있어요. <code>~</code>를 붙이면 "이 타입을 기반으로 정의한 사용자 타입도 포함"이라는 뜻이 돼요.</p>`,
+          code: {
+            label: 'custom_constraint.go',
+            lang: 'go',
+            src: `type Number interface {
+	~int | ~int64 | ~float64
+}
+
+func Sum[T Number](nums []T) T {
+	var total T
+	for _, n := range nums {
+		total += n
+	}
+	return total
+}`
+          },
+          after: `<div class="note"><b>정리</b> — comparable은 "비교가 필요할 때", 커스텀 인터페이스 제약은 "정확히 이 타입들만 허용하고 싶을 때" 사용해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const nums = [randInt(1, 20), randInt(1, 20), randInt(1, 20)];
+          const target = Math.random() < 0.5 ? pick(nums) : randInt(21, 40);
+          const found = nums.includes(target);
+          return {
+            type: 'blank',
+            q: `<code>func Contains[T comparable](items []T, target T) bool { for _, item := range items { if item == target { return true } }; return false }</code>이고 <code>Contains([]int{${nums.join(', ')}}, ${target})</code>의 결과는? (true/false)`,
+            prefix: '', suffix: '', accept: [String(found)], placeholder: 'true / false',
+            why: `[${nums.join(', ')}] 안에 ${target}이(가) ${found ? '있으므로 true' : '없으므로 false'}예요.`,
+            hint: '슬라이스 안에 target과 같은 값이 있는지 하나씩 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          'comparable 제약이 허용하는 타입은?',
+          '==와 != 로 비교할 수 있는 모든 타입', ['오직 int 타입만', '오직 문자열 타입만', '모든 슬라이스와 맵 타입'],
+          'comparable은 비교 연산자를 지원하는 타입 전체를 아우르는 특별한 내장 제약이에요.',
+          '슬라이스나 맵처럼 ==로 비교할 수 없는 타입은 comparable에 포함되지 않아요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>type Number interface { ~int | ~int64 | ~float64 }</code>에서 <code>~</code> 기호의 의미를 설명하면? ("그 타입을 기반으로 정의한 사용자 타입도 포함한다는 뜻"이라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['그 타입을 기반으로 정의한 사용자 타입도 포함한다는 뜻'], placeholder: '설명',
+          why: '~int는 int뿐 아니라 "type MyInt int"처럼 int를 기반으로 만든 타입도 포함시켜요.',
+          hint: '기반 타입으로 새로 정의한 타입까지 함께 허용한다는 뜻이에요.'
+        }),
+        () => makeChoice(
+          '제네릭 함수에 커스텀 인터페이스 제약을 직접 정의하는 이유는?',
+          '허용할 타입의 범위를 원하는 대로 좁히거나 넓히기 위해', ['컴파일 속도를 항상 더 빠르게 만들기 위해', 'any 제약을 아예 사용할 수 없게 만들기 위해', '함수의 반환값 개수를 늘리기 위해'],
+          'any나 comparable만으로 부족할 때, 원하는 타입 집합만 정확히 허용하는 제약을 직접 만들 수 있어요.',
+          '"정확히 이 타입들만" 허용하고 싶을 때 커스텀 제약을 써요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>~int</code>, <code>~float64</code> 타입만 허용하는 제약 <code>Number</code>를 인터페이스로 정의하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'type Number interface {\n\t~int | ~float64\n}',
+          accept: ['type Number interface {\n\t~int | ~float64\n}'],
+          why: '인터페이스 안에 ~int | ~float64 형태로 허용할 타입 집합을 나열해요.',
+          hint: 'type Number interface { ~int | ~float64 } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const nums = [randInt(1, 30), randInt(1, 30), randInt(1, 30), randInt(1, 30)];
+        const target = Math.random() < 0.5 ? pick(nums) : randInt(31, 50);
+        const found = nums.includes(target);
+        return {
+          type: 'blank',
+          q: `<code>Contains([]int{${nums.join(', ')}}, ${target})</code>를 <code>comparable</code> 제약을 쓴 <code>Contains</code> 함수로 호출하면 결과는? (true/false)`,
+          prefix: '', suffix: '', accept: [String(found)], placeholder: 'true / false',
+          why: `${target}이(가) [${nums.join(', ')}] 안에 ${found ? '있으므로 true' : '없으므로 false'}예요.`,
+          hint: 'comparable 덕분에 ==로 각 원소와 target을 비교할 수 있어요.'
+        };
+      }
+    },
+    {
+      id: 'ioReaderWriter',
+      title: 'io.Reader와 io.Writer 인터페이스',
+      ready: true,
+      summary: '파일, 네트워크, 문자열 등 다양한 데이터 소스를 동일한 방식으로 다루게 해주는 io.Reader/io.Writer를 배워요.',
+      goals: ['io.Reader의 Read 메서드 하나로 모든 입력원 다루기', 'io.Writer의 Write 메서드로 모든 출력지에 쓰기', '인터페이스 덕분에 함수가 다양한 타입을 받을 수 있는 이유'],
+      blocks: [
+        {
+          h: '입력의 표준: io.Reader',
+          html: `<p><code>io.Reader</code>는 <code>Read(p []byte) (n int, err error)</code> 메서드 하나만 요구하는 인터페이스예요. 파일, 네트워크 연결, 문자열(<code>strings.NewReader</code>) 등 "데이터를 읽어올 수 있는" 거의 모든 것이 이 인터페이스를 구현해요.</p>`,
+          code: {
+            label: 'reader_basic.go',
+            lang: 'go',
+            src: `func printAll(r io.Reader) {
+	data, _ := io.ReadAll(r)
+	fmt.Println(string(data))
+}
+
+func main() {
+	printAll(strings.NewReader("안녕하세요"))
+}`,
+            out: `안녕하세요`
+          }
+        },
+        {
+          h: '출력의 표준: io.Writer',
+          html: `<p><code>io.Writer</code>는 <code>Write(p []byte) (n int, err error)</code> 메서드 하나만 요구해요. <code>fmt.Fprintln(w, ...)</code>처럼, Writer만 있으면 파일이든 화면(<code>os.Stdout</code>)이든 메모리 버퍼든 똑같은 방식으로 쓸 수 있어요.</p>`,
+          code: {
+            label: 'writer_basic.go',
+            lang: 'go',
+            src: `var buf bytes.Buffer
+fmt.Fprintln(&buf, "로그 한 줄")
+fmt.Println(buf.String())`,
+            out: `로그 한 줄`
+          },
+          after: `<div class="note"><b>정리</b> — io.Reader/io.Writer는 "실제 타입이 무엇이든, 읽고 쓰는 방법만 맞으면 된다"는 Go 인터페이스 철학을 가장 잘 보여주는 예예요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const text = pick(['반갑습니다', '좋은 하루', '테스트 완료']);
+          return {
+            type: 'blank',
+            q: `<code>func printAll(r io.Reader) { data, _ := io.ReadAll(r); fmt.Println(string(data)) }</code>이고 <code>printAll(strings.NewReader("${text}"))</code>를 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [text], placeholder: '출력 결과',
+            why: `strings.NewReader("${text}")는 io.Reader이고, io.ReadAll로 그 내용 전체("${text}")를 읽어 출력해요.`,
+            hint: 'io.Reader는 실제로 담긴 문자열을 그대로 읽어와요.'
+          };
+        },
+        () => makeChoice(
+          'io.Reader 인터페이스가 요구하는 메서드는?',
+          'Read(p []byte) (n int, err error)', ['ReadAll() string', 'Open() error', 'Get(key string) []byte'],
+          'io.Reader는 딱 하나, Read(p []byte) (n int, err error) 메서드만 요구해요.',
+          '메서드가 단 하나뿐이라는 게 io.Reader의 특징이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `io.Writer 인터페이스가 요구하는 메서드의 이름만 쓰세요.`,
+          prefix: '', suffix: '(p []byte) (n int, err error)', accept: ['Write'], placeholder: '메서드 이름',
+          why: 'io.Writer는 Write(p []byte) (n int, err error) 메서드 하나만 요구해요.',
+          hint: '"쓰다"라는 뜻의 영어 단어예요.'
+        }),
+        () => makeChoice(
+          'io.Reader/io.Writer 같은 작은 인터페이스를 표준 라이브러리 전반에서 쓰는 이유는?',
+          '입력원·출력지의 실제 타입이 무엇이든, 똑같은 방식(Read/Write)으로 다룰 수 있게 하기 위해', ['프로그램의 실행 속도를 항상 두 배로 만들기 위해', '파일 입출력을 아예 금지하기 위해', '변수 이름을 통일하기 위해'],
+          '메서드 하나만 맞으면 파일이든, 네트워크든, 메모리든 동일한 함수로 다룰 수 있어요.',
+          '"똑같은 방식으로 다룬다"가 핵심 이점이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>bytes.Buffer</code> 타입의 <code>buf</code>에 <code>fmt.Fprintln</code>으로 "로그 한 줄"을 쓰고, <code>buf.String()</code>을 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'fmt.Fprintln(&buf, "로그 한 줄")\nfmt.Println(buf.String())',
+          accept: ['fmt.Fprintln(&buf, "로그 한 줄")\nfmt.Println(buf.String())'],
+          why: 'fmt.Fprintln은 io.Writer를 받는 함수라서, &buf(포인터, io.Writer 구현체)를 그대로 넘길 수 있어요.',
+          hint: 'fmt.Fprintln(&buf, "로그 한 줄") 다음 fmt.Println(buf.String())을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const text = pick(['입출력 완료', '버퍼 테스트', '안녕 세상']);
+        return {
+          type: 'blank',
+          q: `<code>var buf bytes.Buffer</code>이고 <code>fmt.Fprintln(&buf, "${text}")</code>를 실행한 뒤 <code>strings.TrimSpace(buf.String())</code>을 출력하면? (그대로 입력, 줄바꿈 없이)`,
+          prefix: '', suffix: '', accept: [text], placeholder: '출력 결과',
+          why: `Fprintln은 buf(io.Writer)에 "${text}"와 줄바꿈을 쓰고, TrimSpace가 그 줄바꿈을 제거해서 "${text}"만 남아요.`,
+          hint: 'buf는 io.Writer 역할을 하는 메모리 버퍼예요.'
+        };
+      }
+    },
+    {
+      id: 'bufioScanner',
+      title: 'bufio로 버퍼드 입출력하기',
+      ready: true,
+      summary: '한 줄씩 효율적으로 읽는 bufio.Scanner와, 쓰기를 모아뒀다 한 번에 내보내는 bufio.Writer를 배워요.',
+      goals: ['bufio.NewScanner로 한 줄씩 읽기', 'bufio.Writer로 쓰기를 모았다가 Flush하기', '버퍼링이 성능에 도움이 되는 이유'],
+      blocks: [
+        {
+          h: '한 줄씩 읽기: bufio.Scanner',
+          html: `<p><code>bufio.NewScanner(r)</code>는 io.Reader를 감싸서, <code>Scan()</code>을 부를 때마다 한 줄씩 읽고 <code>Text()</code>로 그 줄의 내용을 꺼낼 수 있게 해줘요. 파일이나 표준 입력을 한 줄씩 처리할 때 아주 흔히 써요.</p>`,
+          code: {
+            label: 'scanner_basic.go',
+            lang: 'go',
+            src: `scanner := bufio.NewScanner(strings.NewReader("첫줄\\n둘째줄\\n셋째줄"))
+for scanner.Scan() {
+	fmt.Println(scanner.Text())
+}`,
+            out: `첫줄\n둘째줄\n셋째줄`
+          }
+        },
+        {
+          h: '모았다가 한 번에 쓰기: bufio.Writer',
+          html: `<p>파일에 한 글자씩, 한 줄씩 계속 쓰면 매번 시스템 호출이 일어나 느려요. <code>bufio.NewWriter(w)</code>는 쓰기 내용을 메모리에 <b>모아뒀다가</b>, 어느 정도 쌓이거나 <code>Flush()</code>를 부를 때 한 번에 내보내서 훨씬 빨라요.</p>`,
+          code: {
+            label: 'writer_flush.go',
+            lang: 'go',
+            src: `writer := bufio.NewWriter(os.Stdout)
+writer.WriteString("버퍼에 저장됨\\n")
+writer.Flush() // 이제 실제로 출력됨`,
+            out: `버퍼에 저장됨`
+          },
+          after: `<div class="note"><b>정리</b> — Flush를 잊으면 버퍼에 남은 내용이 출력되지 않을 수 있어서, defer writer.Flush()로 습관화하는 게 좋아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const lines = shuffle(['사과', '바나나', '체리']).slice(0, 2);
+          return {
+            type: 'blank',
+            q: `<code>scanner := bufio.NewScanner(strings.NewReader("${lines[0]}\\n${lines[1]}"))</code>이고 <code>for scanner.Scan() { fmt.Println(scanner.Text()) }</code>를 실행하면? (줄바꿈으로 구분해서 순서대로 입력)`,
+            prefix: '', suffix: '', accept: [`${lines[0]}\n${lines[1]}`], placeholder: '출력 순서',
+            why: `Scanner는 줄 단위로 읽으므로, 순서대로 "${lines[0]}", "${lines[1]}"가 출력돼요.`,
+            hint: 'Scan()은 한 번 부를 때마다 다음 줄로 넘어가요.'
+          };
+        },
+        () => makeChoice(
+          'bufio.Scanner의 Scan()과 Text()의 역할은?',
+          'Scan()으로 다음 줄로 이동하고, Text()로 그 줄의 내용을 가져온다', ['Scan()은 파일 전체를 삭제하고, Text()는 아무 일도 하지 않는다', 'Scan()과 Text()는 완전히 같은 일을 한다', 'Scan()은 줄 수를 세고, Text()는 항상 빈 문자열을 반환한다'],
+          'Scan()이 true를 반환하면 다음 줄을 읽은 것이고, Text()로 그 줄의 문자열을 꺼내요.',
+          '"이동"과 "꺼내기"로 역할이 나뉘어요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `bufio.Writer를 쓰는 이유를 설명하면? ("쓰기 내용을 모아뒀다가 한 번에 내보내서 시스템 호출 횟수를 줄이고 성능을 높이기 위해"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['쓰기 내용을 모아뒀다가 한 번에 내보내서 시스템 호출 횟수를 줄이고 성능을 높이기 위해'], placeholder: '설명',
+          why: '한 번씩 쓸 때마다 시스템 호출이 일어나면 느리므로, 모았다가 한 번에 내보내는 게 훨씬 효율적이에요.',
+          hint: '"모았다가 한 번에"가 버퍼링의 핵심이에요.'
+        }),
+        () => makeChoice(
+          'bufio.Writer 사용 후 Flush()를 호출하지 않으면?',
+          '버퍼에 남아있는 내용이 실제로 출력(또는 저장)되지 않을 수 있다', ['자동으로 프로그램 종료 시 강제 출력된다', '즉시 오류가 발생하며 프로그램이 멈춘다', '버퍼 내용이 두 번 출력된다'],
+          'Flush를 부르지 않으면 아직 내보내지 않은 내용이 버퍼에 그대로 남아있을 수 있어요.',
+          'Flush는 "지금까지 모은 걸 실제로 내보내라"는 뜻이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>os.Stdout</code>을 감싸는 <code>bufio.NewWriter</code>로 <code>writer</code>를 만들고, "완료\\n"을 쓴 뒤 <code>Flush()</code>를 호출하는 코드를 작성하세요.',
+          starter: '',
+          rows: 3,
+          placeholder: 'writer := bufio.NewWriter(os.Stdout)\nwriter.WriteString("완료\\n")\nwriter.Flush()',
+          accept: ['writer := bufio.NewWriter(os.Stdout)\nwriter.WriteString("완료\\n")\nwriter.Flush()'],
+          why: 'bufio.NewWriter로 감싸고, WriteString으로 버퍼에 쓴 뒤 Flush로 실제 출력해요.',
+          hint: 'bufio.NewWriter(os.Stdout) 다음 WriteString과 Flush()를 순서대로 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const lines = shuffle(['월요일', '화요일', '수요일', '목요일']).slice(0, 3);
+        return {
+          type: 'blank',
+          q: `<code>scanner := bufio.NewScanner(strings.NewReader("${lines[0]}\\n${lines[1]}\\n${lines[2]}"))</code>이고 <code>for scanner.Scan() { fmt.Println(scanner.Text()) }</code>를 실행하면, 몇 번째 줄까지 출력될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: ['3'], placeholder: '숫자',
+          why: `\\n으로 구분된 줄이 3개이므로, Scan()이 3번 true를 반환해 3줄 모두 출력돼요.`,
+          hint: '줄바꿈(\\n) 문자로 몇 개의 줄이 나뉘는지 세어보세요.'
+        };
+      }
+    },
+    {
+      id: 'regexpPackage',
+      title: '정규표현식: regexp 패키지',
+      ready: true,
+      summary: '문자열이 특정 패턴과 일치하는지 확인하고, 패턴에 맞는 부분을 찾아내는 regexp 패키지를 배워요.',
+      goals: ['regexp.MatchString으로 패턴 일치 확인하기', 'FindString으로 일치하는 부분 찾기', 'ReplaceAllString으로 패턴에 맞는 부분 바꾸기'],
+      blocks: [
+        {
+          h: '패턴과 일치하는지 확인하기',
+          html: `<p><code>regexp.MatchString(패턴, 문자열)</code>은 문자열이 그 정규표현식 패턴과 일치하는 부분을 포함하는지 true/false로 알려줘요. <code>\\d+</code>는 "숫자 하나 이상"을 뜻하는 패턴이에요.</p>`,
+          code: {
+            label: 'regexp_match.go',
+            lang: 'go',
+            src: `matched, _ := regexp.MatchString("[0-9]+", "우편번호는 12345입니다")
+fmt.Println(matched)`,
+            out: `true`
+          }
+        },
+        {
+          h: '일치하는 부분 찾고 바꾸기',
+          html: `<p><code>regexp.MustCompile</code>로 패턴을 미리 컴파일해두면, <code>FindString</code>으로 처음 일치하는 부분을 찾거나 <code>ReplaceAllString</code>으로 패턴에 맞는 모든 부분을 바꿀 수 있어요. 같은 패턴을 여러 번 쓸 거라면 미리 컴파일해두는 게 훨씬 효율적이에요.</p>`,
+          code: {
+            label: 'regexp_find_replace.go',
+            lang: 'go',
+            src: `re := regexp.MustCompile("[0-9]+")
+
+fmt.Println(re.FindString("우편번호는 12345입니다"))
+fmt.Println(re.ReplaceAllString("전화 010-1234-5678", "*"))`,
+            out: `12345\n전화 *-*-*`
+          },
+          after: `<div class="note"><b>정리</b> — 패턴을 한 번만 쓸 거면 regexp.MatchString처럼 간편한 함수를, 여러 번 재사용할 거면 MustCompile로 미리 컴파일해두는 게 좋아요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const hasDigit = Math.random() < 0.5;
+          const text = hasDigit ? pick(['비밀번호는 7890', '방 번호 305호', '2024년']) : pick(['안녕하세요', '반가워요', '좋은 하루']);
+          return {
+            type: 'blank',
+            q: `<code>matched, _ := regexp.MatchString("[0-9]+", "${text}")</code>일 때 <code>matched</code>는? (true/false)`,
+            prefix: '', suffix: '', accept: [String(hasDigit)], placeholder: 'true / false',
+            why: `"${text}"에 숫자가 ${hasDigit ? '포함되어 있으므로 true' : '전혀 없으므로 false'}예요.`,
+            hint: '문자열 안에 숫자(0-9)가 하나라도 있는지 확인해보세요.'
+          };
+        },
+        () => makeChoice(
+          '<code>regexp.MustCompile(패턴)</code>을 미리 호출해두고 재사용하는 이유는?',
+          '같은 패턴을 여러 번 쓸 때, 매번 다시 해석하지 않고 한 번만 컴파일해서 효율적으로 쓰기 위해', ['패턴을 자동으로 암호화하기 위해', '패턴이 일치하지 않을 때 프로그램을 종료시키기 위해', '정규표현식을 사용할 수 없게 막기 위해'],
+          'MustCompile은 패턴을 미리 해석해서 재사용 가능한 형태로 만들어줘요.',
+          '"매번 새로 해석하지 않는다"는 게 핵심 이점이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `정규표현식에서 <code>\\d+</code>(또는 <code>[0-9]+</code>)가 뜻하는 것을 설명하면? ("숫자가 하나 이상 이어지는 부분"이라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['숫자가 하나 이상 이어지는 부분'], placeholder: '설명',
+          why: '+ 기호는 "하나 이상 반복"을 뜻하므로, [0-9]+는 숫자가 1개 이상 연속된 부분을 의미해요.',
+          hint: '+ 기호가 "반복"을 나타낸다는 걸 떠올려보세요.'
+        }),
+        () => makeChoice(
+          're.ReplaceAllString(문자열, 대체문자열)이 하는 일은?',
+          '패턴과 일치하는 모든 부분을 대체 문자열로 바꾼 새 문자열을 반환한다', ['패턴과 일치하는 첫 부분만 삭제한다', '원본 문자열을 직접 수정한다(반환값 없음)', '패턴과 전혀 일치하지 않아야만 동작한다'],
+          'ReplaceAllString은 일치하는 모든 부분을 바꾼 새 문자열을 만들어 반환해요.',
+          '"모두(All) 바꾼다"는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>[0-9]+</code> 패턴을 <code>re</code>로 컴파일하고, <code>re.FindString("우편번호는 12345입니다")</code>를 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 're := regexp.MustCompile("[0-9]+")\nfmt.Println(re.FindString("우편번호는 12345입니다"))',
+          accept: ['re := regexp.MustCompile("[0-9]+")\nfmt.Println(re.FindString("우편번호는 12345입니다"))'],
+          why: 'MustCompile로 패턴을 컴파일하고, FindString으로 처음 일치하는 부분을 찾아 출력해요.',
+          hint: 're := regexp.MustCompile("[0-9]+") 다음 fmt.Println(re.FindString(...))을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const phone = `${randInt(10, 99)}-${randInt(1000, 9999)}`;
+        return {
+          type: 'blank',
+          q: `<code>re := regexp.MustCompile("[0-9]+")</code>이고 <code>re.ReplaceAllString("전화 ${phone}", "*")</code>를 실행하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`전화 *-*`], placeholder: '결과 문자열',
+          why: `숫자로 이루어진 두 부분(각각 하나의 [0-9]+ 일치)이 모두 "*"로 바뀌어 "전화 *-*"가 돼요.`,
+          hint: '하이픈으로 나뉜 두 숫자 덩어리가 각각 하나의 일치 부분이에요.'
+        };
+      }
+    },
+    {
+      id: 'osExecCommand',
+      title: 'os/exec로 외부 명령 실행하기',
+      ready: true,
+      summary: 'Go 프로그램에서 다른 프로그램(외부 명령)을 실행하고 그 결과를 받아오는 os/exec 패키지를 배워요.',
+      goals: ['exec.Command로 외부 명령 준비하기', 'Output()으로 실행하고 표준 출력 받기', '에러 처리와 종료 코드 확인하기'],
+      blocks: [
+        {
+          h: '외부 명령 실행하기: exec.Command',
+          html: `<p><code>exec.Command(이름, 인자들...)</code>은 실행할 외부 프로그램을 준비해요. 아직 실행되진 않고, <code>Run()</code>이나 <code>Output()</code> 같은 메서드를 불러야 실제로 실행돼요.</p>`,
+          code: {
+            label: 'exec_command.go',
+            lang: 'go',
+            src: `cmd := exec.Command("echo", "안녕하세요")
+output, err := cmd.Output()
+if err != nil {
+	fmt.Println("실행 실패:", err)
+	return
+}
+fmt.Println(string(output))`,
+            out: `안녕하세요`
+          }
+        },
+        {
+          h: '실패 처리하기',
+          html: `<p>존재하지 않는 명령을 실행하거나, 명령이 0이 아닌 종료 코드로 끝나면 <code>Output()</code>이 에러를 반환해요. 외부 명령은 내가 통제할 수 없는 프로그램이므로, 항상 에러를 확인하는 습관이 중요해요.</p>`,
+          code: {
+            label: 'exec_error.go',
+            lang: 'go',
+            src: `cmd := exec.Command("존재하지않는명령")
+_, err := cmd.Output()
+if err != nil {
+	fmt.Println("명령 실행 실패")
+}`,
+            out: `명령 실행 실패`
+          },
+          after: `<div class="note"><b>정리</b> — os/exec는 강력하지만, 사용자 입력을 그대로 명령 인자에 넣으면 보안 문제가 생길 수 있어서 항상 신중하게 다뤄야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'exec.Command("echo", "hi")를 호출한 시점의 동작은?',
+          '실행할 명령을 준비만 할 뿐, 아직 실제로 실행되지는 않는다', ['호출 즉시 명령이 실행되고 결과가 반환된다', 'echo라는 이름의 Go 함수를 호출한다', '항상 에러를 발생시킨다'],
+          'exec.Command는 실행 준비 객체를 만들 뿐이고, Run()이나 Output() 등을 불러야 실제로 실행돼요.',
+          '"준비"와 "실행"은 서로 다른 단계예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `준비된 명령을 실행하고 표준 출력을 바이트 슬라이스로 받는 메서드를 쓰세요.`,
+          prefix: 'cmd.', suffix: '()', accept: ['Output'], placeholder: '메서드 이름',
+          why: 'cmd.Output()은 명령을 실행하고, 그 표준 출력을 []byte로 돌려줘요.',
+          hint: '"출력(Output)"을 그대로 가리키는 이름이에요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `외부 명령 실행 후 항상 에러를 확인해야 하는 이유를 설명하면? ("외부 프로그램은 내가 통제할 수 없어서 실패할 수 있기 때문에"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['외부 프로그램은 내가 통제할 수 없어서 실패할 수 있기 때문에'], placeholder: '설명',
+          why: '외부 명령이 없거나, 권한이 없거나, 실행 중 실패할 수 있으므로 항상 에러 확인이 필요해요.',
+          hint: '내 코드가 아니라 "다른 프로그램"이 실행되는 상황이에요.'
+        }),
+        () => makeChoice(
+          '사용자 입력을 그대로 exec.Command의 인자에 넣을 때 주의해야 하는 이유는?',
+          '검증 없이 넣으면 의도치 않은 명령이 실행되는 보안 문제가 생길 수 있어서', ['속도가 항상 느려지기 때문에', 'Go 컴파일러가 이를 자동으로 막아주기 때문에', '문자열 길이 제한이 있어서'],
+          '사용자 입력을 검증 없이 명령 인자로 쓰면 예상치 못한 명령 실행으로 이어질 수 있어요.',
+          '"신뢰할 수 없는 입력"을 그대로 명령에 넘기는 위험을 생각해보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>"ls"</code> 명령을 준비하고 실행해서, 표준 출력을 문자열로 출력하는 코드를 작성하세요. (에러는 무시)',
+          starter: '',
+          rows: 2,
+          placeholder: 'cmd := exec.Command("ls")\noutput, _ := cmd.Output()\nfmt.Println(string(output))',
+          accept: ['cmd := exec.Command("ls")\noutput, _ := cmd.Output()\nfmt.Println(string(output))'],
+          why: 'exec.Command로 명령을 준비하고, Output()으로 실행 결과를 받아 문자열로 변환해 출력해요.',
+          hint: 'cmd := exec.Command("ls") 다음 cmd.Output()을 호출하세요.'
+        }),
+      ],
+      boss: () => {
+        const exists = Math.random() < 0.5;
+        const cmdName = exists ? 'echo' : '없는명령123';
+        return {
+          type: 'blank',
+          q: `<code>cmd := exec.Command("${cmdName}")</code>, <code>_, err := cmd.Output()</code>일 때, <code>err != nil</code>일 가능성이 더 높을까요? (예/아니오)`,
+          prefix: '', suffix: '', accept: [exists ? '아니오' : '예'], placeholder: '예 / 아니오',
+          why: exists
+            ? '"echo"는 대부분의 시스템에 존재하는 명령이라 정상 실행되어 err이 nil일 가능성이 높아요.'
+            : '존재하지 않는 명령을 실행하려 하면 시스템이 명령을 찾지 못해 err이 발생해요.',
+          hint: '그 이름의 명령이 시스템에 실제로 존재하는지 생각해보세요.'
+        };
+      }
+    },
+    {
+      id: 'envVariables',
+      title: '환경 변수 다루기',
+      ready: true,
+      summary: '설정값을 코드에 하드코딩하지 않고 외부(환경 변수)에서 읽어오는 방법을 배워요.',
+      goals: ['os.Getenv로 환경 변수 읽기', 'os.LookupEnv로 존재 여부까지 확인하기', '기본값을 두는 패턴'],
+      blocks: [
+        {
+          h: '환경 변수 읽기: os.Getenv',
+          html: `<p><code>os.Getenv(이름)</code>은 그 이름의 환경 변수 값을 문자열로 돌려줘요. 그런 환경 변수가 <b>없으면</b> 에러 없이 그냥 빈 문자열("")을 돌려줘요 — 있는지 없는지 구분하지 못한다는 점에 주의해야 해요.</p>`,
+          code: {
+            label: 'getenv_basic.go',
+            lang: 'go',
+            src: `port := os.Getenv("PORT")
+if port == "" {
+	port = "8080" // 기본값
+}
+fmt.Println("포트:", port)`,
+            out: `포트: 8080`
+          }
+        },
+        {
+          h: '존재 여부까지 확인하기: os.LookupEnv',
+          html: `<p><code>os.LookupEnv(이름)</code>은 값과 함께 "실제로 설정되어 있었는지"를 나타내는 <code>bool</code>도 함께 돌려줘요. 빈 문자열로 <b>일부러</b> 설정된 경우와, 아예 설정 안 된 경우를 구분해야 할 때 유용해요.</p>`,
+          code: {
+            label: 'lookupenv_basic.go',
+            lang: 'go',
+            src: `value, exists := os.LookupEnv("DEBUG")
+if !exists {
+	fmt.Println("DEBUG가 설정되지 않았어요")
+} else {
+	fmt.Println("DEBUG =", value)
+}`,
+            out: `DEBUG가 설정되지 않았어요`
+          },
+          after: `<div class="note"><b>정리</b> — 설정값을 코드에 직접 박아넣지 않고 환경 변수로 빼두면, 코드를 수정하지 않고도 배포 환경마다 다른 값을 쓸 수 있어요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '<code>os.Getenv("PORT")</code>에서 PORT라는 환경 변수가 설정되어 있지 않을 때의 반환값은?',
+          '빈 문자열("")', ['nil', '패닉(프로그램 종료)', '"undefined"라는 문자열'],
+          'os.Getenv는 없는 환경 변수에 대해서도 에러 없이 빈 문자열을 돌려줘요.',
+          '에러를 내지 않고, 그냥 "" 을 돌려준다는 게 특징이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `환경 변수의 값과 함께, 실제로 설정되어 있었는지를 bool로 함께 알려주는 함수를 쓰세요.`,
+          prefix: 'os.', suffix: '("DEBUG")', accept: ['LookupEnv'], placeholder: '함수 이름',
+          why: 'os.LookupEnv는 (값, 존재 여부)를 함께 돌려줘서 빈 문자열 설정과 미설정을 구분할 수 있어요.',
+          hint: '"찾아본다(Lookup)"는 의미의 이름이에요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `설정값을 코드에 직접 쓰지 않고 환경 변수로 빼두면 좋은 이유를 설명하면? ("코드를 수정하지 않고도 배포 환경마다 다른 값을 쓸 수 있기 때문에"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['코드를 수정하지 않고도 배포 환경마다 다른 값을 쓸 수 있기 때문에'], placeholder: '설명',
+          why: '개발/테스트/운영 환경마다 다른 설정값(포트, DB 주소 등)을 코드 변경 없이 적용할 수 있어요.',
+          hint: '"환경마다 다르게" 적용할 수 있다는 게 핵심이에요.'
+        }),
+        () => makeChoice(
+          'os.Getenv 대신 os.LookupEnv를 써야 하는 상황은?',
+          '빈 문자열로 일부러 설정된 경우와, 아예 설정 안 된 경우를 구분해야 할 때', ['환경 변수를 아예 사용하지 않을 때', '환경 변수 이름이 항상 대문자일 때', '프로그램을 종료하고 싶을 때'],
+          'Getenv는 두 경우 모두 ""을 돌려주지만, LookupEnv는 exists로 구분할 수 있어요.',
+          '"구분이 필요한가"가 선택 기준이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>"PORT"</code> 환경 변수를 읽어 <code>port</code>에 저장하고, 비어있으면 "8080"을 기본값으로 쓰는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'port := os.Getenv("PORT")\nif port == "" {\n\tport = "8080"\n}',
+          accept: ['port := os.Getenv("PORT")\nif port == "" {\n\tport = "8080"\n}'],
+          why: 'os.Getenv로 읽은 값이 빈 문자열이면, if문으로 기본값을 대신 넣어줘요.',
+          hint: 'port := os.Getenv("PORT") 다음 if port == "" { port = "8080" }을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const isSet = Math.random() < 0.5;
+        const value = pick(['production', 'staging', 'true']);
+        return {
+          type: 'blank',
+          q: `환경 변수 <code>MODE</code>가 ${isSet ? `"${value}"로 설정되어 있어요` : '전혀 설정되어 있지 않아요'}. <code>value, exists := os.LookupEnv("MODE")</code>일 때 <code>exists</code>는? (true/false)`,
+          prefix: '', suffix: '', accept: [String(isSet)], placeholder: 'true / false',
+          why: isSet
+            ? 'MODE가 실제로 설정되어 있으므로 exists는 true예요.'
+            : 'MODE가 전혀 설정되어 있지 않으므로 exists는 false예요.',
+          hint: 'LookupEnv의 두 번째 반환값은 "실제로 존재하는가"를 알려줘요.'
+        };
+      }
+    },
+    {
+      id: 'gracefulShutdown',
+      title: '우아한 종료(Graceful Shutdown) 패턴',
+      ready: true,
+      summary: '서버가 종료 신호를 받았을 때, 진행 중인 작업을 마치고 안전하게 꺼지도록 만드는 패턴을 배워요.',
+      goals: ['signal.Notify로 종료 신호(Ctrl+C 등) 받기', 'context로 진행 중인 작업에 종료를 알리기', '자원을 정리하고 나서 프로그램을 끝내는 순서'],
+      blocks: [
+        {
+          h: '문제: 갑자기 종료되면?',
+          html: `<p>서버가 요청을 처리하는 도중에 프로그램이 갑자기 죽으면, 그 요청의 결과가 반쯤만 저장되거나 연결이 지저분하게 끊길 수 있어요. <b>우아한 종료</b>는 "지금 하던 일은 마무리하고 나서 꺼지는" 패턴이에요.</p>`,
+          code: {
+            label: 'signal_notify.go',
+            lang: 'go',
+            src: `sigCh := make(chan os.Signal, 1)
+signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+<-sigCh // Ctrl+C 등 종료 신호가 올 때까지 대기
+fmt.Println("종료 신호 받음, 정리 시작")`
+          }
+        },
+        {
+          h: '진행 중인 작업에 종료 알리기',
+          html: `<p>종료 신호를 받으면, context를 취소해서 진행 중인 고루틴들에게 "이제 그만해도 된다"고 알리고, 정리가 끝날 때까지 기다렸다가 프로그램을 마쳐요.</p>`,
+          code: {
+            label: 'graceful_shutdown.go',
+            lang: 'go',
+            src: `ctx, cancel := context.WithCancel(context.Background())
+
+sigCh := make(chan os.Signal, 1)
+signal.Notify(sigCh, os.Interrupt)
+
+go func() {
+	<-sigCh
+	fmt.Println("종료 신호 받음")
+	cancel() // 진행 중인 작업들에 취소 알림
+}()
+
+<-ctx.Done()
+fmt.Println("정리 완료, 프로그램 종료")`
+          },
+          after: `<div class="note"><b>정리</b> — "신호 받기 → context 취소로 알리기 → 정리 시간 주기 → 종료"가 우아한 종료의 기본 흐름이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'signal.Notify(sigCh, os.Interrupt)의 역할은?',
+          'Ctrl+C 같은 인터럽트 신호가 오면 sigCh 채널로 전달해준다', ['1초마다 자동으로 신호를 보낸다', '프로그램을 즉시 강제 종료시킨다', '모든 고루틴을 자동으로 취소한다'],
+          'signal.Notify는 지정한 신호가 발생했을 때 채널로 알림을 보내도록 등록해요.',
+          '"알림(Notify)"이라는 이름처럼, 신호가 오면 채널에 전달만 해요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `우아한 종료 패턴에서 종료 신호를 받은 뒤, 진행 중인 고루틴들에게 "그만해도 된다"고 알리는 데 흔히 쓰는 것을 쓰세요.`,
+          prefix: '', suffix: '.WithCancel의 cancel() 호출', accept: ['context'], placeholder: '패키지/개념 이름',
+          why: 'context를 취소하면, 그 context를 지켜보던 고루틴들이 취소 신호를 받아 정리 후 종료할 수 있어요.',
+          hint: '앞서 배운, 취소 신호를 전파하는 패키지예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `우아한 종료(graceful shutdown)가 필요한 이유를 설명하면? ("진행 중인 작업을 안전하게 마무리하고 나서 프로그램을 끝내기 위해"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['진행 중인 작업을 안전하게 마무리하고 나서 프로그램을 끝내기 위해'], placeholder: '설명',
+          why: '갑자기 종료되면 처리 중이던 요청이나 자원 정리가 중간에 끊길 수 있어서, 마무리할 시간을 주는 거예요.',
+          hint: '"안전하게 마무리"라는 표현이 핵심이에요.'
+        }),
+        () => makeChoice(
+          '우아한 종료 패턴의 일반적인 흐름 순서로 알맞은 것은?',
+          '종료 신호 받기 → 진행 중인 작업에 취소 알리기 → 정리 시간 주기 → 프로그램 종료', ['프로그램 종료 → 종료 신호 받기 → 작업 취소', '작업 취소 → 프로그램 시작 → 신호 받기', '정리 시간 주기 → 신호 무시 → 강제 종료'],
+          '신호를 받은 뒤 취소를 알리고, 정리가 끝나길 기다렸다가 종료하는 순서예요.',
+          '"신호 → 알림 → 정리 → 종료"의 순서를 기억하세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>os.Signal</code> 채널 <code>sigCh</code>(버퍼 1)를 만들고, <code>signal.Notify</code>로 <code>os.Interrupt</code> 신호를 등록하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'sigCh := make(chan os.Signal, 1)\nsignal.Notify(sigCh, os.Interrupt)',
+          accept: ['sigCh := make(chan os.Signal, 1)\nsignal.Notify(sigCh, os.Interrupt)'],
+          why: 'make로 버퍼 1인 채널을 만들고, signal.Notify로 os.Interrupt 신호를 그 채널로 받도록 등록해요.',
+          hint: 'sigCh := make(chan os.Signal, 1) 다음 signal.Notify(sigCh, os.Interrupt)를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const hasGraceful = Math.random() < 0.5;
+        return {
+          type: 'blank',
+          q: `서버가 요청을 처리하는 도중 종료 신호를 받았어요. ${hasGraceful ? '우아한 종료 패턴(context 취소 + 정리 대기)이 구현되어 있어요' : '아무 처리 없이 즉시 프로그램이 종료돼요'}. 처리 중이던 요청이 안전하게 마무리될 가능성이 더 높은 쪽은 어디일까요? ("우아한 종료" 또는 "즉시 종료")`,
+          prefix: '', suffix: '', accept: [hasGraceful ? '우아한 종료' : '즉시 종료'], placeholder: '우아한 종료 / 즉시 종료',
+          why: hasGraceful
+            ? '우아한 종료는 정리할 시간을 주므로, 처리 중이던 요청을 안전하게 마무리할 가능성이 높아요.'
+            : '즉시 종료는 정리할 시간이 없어서, 처리 중이던 요청이 중간에 끊길 위험이 커요.',
+          hint: '정리할 시간이 있는지 없는지가 핵심이에요.'
+        };
+      }
+    },
+    {
+      id: 'rateLimiting',
+      title: '속도 제한(Rate Limiting) 패턴',
+      ready: true,
+      summary: 'time.Ticker를 활용해, 일정한 속도로만 작업을 처리하도록 제한하는 패턴을 배워요.',
+      goals: ['time.Ticker로 일정 간격마다 신호 받기', '티커 신호를 기다렸다가 작업을 처리하는 패턴', '외부 API 호출 제한 등 실제 활용 사례'],
+      blocks: [
+        {
+          h: '문제: 너무 빠르게 반복하면',
+          html: `<p>외부 API에는 보통 "1초에 몇 번까지만 요청 가능"같은 제한이 있어요. 그 이상으로 빠르게 요청하면 거부당하거나 차단될 수 있어서, 요청 속도 자체를 코드에서 조절해야 해요.</p>`,
+          code: {
+            label: 'no_limit.go',
+            lang: 'go',
+            src: `for _, req := range requests {
+	callAPI(req) // 제한 없이 최대한 빠르게 호출 → 차단 위험
+}`
+          }
+        },
+        {
+          h: '해결: time.Ticker로 속도 조절하기',
+          html: `<p><code>time.NewTicker(간격)</code>은 정해진 간격마다 값을 보내는 채널을 가진 티커를 만들어요. 매 작업 전에 그 채널에서 값을 받기를 기다리면, 자연스럽게 그 간격보다 빠르게 실행되지 않아요.</p>`,
+          code: {
+            label: 'rate_limit.go',
+            lang: 'go',
+            src: `ticker := time.NewTicker(200 * time.Millisecond)
+defer ticker.Stop()
+
+for _, req := range requests {
+	<-ticker.C // 200ms마다 한 번씩만 진행
+	callAPI(req)
+}`
+          },
+          after: `<div class="note"><b>정리</b> — 티커를 다 쓴 뒤에는 반드시 Stop()을 불러서, 백그라운드에서 계속 값을 만들어내는 타이머 자원을 정리해줘야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          'time.NewTicker(200 * time.Millisecond)의 역할은?',
+          '200밀리초마다 반복해서 값을 보내는 채널을 가진 티커를 만든다', ['200밀리초 뒤에 딱 한 번만 값을 보낸다', '200밀리초 동안 프로그램을 완전히 멈춘다', '요청을 200개로 제한한다'],
+          'Ticker는 time.After와 달리, 정해진 간격마다 계속 반복해서 값을 보내요.',
+          '"반복"이 Ticker와 time.After의 결정적인 차이예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `사용이 끝난 <code>ticker</code>의 내부 타이머 자원을 정리하기 위해 호출해야 하는 메서드를 쓰세요.`,
+          prefix: 'ticker.', suffix: '()', accept: ['Stop'], placeholder: '메서드 이름',
+          why: 'ticker.Stop()을 부르지 않으면 티커가 계속 백그라운드에서 값을 만들어내며 자원을 낭비해요.',
+          hint: '"멈추다"라는 뜻의 영어 단어예요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `속도 제한(rate limiting)이 필요한 대표적인 이유를 설명하면? ("외부 API 등이 정해둔 요청 속도 제한을 넘지 않기 위해"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['외부 API 등이 정해둔 요청 속도 제한을 넘지 않기 위해'], placeholder: '설명',
+          why: '많은 외부 서비스가 초당 요청 횟수를 제한하므로, 그 이상으로 빠르게 호출하면 거부되거나 차단될 수 있어요.',
+          hint: '외부 서비스가 "너무 빠른 요청"을 어떻게 다루는지 생각해보세요.'
+        }),
+        () => makeChoice(
+          '매 작업 전에 <code><-ticker.C</code>로 값을 기다리는 패턴이 하는 일은?',
+          '티커가 설정한 간격이 지날 때까지 다음 작업을 자연스럽게 미룬다', ['작업을 병렬로 여러 개 동시에 실행한다', '작업을 완전히 건너뛴다', '항상 즉시 다음 작업으로 넘어간다'],
+          'ticker.C에서 값을 받을 때까지 대기하므로, 그 간격보다 빠르게 다음 작업이 실행되지 않아요.',
+          '"기다렸다가 진행한다"는 게 속도 제한의 핵심 메커니즘이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '100밀리초 간격의 <code>ticker</code>를 만들고 <code>defer</code>로 <code>Stop()</code>을 예약하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 'ticker := time.NewTicker(100 * time.Millisecond)\ndefer ticker.Stop()',
+          accept: ['ticker := time.NewTicker(100 * time.Millisecond)\ndefer ticker.Stop()'],
+          why: 'time.NewTicker로 티커를 만들고, defer로 Stop을 예약해서 자원을 확실히 정리해요.',
+          hint: 'time.NewTicker(100 * time.Millisecond) 다음 defer ticker.Stop()을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const interval = pick([100, 200, 500]);
+        const requestCount = pick([3, 5, 10]);
+        const totalMs = interval * (requestCount - 1);
+        return {
+          type: 'blank',
+          q: `<code>ticker := time.NewTicker(${interval} * time.Millisecond)</code>이고, 매 요청 전에 <code><-ticker.C</code>로 기다린 뒤 처리하는 방식으로 ${requestCount}개의 요청을 처리해요. 첫 요청부터 마지막 요청까지 걸리는 최소 시간은 약 몇 밀리초일까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(totalMs)], placeholder: '숫자(밀리초)',
+          why: `첫 요청은 바로 처리되고, 이후 ${requestCount - 1}번은 매번 ${interval}ms씩 기다려야 하므로 ${interval} × ${requestCount - 1} = ${totalMs}ms가 최소로 걸려요.`,
+          hint: '첫 요청을 제외한 나머지 요청 수만큼 간격을 곱해보세요.'
+        };
+      }
+    },
+    {
+      id: 'subtestsTRun',
+      title: 't.Run 서브테스트와 t.Helper',
+      ready: true,
+      summary: '테이블 기반 테스트를 t.Run으로 이름 붙인 서브테스트로 나누고, 헬퍼 함수를 표시하는 법을 배워요.',
+      goals: ['t.Run으로 이름 있는 서브테스트 만들기', '실패했을 때 어떤 케이스인지 바로 알아보기', 't.Helper로 헬퍼 함수 표시하기'],
+      blocks: [
+        {
+          h: '이름 있는 서브테스트: t.Run',
+          html: `<p>테이블 기반 테스트에서 그냥 반복문만 돌리면, 실패했을 때 "어떤 케이스"였는지 한눈에 알기 어려워요. <code>t.Run(이름, func(t *testing.T) {...})</code>으로 각 케이스에 이름을 붙이면, 실패 메시지에 그 이름이 함께 나와서 훨씬 찾기 쉬워요.</p>`,
+          code: {
+            label: 'subtest_basic.go',
+            lang: 'go',
+            src: `func TestAddTable(t *testing.T) {
+	cases := []struct {
+		name       string
+		a, b, want int
+	}{
+		{"양수끼리", 2, 3, 5},
+		{"0 더하기", 0, 0, 0},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := Add(c.a, c.b); got != c.want {
+				t.Errorf("Add(%d, %d) = %d; 원하는 값은 %d", c.a, c.b, got, c.want)
+			}
+		})
+	}
+}`
+          }
+        },
+        {
+          h: '헬퍼 함수 표시하기: t.Helper',
+          html: `<p>여러 테스트에서 공통으로 쓰는 검증 함수를 만들 때, 그 함수 맨 앞에 <code>t.Helper()</code>를 부르면, 실패했을 때 그 헬퍼 함수의 줄 번호가 아니라 <b>그 헬퍼를 호출한 테스트 코드의 줄 번호</b>가 표시돼서 디버깅이 쉬워져요.</p>`,
+          code: {
+            label: 'test_helper.go',
+            lang: 'go',
+            src: `func assertEqual(t *testing.T, got, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
+}`
+          },
+          after: `<div class="note"><b>정리</b> — t.Run은 "어떤 케이스가 실패했는지"를, t.Helper는 "실패가 코드의 어느 줄에서 비롯됐는지"를 더 명확하게 알려줘요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const names = ['첫번째 케이스', '두번째 케이스', '경계값 케이스'];
+          return {
+            type: 'blank',
+            q: `<code>t.Run("${names[0]}", func(t *testing.T) { ... })</code>처럼 서브테스트에 이름을 붙이는 주된 이유를 설명하면? ("어떤 케이스가 실패했는지 실패 메시지에서 바로 알아보기 위해"라고 답하세요)`,
+            prefix: '', suffix: '', accept: ['어떤 케이스가 실패했는지 실패 메시지에서 바로 알아보기 위해'], placeholder: '설명',
+            why: '이름 없이 반복문만 돌리면, 여러 케이스 중 정확히 어떤 게 실패했는지 메시지만으로 알기 어려워요.',
+            hint: '"어떤 것이 실패했는지 구분하기 위해"라는 목적을 떠올려보세요.'
+          };
+        },
+        () => makeChoice(
+          't.Run(이름, func(t *testing.T) {...})의 역할은?',
+          '주어진 이름을 가진 독립적인 서브테스트로 그 함수를 실행한다', ['테스트를 항상 병렬로 실행되게 강제한다', '테스트 이름을 무작위로 바꾼다', '테스트 결과를 파일에 저장한다'],
+          't.Run은 이름이 붙은 하위 테스트를 만들어 실행하고, 그 결과를 테스트 이름과 함께 보고해요.',
+          '"이름을 가진 하위 테스트"라는 개념이 핵심이에요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `공통 검증 로직을 담은 헬퍼 함수의 맨 앞에서 호출해, 실패 위치가 헬퍼 내부가 아니라 호출한 테스트 코드로 표시되게 하는 메서드를 쓰세요.`,
+          prefix: 't.', suffix: '()', accept: ['Helper'], placeholder: '메서드 이름',
+          why: 't.Helper()를 부르면, 실패 시 보고되는 줄 번호가 헬퍼 함수를 호출한 지점으로 표시돼요.',
+          hint: '"도우미(Helper)"라는 이름 그대로예요.'
+        }),
+        () => makeChoice(
+          't.Helper()를 호출하지 않은 헬퍼 함수에서 검증이 실패하면?',
+          '실패 위치가 헬퍼 함수 내부의 줄로 표시되어, 어떤 테스트에서 호출했는지 바로 알기 어려울 수 있다', ['테스트가 항상 자동으로 통과 처리된다', '프로그램이 즉시 강제 종료된다', 't.Errorf 자체가 동작하지 않는다'],
+          't.Helper()가 없으면 실패 위치가 헬퍼 함수 내부로 표시돼서, 실제 호출한 테스트를 찾기 번거로워요.',
+          '"어디서 실패로 보고되는가"의 차이예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>cases</code>(각 원소는 <code>name</code>, <code>a</code>, <code>b</code>, <code>want</code> 필드)를 순회하며, 각 케이스를 <code>t.Run(c.name, ...)</code>으로 실행하는 코드를 작성하세요. (내부에서 Add(c.a, c.b)가 c.want와 다르면 t.Errorf)',
+          starter: '',
+          rows: 5,
+          placeholder: 'for _, c := range cases {\n\tt.Run(c.name, func(t *testing.T) {\n\t\tif got := Add(c.a, c.b); got != c.want {\n\t\t\tt.Errorf("실패")\n\t\t}\n\t})\n}',
+          accept: ['for _, c := range cases {\n\tt.Run(c.name, func(t *testing.T) {\n\t\tif got := Add(c.a, c.b); got != c.want {\n\t\t\tt.Errorf("실패")\n\t\t}\n\t})\n}'],
+          why: 'cases를 순회하며 각 케이스를 t.Run으로 이름 붙여 실행하고, 내부에서 결과를 확인해요.',
+          hint: 'for _, c := range cases { t.Run(c.name, func(t *testing.T) { ... }) } 형태를 그대로 써보세요.'
+        }),
+      ],
+      boss: () => {
+        const cases = [
+          { name: '양수 더하기', a: randInt(1, 10), b: randInt(1, 10) },
+          { name: '0과 더하기', a: 0, b: randInt(1, 10) },
+        ];
+        const failIdx = Math.random() < 0.5 ? randInt(0, 1) : -1;
+        return {
+          type: 'blank',
+          q: `<code>t.Run("${cases[0].name}", ...)</code>에서 Add(${cases[0].a}, ${cases[0].b})의 want가 ${failIdx === 0 ? cases[0].a + cases[0].b + 1 : cases[0].a + cases[0].b}이고, <code>t.Run("${cases[1].name}", ...)</code>에서 Add(${cases[1].a}, ${cases[1].b})의 want가 ${failIdx === 1 ? cases[1].a + cases[1].b + 1 : cases[1].a + cases[1].b}이에요(Add는 정상적으로 a+b를 반환). 실패하는 서브테스트의 이름은 무엇일까요? (없으면 "없음")`,
+          prefix: '', suffix: '', accept: [failIdx === -1 ? '없음' : cases[failIdx].name], placeholder: '서브테스트 이름',
+          why: failIdx === -1
+            ? '두 케이스 모두 want가 실제 a+b와 일치하므로 실패하는 서브테스트가 없어요.'
+            : `"${cases[failIdx].name}"의 want가 실제 a+b와 달라서 그 서브테스트만 실패해요.`,
+          hint: '각 케이스의 want가 실제 a+b와 같은지 하나씩 비교해보세요.'
+        };
+      }
+    },
+    {
+      id: 'buildTags',
+      title: '빌드 태그로 코드 조건부 포함하기',
+      ready: true,
+      summary: '운영체제나 환경에 따라 특정 파일만 컴파일에 포함시키는 빌드 태그(build tag)를 배워요.',
+      goals: ['//go:build 태그의 위치와 형식', '태그로 운영체제별 코드 나누기', '파일명 규칙(_linux.go 등)으로도 나눌 수 있다는 것'],
+      blocks: [
+        {
+          h: '조건에 따라 파일을 포함시키기',
+          html: `<p><code>//go:build</code> 주석을 파일 맨 위(패키지 선언 바로 위, 그 사이엔 빈 줄이 필요해요)에 쓰면, 그 조건을 만족할 때만 해당 파일이 컴파일에 포함돼요. 예를 들어 <code>//go:build linux</code>는 리눅스에서 빌드할 때만 그 파일을 포함시켜요.</p>`,
+          code: {
+            label: 'config_linux.go',
+            lang: 'go',
+            src: `//go:build linux
+
+package config
+
+func Platform() string {
+	return "linux 전용 설정"
+}`
+          }
+        },
+        {
+          h: '파일명 규칙으로도 나눌 수 있어요',
+          html: `<p>파일 이름 끝에 <code>_linux.go</code>, <code>_windows.go</code>처럼 운영체제 이름을 붙이면, 빌드 태그 없이도 Go가 자동으로 그 운영체제에서만 포함시켜요. 두 방법 모두 "이 파일은 특정 조건에서만 컴파일에 들어간다"는 같은 목적을 가져요.</p>`,
+          code: {
+            label: 'config_windows.go',
+            lang: 'go',
+            src: `package config
+
+func Platform() string {
+	return "windows 전용 설정"
+}`
+          },
+          after: `<div class="note"><b>정리</b> — 빌드 태그는 "이 코드는 특정 상황(운영체제, 테스트 전용 등)에서만 컴파일하고 싶다"는 요구를 해결해줘요. 테스트에서만 쓸 헬퍼 코드를 분리할 때도 자주 활용돼요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => makeChoice(
+          '<code>//go:build linux</code>가 파일 맨 위에 있을 때의 효과는?',
+          '리눅스 환경에서 빌드할 때만 그 파일이 컴파일에 포함된다', ['모든 운영체제에서 항상 포함된다', '파일이 항상 무시되고 컴파일되지 않는다', '리눅스에서는 오히려 제외된다'],
+          '//go:build linux는 "linux일 때만 포함"이라는 조건을 나타내요.',
+          '조건을 만족할 때 "포함"된다는 점을 기억하세요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>//go:build</code> 주석과 <code>package</code> 선언 사이에는 무엇이 있어야 할까요? (한 단어로: "빈 줄")`,
+          prefix: '', suffix: '', accept: ['빈 줄'], placeholder: '무엇이 필요한가',
+          why: '//go:build 지시자는 반드시 빈 줄을 하나 두고 package 선언이 이어져야 올바르게 인식돼요.',
+          hint: '주석과 코드 사이에 한 줄을 비워둬야 해요.'
+        }),
+        () => ({
+          type: 'blank',
+          q: `빌드 태그가 필요한 상황을 설명하면? ("운영체제나 환경에 따라 특정 코드만 컴파일에 포함시키고 싶을 때"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['운영체제나 환경에 따라 특정 코드만 컴파일에 포함시키고 싶을 때'], placeholder: '설명',
+          why: '같은 함수라도 운영체제마다 구현이 달라야 할 때, 빌드 태그로 그 환경에 맞는 파일만 포함시켜요.',
+          hint: '"환경에 따라 다른 코드"가 필요한 상황을 생각해보세요.'
+        }),
+        () => makeChoice(
+          '빌드 태그 없이, 파일 이름만으로도 운영체제별 컴파일을 나누는 방법은?',
+          '파일 이름 끝에 _linux.go, _windows.go처럼 운영체제 이름을 붙인다', ['파일 이름을 모두 대문자로 쓴다', '파일 확장자를 .golang으로 바꾼다', '패키지 이름에 운영체제 이름을 넣는다'],
+          'Go는 _linux.go, _windows.go 같은 파일명 접미사도 빌드 태그처럼 인식해요.',
+          '파일명 "끝부분"에 운영체제 이름을 붙이는 규칙이에요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '리눅스 환경에서만 컴파일되도록 하는 <code>//go:build</code> 지시자를 파일 맨 위에 작성하세요. (빈 줄 포함, 그 아래 package config까지)',
+          starter: '',
+          rows: 3,
+          placeholder: '//go:build linux\n\npackage config',
+          accept: ['//go:build linux\n\npackage config'],
+          why: '//go:build linux 다음 빈 줄을 두고 package 선언이 이어져야 해요.',
+          hint: '//go:build linux 다음 줄을 비우고 package config를 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const os1 = pick(['linux', 'darwin', 'windows']);
+        return {
+          type: 'blank',
+          q: `<code>a_${os1}.go</code>라는 이름의 파일이 있어요(빌드 태그는 따로 없음). 이 파일은 어떤 운영체제에서 빌드할 때 컴파일에 포함될까요? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [os1], placeholder: '운영체제 이름',
+          why: `파일명 끝의 "_${os1}"는 빌드 태그처럼 작동해서, ${os1} 환경에서 빌드할 때만 포함돼요.`,
+          hint: '파일명 접미사가 곧 그 운영체제 전용이라는 표시예요.'
+        };
+      }
+    },
+    {
+      id: 'reflectionBasics',
+      title: 'reflect로 타입 들여다보기',
+      ready: true,
+      summary: '실행 중에 값의 타입과 필드 정보를 알아내는 reflect 패키지의 기초를 배워요.',
+      goals: ['reflect.TypeOf로 타입 정보 얻기', 'reflect.ValueOf로 값 정보 얻기', 'reflect를 남용하면 안 되는 이유'],
+      blocks: [
+        {
+          h: '타입 정보 얻기: reflect.TypeOf',
+          html: `<p><code>reflect.TypeOf(값)</code>은 그 값의 타입 정보를 <code>reflect.Type</code>으로 돌려줘요. 어떤 타입이 들어올지 컴파일 시점에는 알 수 없는 범용 코드(예: JSON 인코더)를 만들 때 유용해요.</p>`,
+          code: {
+            label: 'reflect_typeof.go',
+            lang: 'go',
+            src: `type Student struct {
+	Name string
+	Age  int
+}
+
+s := Student{Name: "지수", Age: 17}
+t := reflect.TypeOf(s)
+fmt.Println(t.Name())        // Student
+fmt.Println(t.NumField())    // 2`,
+            out: `Student\n2`
+          }
+        },
+        {
+          h: '값 정보 얻기: reflect.ValueOf',
+          html: `<p><code>reflect.ValueOf(값)</code>은 그 값 자체를 <code>reflect.Value</code>로 감싸서, 필드 값을 하나씩 꺼내볼 수 있게 해줘요. 다만 reflect는 코드를 복잡하고 느리게 만들 수 있어서, 정말 필요할 때(범용 라이브러리 등)만 신중하게 써야 해요.</p>`,
+          code: {
+            label: 'reflect_valueof.go',
+            lang: 'go',
+            src: `v := reflect.ValueOf(s)
+for i := 0; i < v.NumField(); i++ {
+	fmt.Println(v.Field(i))
+}`,
+            out: `지수\n17`
+          },
+          after: `<div class="note"><b>정리</b> — reflect는 "타입을 몰라도 되는" 강력한 도구지만, 컴파일 시점 타입 검사의 안전성을 포기하는 셈이라서 정말 필요한 곳(직렬화 라이브러리 등)에서만 아껴 써야 해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const structName = pick(['Student', 'Player', 'Book']);
+          const fieldCount = randInt(2, 5);
+          return {
+            type: 'blank',
+            q: `<code>type ${structName} struct</code>에 필드가 ${fieldCount}개 있고, <code>t := reflect.TypeOf(값)</code>일 때 <code>t.NumField()</code>는? 숫자만 쓰세요.`,
+            prefix: '', suffix: '', accept: [String(fieldCount)], placeholder: '숫자',
+            why: `t.NumField()는 그 구조체가 가진 필드의 개수(${fieldCount}개)를 돌려줘요.`,
+            hint: 'NumField는 "필드 개수"를 뜻해요.'
+          };
+        },
+        () => makeChoice(
+          'reflect.TypeOf(값)이 돌려주는 것은?',
+          '그 값의 타입 정보(이름, 필드 개수 등)를 담은 reflect.Type', ['그 값을 문자열로 변환한 결과', '그 값의 메모리 주소', '그 값이 nil인지 여부만'],
+          'TypeOf는 값이 아니라 "타입 자체"에 대한 정보를 알려줘요.',
+          '"Type"이라는 이름 그대로, 타입 정보를 다뤄요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `reflect를 신중하게, 필요한 곳에서만 써야 하는 이유를 설명하면? ("코드가 복잡해지고 느려질 수 있으며 컴파일 시점 타입 검사의 안전성을 잃기 때문에"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['코드가 복잡해지고 느려질 수 있으며 컴파일 시점 타입 검사의 안전성을 잃기 때문에'], placeholder: '설명',
+          why: 'reflect는 실행 중에 타입을 다루는 만큼, 컴파일러가 미리 잡아줄 수 있는 오류를 놓치기 쉽고 성능도 떨어질 수 있어요.',
+          hint: '"안전성"과 "성능" 두 가지를 모두 생각해보세요.'
+        }),
+        () => makeChoice(
+          'reflect 패키지가 실제로 유용하게 쓰이는 대표적인 상황은?',
+          'JSON 인코더처럼, 어떤 타입이 들어올지 미리 알 수 없는 범용 라이브러리를 만들 때', ['모든 일반적인 비즈니스 로직 코드를 짤 때', '변수 이름을 자동으로 바꿔야 할 때', '고루틴 개수를 자동으로 조절할 때'],
+          '타입을 미리 알 수 없는 범용 코드(직렬화, ORM 등)에서 reflect가 자주 쓰여요.',
+          '"타입을 몰라도 동작해야 하는" 라이브러리를 떠올려보세요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>s</code>(임의의 구조체 값)에 대해, <code>reflect.TypeOf(s)</code>의 결과를 <code>t</code>에 담고 <code>t.Name()</code>을 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 2,
+          placeholder: 't := reflect.TypeOf(s)\nfmt.Println(t.Name())',
+          accept: ['t := reflect.TypeOf(s)\nfmt.Println(t.Name())'],
+          why: 'reflect.TypeOf로 타입 정보를 얻고, Name()으로 그 타입의 이름을 출력해요.',
+          hint: 't := reflect.TypeOf(s) 다음 fmt.Println(t.Name())을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const structName = pick(['Order', 'Account', 'Ticket']);
+        const fieldCount = randInt(2, 6);
+        return {
+          type: 'blank',
+          q: `<code>type ${structName} struct</code>에 필드가 ${fieldCount}개 있어요. <code>v := reflect.ValueOf(값)</code>일 때, <code>for i := 0; i < v.NumField(); i++ { ... }</code> 반복문은 총 몇 번 실행될까요? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(fieldCount)], placeholder: '숫자',
+          why: `v.NumField()는 필드 개수(${fieldCount})를 돌려주므로, 반복문은 ${fieldCount}번 실행돼요.`,
+          hint: '반복 횟수는 구조체의 필드 개수와 같아요.'
+        };
+      }
+    },
+    {
+      id: 'stringsBuilder',
+      title: 'strings.Builder로 효율적으로 문자열 이어붙이기',
+      ready: true,
+      summary: '반복문에서 +로 문자열을 계속 이어붙일 때 생기는 낭비를, strings.Builder로 줄이는 법을 배워요.',
+      goals: ['+로 문자열을 반복해서 이어붙일 때의 문제', 'strings.Builder의 WriteString 사용법', 'String()으로 최종 결과 꺼내기'],
+      blocks: [
+        {
+          h: '문제: +로 계속 이어붙이면',
+          html: `<p>Go의 문자열은 <b>불변(immutable)</b>이라서, <code>result += s</code>를 할 때마다 새로운 문자열이 통째로 만들어져요. 반복문 안에서 이 작업을 수천 번 하면, 그때마다 복사가 일어나 낭비가 커져요.</p>`,
+          code: {
+            label: 'string_concat_naive.go',
+            lang: 'go',
+            src: `result := ""
+for i := 0; i < 1000; i++ {
+	result += "a" // 매번 새 문자열을 통째로 새로 만듦
+}`
+          }
+        },
+        {
+          h: '해결: strings.Builder',
+          html: `<p><code>strings.Builder</code>는 내부에 버퍼를 두고 <code>WriteString</code>으로 이어 붙일 내용을 계속 추가만 해요. 매번 새 문자열을 만들지 않기 때문에 훨씬 효율적이고, 마지막에 <code>String()</code>으로 최종 결과를 한 번만 꺼내면 돼요.</p>`,
+          code: {
+            label: 'string_builder.go',
+            lang: 'go',
+            src: `var sb strings.Builder
+for i := 0; i < 1000; i++ {
+	sb.WriteString("a")
+}
+result := sb.String()
+fmt.Println(len(result))`,
+            out: `1000`
+          },
+          after: `<div class="note"><b>정리</b> — 몇 번 안 되는 이어붙이기라면 +도 충분하지만, 반복문 안에서 많이 이어붙일 때는 strings.Builder가 훨씬 효율적이에요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const n = pick([3, 5, 10]);
+          const ch = pick(['x', 'y', 'z']);
+          return {
+            type: 'blank',
+            q: `<code>var sb strings.Builder; for i := 0; i < ${n}; i++ { sb.WriteString("${ch}") }; fmt.Println(sb.String())</code>을 실행하면? (그대로 입력)`,
+            prefix: '', suffix: '', accept: [ch.repeat(n)], placeholder: '결과 문자열',
+            why: `"${ch}"를 ${n}번 이어 붙이므로 "${ch.repeat(n)}"이 돼요.`,
+            hint: 'WriteString이 호출된 횟수만큼 문자가 이어 붙어요.'
+          };
+        },
+        () => makeChoice(
+          'Go에서 반복문 안에 <code>result += s</code>를 많이 반복하면 비효율적인 이유는?',
+          '문자열이 불변이라서, 이어붙일 때마다 새로운 문자열 전체를 다시 만들어야 하기 때문에', ['+연산자가 Go에서 지원되지 않기 때문에', '문자열은 최대 길이가 정해져 있기 때문에', 'for문 자체가 항상 느리기 때문에'],
+          '문자열이 불변이라, +=할 때마다 이전 내용을 포함한 새 문자열을 통째로 새로 할당해요.',
+          '"불변(immutable)"이라는 특성이 핵심 이유예요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>strings.Builder</code>에 문자열을 추가할 때 사용하는 메서드를 쓰세요.`,
+          prefix: 'sb.', suffix: '("텍스트")', accept: ['WriteString'], placeholder: '메서드 이름',
+          why: 'sb.WriteString(s)은 내부 버퍼에 s를 이어 붙여요.',
+          hint: '"문자열(String)을 쓴다(Write)"는 이름 그대로예요.'
+        }),
+        () => makeChoice(
+          'strings.Builder에 다 쓰고 나서, 최종 문자열 결과를 꺼내는 방법은?',
+          'sb.String()을 호출한다', ['sb를 그냥 문자열처럼 출력한다', 'sb.Result()를 호출한다', 'sb를 []byte로 강제 형변환한다'],
+          'String() 메서드가 지금까지 쌓인 내용을 하나의 문자열로 돌려줘요.',
+          '"String을 반환한다"는 이름 그대로예요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>strings.Builder</code> 변수 <code>sb</code>를 선언하고, "안녕"과 "하세요"를 순서대로 WriteString한 뒤, <code>sb.String()</code>을 출력하는 코드를 작성하세요.',
+          starter: '',
+          rows: 4,
+          placeholder: 'var sb strings.Builder\nsb.WriteString("안녕")\nsb.WriteString("하세요")\nfmt.Println(sb.String())',
+          accept: ['var sb strings.Builder\nsb.WriteString("안녕")\nsb.WriteString("하세요")\nfmt.Println(sb.String())'],
+          why: 'var로 Builder를 선언하고, WriteString을 두 번 호출해 이어 붙인 뒤 String()으로 꺼내 출력해요.',
+          hint: 'var sb strings.Builder 다음 WriteString을 두 번, 그리고 fmt.Println(sb.String())을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const words = shuffle(['가', '나', '다', '라']).slice(0, 3);
+        return {
+          type: 'blank',
+          q: `<code>var sb strings.Builder</code>이고 <code>sb.WriteString("${words[0]}")</code>, <code>sb.WriteString("${words[1]}")</code>, <code>sb.WriteString("${words[2]}")</code>를 순서대로 호출한 뒤 <code>sb.String()</code>을 출력하면? (그대로 입력)`,
+          prefix: '', suffix: '', accept: [`${words[0]}${words[1]}${words[2]}`], placeholder: '결과 문자열',
+          why: `WriteString이 호출된 순서대로 이어 붙으므로 "${words[0]}${words[1]}${words[2]}"가 돼요.`,
+          hint: '호출된 순서 그대로 이어 붙어요.'
+        };
+      }
+    },
+    {
+      id: 'deferArgEval',
+      title: 'defer 인자 평가 시점의 함정',
+      ready: true,
+      summary: 'defer에 넘긴 함수의 인자가 "defer를 쓴 그 순간"에 이미 평가된다는 중요한 규칙을 배워요.',
+      goals: ['defer 문의 인자는 defer가 실행될 때 즉시 평가됨', '실행 자체만 함수 끝으로 미뤄진다는 것', '이름 붙은 반환값과 defer를 함께 쓸 때의 차이'],
+      blocks: [
+        {
+          h: '함정: 인자는 그 순간에 이미 평가돼요',
+          html: `<p><code>defer</code>는 "함수 호출을 미루는" 것이지, "인자 평가를 미루는" 것이 아니에요. <code>defer fmt.Println(i)</code>를 만나는 순간, <code>i</code>의 값이 그 즉시 복사되어 저장되고, 나중에 실행될 때는 그 저장된 값을 그대로 써요.</p>`,
+          code: {
+            label: 'defer_eval_trap.go',
+            lang: 'go',
+            src: `func main() {
+	i := 0
+	defer fmt.Println("defer 시점 i:", i) // 지금 i(0)이 바로 저장됨
+	i = 100
+	fmt.Println("현재 i:", i)
+}`,
+            out: `현재 i: 100\ndefer 시점 i: 0`
+          }
+        },
+        {
+          h: '이름 붙은 반환값은 다르게 동작해요',
+          html: `<p>익명 함수(클로저)로 defer하면 이야기가 달라져요. <code>defer func() { ... }()</code> 안에서 <b>이름 붙은 반환값</b>(named return)을 참조하면, 그 반환값은 함수가 끝나는 순간의 최신 값을 읽고 심지어 바꿀 수도 있어요.</p>`,
+          code: {
+            label: 'defer_named_return.go',
+            lang: 'go',
+            src: `func compute() (result int) {
+	defer func() {
+		result *= 2 // 반환 직전, 반환값을 다시 바꿈
+	}()
+	result = 5
+	return result
+}`
+          },
+          after: `<div class="note"><b>정리</b> — "defer 문 자체의 인자"는 그 즉시 평가되지만, "defer된 함수 내부에서 참조하는 변수"는 실행 시점의 최신 값을 봐요. 이 둘을 헷갈리지 않는 게 중요해요.</div>`
+        }
+      ],
+      quizGenerators: [
+        () => {
+          const start = randInt(0, 5);
+          const changed = randInt(10, 50);
+          return {
+            type: 'blank',
+            q: `<code>i := ${start}; defer fmt.Println("값:", i); i = ${changed}; fmt.Println("현재:", i)</code>를 실행하면, 출력 순서는? (줄바꿈으로 구분해서 순서대로 입력)`,
+            prefix: '', suffix: '', accept: [`현재: ${changed}\n값: ${start}`], placeholder: '출력 순서',
+            why: `defer문의 인자 i는 defer를 만난 그 순간(${start})에 이미 평가되어 저장되므로, "현재: ${changed}"가 먼저, "값: ${start}"가 나중에 출력돼요.`,
+            hint: 'defer의 인자는 defer를 "쓰는 순간" 평가돼요. 실행만 미뤄져요.'
+          };
+        },
+        () => makeChoice(
+          '<code>defer fmt.Println(i)</code>에서 i의 값이 평가(고정)되는 시점은?',
+          'defer 문을 만나는 그 순간', ['fmt.Println이 실제로 실행되는(함수가 끝나는) 시점', '프로그램이 시작되는 시점', 'i가 마지막으로 바뀌는 시점'],
+          'defer는 "실행"만 미룰 뿐, 인자 값 자체는 defer 문을 만나는 즉시 평가돼서 저장돼요.',
+          '"평가"와 "실행"은 서로 다른 시점에 일어나요.'
+        ),
+        () => ({
+          type: 'blank',
+          q: `<code>defer func() { result *= 2 }()</code>처럼 익명 함수 안에서 <b>이름 붙은 반환값</b>(named return)을 다루면 왜 결과가 바뀔 수 있는지 설명하면? ("이름 붙은 반환값은 함수가 끝나는 순간의 값을 참조하고 바꿀 수 있기 때문에"라고 답하세요)`,
+          prefix: '', suffix: '', accept: ['이름 붙은 반환값은 함수가 끝나는 순간의 값을 참조하고 바꿀 수 있기 때문에'], placeholder: '설명',
+          why: '익명 함수는 클로저로 바깥의 named return 변수를 그대로 참조하므로, 함수가 끝나기 직전에 그 값을 바꿀 수 있어요.',
+          hint: '값 복사(defer 인자)와 변수 참조(클로저)의 차이를 생각해보세요.'
+        }),
+        () => makeChoice(
+          '<code>func compute() (result int) { defer func() { result *= 2 }(); result = 5; return result }</code>의 반환값은?',
+          '10', ['5', '0', '2'],
+          'result가 5로 설정된 뒤 return되지만, defer된 클로저가 반환 직전 result를 2배로 바꿔서 최종적으로 10이 반환돼요.',
+          'return 이후에도 defer된 클로저가 named return 값을 한 번 더 바꿀 수 있어요.'
+        ),
+        () => ({
+          type: 'code',
+          q: '<code>i := 0</code>을 선언하고, <code>defer fmt.Println("값:", i)</code>로 지금 시점의 i를 예약한 뒤, <code>i</code>를 <code>10</code>으로 바꾸는 코드를 작성하세요. (세 줄)',
+          starter: '',
+          rows: 3,
+          placeholder: 'i := 0\ndefer fmt.Println("값:", i)\ni = 10',
+          accept: ['i := 0\ndefer fmt.Println("값:", i)\ni = 10'],
+          why: 'defer 문의 인자 i는 이 시점(0)에 이미 평가되어, 나중에 i가 10으로 바뀌어도 출력엔 영향을 주지 않아요.',
+          hint: 'i := 0 다음 defer fmt.Println("값:", i), 그 다음 i = 10을 쓰세요.'
+        }),
+      ],
+      boss: () => {
+        const start = randInt(1, 10);
+        const multiplier = pick([2, 3]);
+        return {
+          type: 'blank',
+          q: `<code>func compute() (result int) { defer func() { result *= ${multiplier} }(); result = ${start}; return result }</code>를 호출하면 반환값은? 숫자만 쓰세요.`,
+          prefix: '', suffix: '', accept: [String(start * multiplier)], placeholder: '숫자',
+          why: `result가 ${start}로 설정된 뒤, defer된 클로저가 반환 직전 result를 ${multiplier}배로 바꾸므로 ${start} × ${multiplier} = ${start * multiplier}이 반환돼요.`,
+          hint: 'named return을 참조하는 defer 클로저는 반환 직전에 값을 한 번 더 바꿀 수 있어요.'
+        };
+      }
     }],
   tierBoss: {
     beginner: () => ({
