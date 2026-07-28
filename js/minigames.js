@@ -19,6 +19,9 @@ const GAME_MATRIX = {
   unity:      { beginner: 'speed',    intermediate: 'bug',     advanced: 'typing' },
   go:         { beginner: 'match',    intermediate: 'reorder', advanced: 'bug' },
   php:        { beginner: 'bug',      intermediate: 'keywords', advanced: 'typing' },
+  rust:       { beginner: 'typing',   intermediate: 'bug',     advanced: 'reorder' },
+  cpp:        { beginner: 'keywords', intermediate: 'bug',     advanced: 'match' },
+  csharp:     { beginner: 'reorder',  intermediate: 'match',   advanced: 'keywords' },
 };
 
 const GAME_TYPE_LABEL = {
@@ -167,6 +170,30 @@ const BUG_SNIPPETS = {
     { lines: ['$name = "지수";', 'echo "안녕하세요, " + $name;'], buggy: 1,
       why: 'PHP에서 문자열을 이어붙일 때는 <code>+</code>가 아니라 마침표(<code>.</code>)를 써야 해요. <code>"안녕하세요, " . $name</code>이 맞아요.' },
   ],
+  rust: [
+    { lines: ['let age = 17;', 'age = 18;', 'println!("{}", age);'], buggy: 1,
+      why: 'let으로 선언한 변수는 기본이 불변이에요. 재대입하려면 <code>let mut age = 17;</code>처럼 mut을 붙여야 해요.' },
+    { lines: ['let s1 = String::from("안녕");', 'let s2 = s1;', 'println!("{}", s1);'], buggy: 2,
+      why: 's1의 소유권이 s2로 이동(move)되었기 때문에, 그 이후 s1을 다시 쓰면 컴파일 오류가 나요.' },
+    { lines: ['fn add(a: i32, b: i32) -> i32 {', '    a + b;', '}'], buggy: 1,
+      why: '마지막 줄에 세미콜론을 붙이면 값이 없는 문장이 되어, i32를 반환해야 하는 함수가 ()을 반환하게 되어 오류가 나요.' },
+  ],
+  cpp: [
+    { lines: ['int age = 17;', 'if (age = 18) {', '    std::cout << "성인";', '}'], buggy: 1,
+      why: '비교할 때는 <code>==</code>를 써야 해요. <code>=</code>는 대입 기호라서 age에 18이 그대로 대입돼요.' },
+    { lines: ['int age = 17', 'std::cout << age;'], buggy: 0,
+      why: '문장 끝에 세미콜론(;)이 빠졌어요. <code>int age = 17;</code>이 맞아요.' },
+    { lines: ['std::vector<int> v = {1, 2, 3};', 'std::cout << v[3];'], buggy: 1,
+      why: 'v의 크기가 3(인덱스 0~2)인데 <code>v[3]</code>은 범위를 벗어나요.' },
+  ],
+  csharp: [
+    { lines: ['int age = 17;', 'if (age = 18)', '{', '    Console.WriteLine("성인");', '}'], buggy: 1,
+      why: '비교할 때는 <code>==</code>를 써야 해요. <code>=</code>는 대입 기호라서 age에 18이 그대로 대입돼요.' },
+    { lines: ['int age = 17', 'Console.WriteLine(age);'], buggy: 0,
+      why: '문장 끝에 세미콜론(;)이 빠졌어요. <code>int age = 17;</code>이 맞아요.' },
+    { lines: ['int[] nums = { 1, 2, 3 };', 'Console.WriteLine(nums[3]);'], buggy: 1,
+      why: 'nums의 크기가 3(인덱스 0~2)인데 <code>nums[3]</code>은 범위를 벗어나서 IndexOutOfRangeException이 발생해요.' },
+  ],
 };
 const BUG_ROUNDS = 6;
 
@@ -272,6 +299,9 @@ const TYPING_SNIPPETS = {
   unity: ['Debug.Log("Hello!");', 'void Update()', 'transform.position += Vector3.up;', 'public float speed = 5.0f;', 'if (Input.GetKeyDown(KeyCode.Space))'],
   go: ['fmt.Println("Hello, World!")', 'age := 17', 'if age >= 18 {', 'for i := 0; i < 5; i++ {', 'func add(a int, b int) int {'],
   php: ['echo "Hello, World!";', '$age = 17;', 'if ($age >= 18) {', 'foreach ($items as $item) {', 'function add($a, $b) {'],
+  rust: ['println!("Hello, World!");', 'let mut age = 17;', 'if age >= 18 {', 'for i in 0..5 {', 'fn add(a: i32, b: i32) -> i32 {'],
+  cpp: ['std::cout << "Hello, World!";', 'int age = 17;', 'if (age >= 18) {', 'for (int i = 0; i < 5; i++) {', 'std::vector<int> v;'],
+  csharp: ['Console.WriteLine("Hello, World!");', 'int age = 17;', 'if (age >= 18) {', 'for (int i = 0; i < 5; i++) {', 'List<int> nums = new List<int>();'],
 };
 
 function renderTypingGame(lang) {
@@ -357,6 +387,18 @@ const REORDER_SNIPPETS = {
   php: [
     ['$age = 17;', 'if ($age >= 18) {', '    echo "성인";', '} else {', '    echo "미성년자";', '}'],
     ['$total = 0;', 'for ($i = 0; $i < 5; $i++) {', '    $total += $i;', '}'],
+  ],
+  rust: [
+    ['let age = 17;', 'if age >= 18 {', '    println!("성인");', '} else {', '    println!("미성년자");', '}'],
+    ['let mut total = 0;', 'for i in 0..5 {', '    total += i;', '}', 'println!("{}", total);'],
+  ],
+  cpp: [
+    ['int age = 17;', 'if (age >= 18) {', '    std::cout << "성인";', '} else {', '    std::cout << "미성년자";', '}'],
+    ['int total = 0;', 'for (int i = 0; i < 5; i++) {', '    total += i;', '}'],
+  ],
+  csharp: [
+    ['int age = 17;', 'if (age >= 18)', '{', '    Console.WriteLine("성인");', '}', 'else', '{', '    Console.WriteLine("미성년자");', '}'],
+    ['int total = 0;', 'for (int i = 0; i < 5; i++)', '{', '    total += i;', '}'],
   ],
 };
 
@@ -487,6 +529,30 @@ const MATCH_PAIRS = {
     { term: 'foreach', def: '배열의 각 값을 순회하는 반복문' },
     { term: '===', def: '값과 타입까지 함께 비교하는 연산자' },
     { term: 'array()', def: '배열을 만드는 방법 중 하나' },
+  ],
+  rust: [
+    { term: 'let mut', def: '값을 바꿀 수 있는 변수를 선언하는 키워드' },
+    { term: 'println!', def: '화면에 값을 출력하는 매크로' },
+    { term: 'Option<T>', def: '값이 있을 수도 없을 수도 있음을 나타내는 타입' },
+    { term: 'match', def: '여러 경우를 빠짐없이 분기하는 키워드' },
+    { term: '&', def: '값을 빌려서(참조로) 쓰는 기호' },
+    { term: 'impl', def: '구조체나 트레이트의 기능을 구현하는 키워드' },
+  ],
+  cpp: [
+    { term: 'std::cout', def: '화면에 출력하는 객체' },
+    { term: 'std::vector', def: '크기가 자유로운 배열' },
+    { term: 'virtual', def: '자식이 재정의할 수 있게 하는 키워드' },
+    { term: 'unique_ptr', def: '단독 소유권을 갖는 스마트 포인터' },
+    { term: 'class', def: '객체를 만들기 위한 설계도' },
+    { term: 'const', def: '값이 바뀌지 않음을 보장하는 키워드' },
+  ],
+  csharp: [
+    { term: 'Console.WriteLine', def: '화면에 값을 출력하고 줄바꿈하는 메서드' },
+    { term: 'List<T>', def: '크기가 자유롭게 늘어나는 목록 컬렉션' },
+    { term: 'virtual/override', def: '부모의 메서드를 자식이 재정의하게 하는 키워드 짝' },
+    { term: 'async/await', def: '비동기 작업을 순서대로 기다리게 해주는 키워드 짝' },
+    { term: 'interface', def: '구현 없이 규격만 정의하는 계약 타입' },
+    { term: '??', def: '왼쪽이 null이면 오른쪽 값을 쓰는 널 병합 연산자' },
   ],
 };
 
@@ -671,6 +737,9 @@ const KEYWORD_BANK = {
   kotlin: ['val', 'var', 'fun', 'when', 'data', 'class', 'Int', 'String', 'Boolean', 'override', 'companion', 'null'],
   go: ['func', 'package', 'import', 'var', 'if', 'for', 'range', 'return', 'struct', 'interface', 'defer', 'go'],
   php: ['echo', 'function', 'if', 'foreach', 'for', 'while', 'true', 'false', 'null', 'class', 'return', 'array'],
+  rust: ['fn', 'let', 'mut', 'struct', 'enum', 'impl', 'trait', 'match', 'if', 'for', 'true', 'false'],
+  cpp: ['class', 'virtual', 'public', 'private', 'template', 'namespace', 'auto', 'const', 'new', 'delete', 'try', 'catch'],
+  csharp: ['class', 'interface', 'struct', 'enum', 'record', 'override', 'readonly', 'namespace', 'async', 'await', 'foreach', 'var'],
 };
 function pickKeywordDistractors(lang, count) {
   const validSet = new Set((KEYWORD_BANK[lang] || []).map(w => w.toLowerCase()));

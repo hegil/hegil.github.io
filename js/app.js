@@ -7,16 +7,22 @@ const SYNTAX = {
   typescript: { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['let','const','var','function','return','if','else','for','while','of','in','class','new','typeof','true','false','null','undefined','console','interface','type','extends','implements','public','private','readonly','enum','as','keyof','number','string','boolean','void','any'] },
   java:       { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['public','private','protected','static','void','class','new','return','if','else','for','while','int','long','double','float','char','boolean','String','true','false','null','System'] },
   kotlin:     { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['val','var','fun','if','else','when','for','while','in','return','class','object','interface','data','companion','override','private','public','is','as','null','true','false','Int','String','Boolean','Double'] },
-  csharp:     { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['public','private','protected','static','void','class','new','return','if','else','for','foreach','while','int','float','double','bool','string','true','false','null','using','namespace','override','var'] },
+  csharp:     { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['public','private','protected','internal','static','void','class','struct','interface','enum','record','new','return','if','else','for','foreach','while','switch','case','default','int','float','double','bool','string','true','false','null','using','namespace','override','virtual','abstract','base','readonly','const','var','try','catch','finally','throw','async','await'] },
   c:          { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['include','int','float','double','char','void','return','if','else','for','while','sizeof','const','unsigned','struct','printf','scanf','main'] },
   sql:        { comment:'--[^\\n]*', keywords:['SELECT','FROM','WHERE','ORDER','BY','GROUP','JOIN','ON','ASC','DESC','LIMIT','AS','COUNT','SUM','AVG','MAX','MIN','AND','OR','NOT','IN','LIKE','NULL','INSERT','INTO','VALUES','UPDATE','DELETE','CREATE','TABLE'] },
   go:         { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['package','import','func','var','const','type','struct','interface','map','chan','go','defer','return','if','else','for','range','switch','case','default','break','continue','select','fallthrough','nil','true','false','int','string','bool','float64','error','make','len','cap'] },
-  php:        { comment:'//[^\\n]*|#[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['echo','print','function','fn','return','if','elseif','else','foreach','for','while','as','class','new','public','private','protected','static','true','false','null','array','use','namespace','try','catch','throw','extends','implements','interface','abstract','const','match','switch','case','default','break','continue','require','include'] }
+  php:        { comment:'//[^\\n]*|#[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['echo','print','function','fn','return','if','elseif','else','foreach','for','while','as','class','new','public','private','protected','static','true','false','null','array','use','namespace','try','catch','throw','extends','implements','interface','abstract','const','match','switch','case','default','break','continue','require','include'] },
+  rust:       { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['fn','let','mut','const','struct','enum','impl','trait','match','if','else','while','loop','for','in','return','pub','use','mod','self','Self','true','false','String','str','i32','u32','f64','bool','Vec','Option','Result','Some','None','Ok','Err','dyn','move','async','await','where','as'] },
+  cpp:        { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['int','float','double','char','bool','void','class','struct','public','private','protected','virtual','override','const','static','template','typename','namespace','using','new','delete','this','return','if','else','for','while','switch','case','break','continue','true','false','nullptr','auto','try','catch','throw','std'] }
 };
 const STRING_PAT = `"""[\\s\\S]*?"""|'''[\\s\\S]*?'''|\`(?:\\\\.|[^\`\\\\])*\`|"(?:\\\\.|[^"\\\\\\n])*"|'(?:\\\\.|[^'\\\\\\n])*'|<[a-z.]+\\.h>`;
 
 const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const escAttr = s => s.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+
+/* "정식 단원"만 골라줘요 — 각 언어 맨 앞의 "이 언어는 무엇인가요?" 소개 단원(intro: true)은
+   문제·예제가 없는 순수 설명용이라, 티어 배정·진도·완료율·복습·오답노트·오늘의 문제 계산에서 전부 빠져요. */
+const readyLessons = units => units.filter(u => u.ready && !u.intro);
 
 function tokenize(code, re, classes) {
   let out = '', last = 0, m;
@@ -118,11 +124,13 @@ let progress = loadProgress();
 function buildFullProgress() {
   const full = {};
   Object.entries(COURSES).forEach(([key, course]) => {
-    course.units.filter(u => u.ready).forEach(u => {
+    readyLessons(course.units).forEach(u => {
       full[`${key}.${u.id}`] = {
         asked: STREAK_GOAL, correct: STREAK_GOAL, streak: STREAK_GOAL, bestStreak: STREAK_GOAL,
         done: true, bossCleared: true
       };
+      /* "따라 써보기"도 다 마친 것으로 채워서, admin이 최종 도전·가운틀렛까지 잠김 없이 둘러볼 수 있게 해요. */
+      u.blocks.forEach((b, i) => { if (b.code) full[`${key}.${u.id}.fa${i}`] = true; });
     });
     TIER_ORDER.forEach(tier => { full[`${key}.tier.${tier}`] = { cleared: true }; });
   });
@@ -219,12 +227,12 @@ function achievementStats() {
   const entries = Object.entries(COURSES);
   let totalDone = 0, totalCorrect = 0, bossCleared = 0, tierCleared = 0;
   const perLang = entries.map(([key, c]) => {
-    const ready = c.units.filter(u => u.ready);
+    const ready = readyLessons(c.units);
     let doneCount = 0;
     ready.forEach(u => {
       const rec = progress[`${key}.${u.id}`];
       if (!rec) return;
-      if (rec.done) doneCount++;
+      if (isUnitComplete(key, u)) doneCount++;
       totalCorrect += rec.correct || 0;
       if (rec.bossCleared) bossCleared++;
     });
@@ -267,6 +275,7 @@ function renderNav() {
   const searchChip = `<button class="chip search-chip" type="button" aria-pressed="${view === 'search'}">검색</button>`;
   const cheatSheetChip = `<button class="chip cheatsheet-chip" type="button" aria-pressed="${view === 'cheatsheet'}">치트시트</button>`;
   const dailyChip = `<button class="chip daily-chip" type="button" aria-pressed="${view === 'daily'}">오늘의 문제</button>`;
+  const helpChip = `<button class="chip help-chip" type="button" aria-pressed="${view === 'help'}">도움말</button>`;
   const langChips = Object.entries(COURSES).map(([k, c]) =>
     `<button class="chip" type="button" data-lang="${k}" aria-pressed="${view === 'lesson' && k === langKey}">${c.name}</button>`
   ).join('');
@@ -287,6 +296,7 @@ function renderNav() {
       <button class="chip nav-dropdown-btn" type="button" data-nav-dd="tools" aria-expanded="${toolsOpen}" aria-pressed="${toolLabel !== '도구'}">${esc(toolLabel)} ▾</button>
       <div class="nav-dropdown-menu" ${toolsOpen ? '' : 'hidden'}>${dailyChip}${reviewChip}${wrongNoteChip}${cheatSheetChip}${playgroundChip}${statsChip}${minigameChip}</div>
     </div>
+    ${helpChip}
   `;
 }
 
@@ -396,19 +406,19 @@ function goReview() {
    완료(done) 안 된 단원 중 가장 앞에 있는 걸 골라요 — 없으면(모두 완료) null. */
 function nextUnitFor(key) {
   const units = COURSES[key].units;
-  const index = units.findIndex(u => u.ready && !progress[`${key}.${u.id}`]?.done);
+  const index = units.findIndex(u => u.ready && !u.intro && !isUnitComplete(key, u));
   if (index === -1) return null;
-  const readyUnits = units.filter(u => u.ready);
-  const doneCount = readyUnits.filter(u => progress[`${key}.${u.id}`]?.done).length;
+  const readyUnits = readyLessons(units);
+  const doneCount = readyUnits.filter(u => isUnitComplete(key, u)).length;
   return { unit: units[index], index, readyCount: readyUnits.length, doneCount };
 }
 
 function renderHome() {
   const user = getCurrentUser();
   const entries = Object.entries(COURSES);
-  const totalReady = entries.reduce((sum, [, c]) => sum + c.units.filter(u => u.ready).length, 0);
+  const totalReady = entries.reduce((sum, [, c]) => sum + readyLessons(c.units).length, 0);
   const totalDone = entries.reduce((sum, [key, c]) =>
-    sum + c.units.filter(u => u.ready && progress[`${key}.${u.id}`]?.done).length, 0);
+    sum + readyLessons(c.units).filter(u => isUnitComplete(key, u)).length, 0);
   const streak = currentStreakForDisplay();
   const badgeCount = unlockedAchievements().filter(b => b.unlocked).length;
   const continuing = entries
@@ -462,8 +472,8 @@ function renderHome() {
     </section>` : ''}
     <section class="lang-grid">
       ${entries.map(([key, c]) => {
-        const readyUnits = c.units.filter(u => u.ready);
-        const doneCount = readyUnits.filter(u => progress[`${key}.${u.id}`]?.done).length;
+        const readyUnits = readyLessons(c.units);
+        const doneCount = readyUnits.filter(u => isUnitComplete(key, u)).length;
         const recommended = totalDone === 0 && key === 'python';
         return `<article class="lang-card" data-goto="${key}">
           ${recommended ? '<span class="lang-card-badge">추천</span>' : ''}
@@ -561,7 +571,10 @@ const PLAYGROUND_TABS = [
   { key: 'c', label: 'C', kind: 'highlight' },
   { key: 'unity', label: 'Unity(C#)', kind: 'highlight', highlightLang: 'csharp' },
   { key: 'go', label: 'Go', kind: 'highlight' },
-  { key: 'php', label: 'PHP', kind: 'highlight' }
+  { key: 'php', label: 'PHP', kind: 'highlight' },
+  { key: 'rust', label: 'Rust', kind: 'highlight' },
+  { key: 'cpp', label: 'C++', kind: 'highlight' },
+  { key: 'csharp', label: 'C#', kind: 'highlight' }
 ];
 let playgroundLang = 'javascript';
 const playgroundCode = {
@@ -575,7 +588,10 @@ const playgroundCode = {
   c: '// 여기에 C 코드를 자유롭게 써보세요\n#include <stdio.h>\n\nint main(void) {\n    printf("Hello, World!\\n");\n    return 0;\n}',
   unity: '// 여기에 Unity C# 스크립트를 자유롭게 써보세요\npublic class PlayerScript : MonoBehaviour\n{\n    void Start()\n    {\n        Debug.Log("게임 시작!");\n    }\n}',
   go: '// 여기에 Go 코드를 자유롭게 써보세요\npackage main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello, World!")\n}',
-  php: '<?php\n// 여기에 PHP 코드를 자유롭게 써보세요\necho "Hello, World!";'
+  php: '<?php\n// 여기에 PHP 코드를 자유롭게 써보세요\necho "Hello, World!";',
+  rust: '// 여기에 Rust 코드를 자유롭게 써보세요\nfn main() {\n    println!("Hello, World!");\n}',
+  cpp: '// 여기에 C++ 코드를 자유롭게 써보세요\n#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}',
+  csharp: '// 여기에 C# 코드를 자유롭게 써보세요\nusing System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Hello, World!");\n    }\n}'
 };
 
 /* 외부 스크립트(Pyodide, sql.js)를 한 번만 불러오는 헬퍼. 실습장에서 그 언어를
@@ -598,7 +614,7 @@ function loadScriptOnce(src) {
    여러 언어 목록을 보여주는 화면(홈, 검색, 치트시트 목록 등)은 전부 그 시점의
    COURSES를 기준으로 매번 다시 그려지기 때문에, 아직 안 받아진 언어는 목록에
    안 보일 뿐이라 사용자가 로딩 중인 언어를 잘못 눌러서 생기는 오류는 없어요. */
-const LAZY_LANG_FILES = ['javascript', 'typescript', 'webpage', 'java', 'kotlin', 'c', 'unity', 'sql', 'go', 'php'];
+const LAZY_LANG_FILES = ['javascript', 'typescript', 'webpage', 'java', 'kotlin', 'c', 'unity', 'sql', 'go', 'php', 'rust', 'cpp', 'csharp'];
 /* "오늘의 문제"처럼 모두에게 같은 결과가 나와야 하는 곳 전용 — 언어 파일이 네트워크에서
    받아지는 순서(사람마다 다를 수 있음)와 무관하게 항상 같은 순서를 보장해요. */
 const ALL_LANG_KEYS = ['python', ...LAZY_LANG_FILES];
@@ -809,7 +825,7 @@ function runPlayground() {
 function wrongNotePool() {
   const pool = [];
   Object.entries(COURSES).forEach(([lang, course]) => {
-    course.units.filter(u => u.ready).forEach(u => {
+    readyLessons(course.units).forEach(u => {
       const rec = progress[`${lang}.${u.id}`];
       if (rec && rec.asked > rec.correct) pool.push({ lang, u, weakness: rec.asked - rec.correct });
     });
@@ -909,14 +925,14 @@ function goStatsDashboard() {
 
 function renderStatsDashboard() {
   const rows = Object.entries(COURSES).map(([key, c]) => {
-    const ready = c.units.filter(u => u.ready);
+    const ready = readyLessons(c.units);
     let asked = 0, correct = 0, doneCount = 0;
     ready.forEach(u => {
       const rec = progress[`${key}.${u.id}`];
       if (!rec) return;
       asked += rec.asked || 0;
       correct += rec.correct || 0;
-      if (rec.done) doneCount++;
+      if (isUnitComplete(key, u)) doneCount++;
     });
     const acc = asked > 0 ? Math.round((correct / asked) * 100) : null;
     return { name: c.name, readyCount: ready.length, doneCount, acc };
@@ -1041,6 +1057,83 @@ function renderSearchView() {
 }
 
 /* =========================================================================
+   5.8-1) 도움말 — 사이트의 여러 기능을 한 문단씩 설명하는 정적 페이지
+   ========================================================================= */
+function goHelp() {
+  view = 'help';
+  el('sidebar').hidden = true;
+  el('wrap').classList.add('home-view');
+  renderNav();
+  renderHelpView();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderHelpView() {
+  const sections = [
+    {
+      h: '단원 학습: 설명 → 예제 → 따라 써보기 → 연습 문제 → 최종 도전',
+      p: `각 단원은 이 순서로 진행돼요. 설명을 읽고 예제 코드를 본 다음, 그 예제를 바로 아래 "따라 써보기" 칸에 손으로 직접 입력해서 연습해요(예제는 복사할 수 없게 해뒀어요 — 직접 타이핑해야 기억에 오래 남거든요. 주석 내용까지 똑같이 안 써도 돼요). 그 아래 "연습 문제"에서는 같은 개념을 무작위 값으로 계속 풀 수 있어요. <b>연속으로 ${STREAK_GOAL}문제를 맞히면</b> 그 단원이 완료돼요 — 틀리면 넘어가지 않고 그 자리에서 다시 풀어야 해요(문제와 정답을 글자 단위로 비교해서 어디가 다른지도 보여줘요).`
+    },
+    {
+      h: '최종 도전이 갑자기 안 열려요',
+      p: `단원 완료는 두 가지를 모두 마쳐야 해요: <b>①연습 문제 연속 ${STREAK_GOAL}개 정답</b>과 <b>②그 단원의 모든 "따라 써보기" 예제</b>. 연습 문제만 다 맞히고 예제를 안 풀었다면, 최종 도전 자리에 "잠김" 카드가 대신 떠요. 위로 스크롤해서 아직 안 푼 예제를 마저 풀면 바로 열려요.`
+    },
+    {
+      h: '티어(초급 · 중급 · 고급)와 티어 최종 도전',
+      p: `한 언어의 단원들은 진도 순서대로 초급 · 중급 · 고급 세 티어로 자동으로 나뉘어요. 한 티어 안의 모든 단원을 완료(연습 문제 + 따라 써보기 둘 다)하면, 사이드바에 그 티어를 총정리하는 "티어 최종 도전"이 열려요.`
+    },
+    {
+      h: '미니게임',
+      p: `티어 최종 도전을 클리어하면, 그 언어·티어 자리에 미니게임이 하나 열려요. 버그 찾기, 타자 게임, 코드 순서 맞추기, 짝 맞추기, 출력 맞히기 스피드런, 키워드 골라내기 중 하나가 배정돼요 — 같은 언어 안에서도 티어마다 다른 게임이 나와요.`
+    },
+    {
+      h: '복습',
+      p: `원하는 언어를 하나 이상 골라서, 그 언어들의 문제가 뒤섞여 나오는 모드예요. 단원 학습과 달리 틀려도 바로 다음 문제로 넘어갈 수 있어요 — 이미 배운 내용을 여러 언어에 걸쳐 가볍게 복습할 때 써요.`
+    },
+    {
+      h: '오답노트',
+      p: `실제로 틀린 적 있는 단원 위주로만 문제가 나오는 모드예요. 많이 틀린 단원일수록 더 자주 나와요. 틀린 문제가 하나도 없다면 오답노트는 비어있어요.`
+    },
+    {
+      h: '오늘의 문제',
+      p: `날짜로 문제를 무작위로(하지만 고정된 방식으로) 골라서, <b>그날 하루는 모두에게 똑같은 문제</b>가 나와요. 하루에 한 번만 도전할 수 있고, 지난 기록은 달력 형태로 볼 수 있어요.`
+    },
+    {
+      h: '치트시트',
+      p: `언어별 핵심 문법과 예제 코드를 한 페이지로 압축해서 보여줘요. 여기 있는 코드는 복사도 되고, 인쇄 버튼으로 인쇄하거나 PDF로 저장해서 옆에 두고 참고할 수 있어요.`
+    },
+    {
+      h: '실습장',
+      p: `퀴즈와 상관없이 자유롭게 코드를 써보는 공간이에요. JavaScript·HTML/CSS·Python·SQL은 실제로 실행되거나 미리보기가 돼요(Python은 Pyodide, SQL은 sql.js — 처음 실행할 때만 필요한 만큼 다운로드돼요). 작성한 코드는 공유 링크로 다른 사람에게 보낼 수도 있어요.`
+    },
+    {
+      h: '검색',
+      p: `모든 언어의 단원 제목과 설명을 한 번에 검색해서, 원하는 주제로 바로 이동할 수 있어요.`
+    },
+    {
+      h: '계정과 진도 백업',
+      p: `로그인하면 이 브라우저 안에서 이름별로 진도를 따로 기록할 수 있어요(로그인 없이도 게스트로 계속 쓸 수 있어요). 진도는 이 브라우저에만 저장되니, 홈 화면의 "내보내기"로 파일을 저장해두면 다른 기기나 브라우저에서 "가져오기"로 이어서 쓸 수 있어요.`
+    }
+  ];
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">도움말</div>
+      <h1>코드공방 사용법</h1>
+      <p>이 사이트의 기능들을 한 문단씩 설명해요. 궁금한 부분만 골라 읽어도 좋아요.</p>
+    </div>
+    ${sections.map(s => `
+      <section class="block card">
+        <h2>${s.h}</h2>
+        <div class="body"><p>${s.p}</p></div>
+      </section>`).join('')}
+    <section class="block card">
+      <div class="body">
+        <p class="muted" style="margin:0">더 궁금한 점이나 건의하고 싶은 게 있다면, 아래 <b>건의하기</b> 링크로 알려주세요.</p>
+      </div>
+    </section>`;
+}
+
+/* =========================================================================
    5.9) 치트시트 — 언어별 핵심 문법을 한 페이지로 압축해서 보여주고, 인쇄도 가능해요
    ========================================================================= */
 function goCheatSheet(lang) {
@@ -1072,7 +1165,7 @@ function renderCheatSheetPicker() {
 
 function renderCheatSheetView(key) {
   const c = COURSES[key];
-  const units = c.units.filter(u => u.ready);
+  const units = readyLessons(c.units);
   el('main').innerHTML = `
     <div class="hero">
       <div class="eyebrow">치트시트</div>
@@ -1104,7 +1197,7 @@ function todaysChallenge() {
   const dateStr = todayDateString();
   const rng = mulberry32(hashStringToSeed('daily-' + dateStr));
   const langKey = ALL_LANG_KEYS[Math.floor(rng() * ALL_LANG_KEYS.length)];
-  const readyUnits = COURSES[langKey].units.filter(u => u.ready);
+  const readyUnits = readyLessons(COURSES[langKey].units);
   const unit = readyUnits[Math.floor(rng() * readyUnits.length)];
   const genIndex = Math.floor(rng() * unit.quizGenerators.length);
 
@@ -1224,31 +1317,43 @@ function showDailyHint() {
 
 function renderUnits() {
   const allUnits = COURSES[langKey].units;
-  const readyUnits = allUnits.filter(u => u.ready);
+  const introUnit = allUnits.find(u => u.intro);
+  const readyUnits = readyLessons(allUnits);
   const tierOf = {};
   readyUnits.forEach((u, i) => { tierOf[u.id] = tierOfIndex(i, readyUnits.length); });
 
+  /* 언어 소개 단원(intro)은 티어·번호 없이 목록 맨 위에 따로 하나만 보여줘요. */
+  const introHTML = introUnit ? `<li class="intro-unit-item">
+      <button class="unit-btn" type="button" data-unit="${allUnits.indexOf(introUnit)}"
+              aria-current="${allUnits.indexOf(introUnit) === unitIdx}">
+        <span class="dot"></span>
+        <span>${introUnit.title}</span>
+      </button></li>` : '';
+
   let lastTier = null;
-  el('units').innerHTML = allUnits.map((u, i) => {
+  const bodyHTML = allUnits.map((u, i) => {
+    if (u.intro) return '';
     let head = '';
     if (u.ready && tierOf[u.id] !== lastTier) {
       head = `<li class="tier-head">${TIER_LABEL[tierOf[u.id]]}</li>`;
       lastTier = tierOf[u.id];
     }
-    const done = progress[`${langKey}.${u.id}`]?.done;
+    const done = isUnitComplete(langKey, u);
+    const displayNum = i + 1 - (introUnit ? 1 : 0);
     return `${head}<li>
       <button class="unit-btn ${done ? 'done' : ''}" type="button" data-unit="${i}"
               aria-current="${i === unitIdx}" ${u.ready ? '' : 'disabled'}>
         <span class="dot"></span>
-        <span>${i + 1}. ${u.title}</span>
+        <span>${displayNum}. ${u.title}</span>
         ${u.ready ? '' : '<span class="soon">준비중</span>'}
       </button></li>`;
   }).join('');
+  el('units').innerHTML = introHTML + bodyHTML;
 
   el('tierChallenge').innerHTML = TIER_ORDER.map(tier => {
     const unitsInTier = readyUnits.filter(u => tierOf[u.id] === tier);
     if (!unitsInTier.length) return '';
-    const allDone = unitsInTier.every(u => progress[`${langKey}.${u.id}`]?.done);
+    const allDone = unitsInTier.every(u => isUnitComplete(langKey, u));
     if (!allDone) return '';
     const cleared = progress[`${langKey}.tier.${tier}`]?.cleared;
     const gauntletBtn = `<button class="btn ${cleared ? 'ghost' : ''} small" type="button" data-gauntlet="${tier}">
@@ -1263,15 +1368,26 @@ function renderUnits() {
 
 function renderProgress() {
   const units = COURSES[langKey].units;
-  const ready = units.filter(u => u.ready);
-  const doneCount = ready.filter(u => progress[`${langKey}.${u.id}`]?.done).length;
+  const ready = readyLessons(units);
+  const doneCount = ready.filter(u => isUnitComplete(langKey, u)).length;
   const pct = ready.length ? Math.round(doneCount / ready.length * 100) : 0;
   el('pct').textContent = pct + '%';
   el('barfill').style.width = pct + '%';
-  const rec = progress[`${langKey}.${units[unitIdx].id}`];
-  el('progress-note').innerHTML = rec?.done
+  const curUnit = units[unitIdx];
+  if (curUnit.intro) {
+    el('progress-note').innerHTML = `이 페이지는 문제·진도 없이 자유롭게 읽는 소개 페이지예요 · 전체 ${doneCount}/${ready.length}개 단원 완료`;
+    el('sidebarTip').innerHTML = `<b>팁</b> ${pick(TIPS)}`;
+    return;
+  }
+  const key = `${langKey}.${curUnit.id}`;
+  const rec = progress[key];
+  const streakDone = !!rec?.done;
+  const followAlongDone = allFollowAlongsDone(curUnit, key);
+  el('progress-note').innerHTML = streakDone && followAlongDone
     ? `이 단원 완료! 최고 연속 정답 <b>${rec.bestStreak}개</b> · 전체 ${doneCount}/${ready.length}개 단원 완료`
-    : `전체 ${doneCount}/${ready.length}개 단원 완료 · 연속 ${STREAK_GOAL}개를 맞히면 이 단원이 완료돼요.`;
+    : streakDone
+      ? `연습 문제는 다 맞혔어요! 위에 있는 "따라 써보기" 예제도 마저 풀면 단원이 완료돼요. · 전체 ${doneCount}/${ready.length}개 단원 완료`
+      : `전체 ${doneCount}/${ready.length}개 단원 완료 · 연속 ${STREAK_GOAL}개를 맞히면 이 단원이 완료돼요.`;
   el('sidebarTip').innerHTML = `<b>팁</b> ${pick(TIPS)}`;
 }
 
@@ -1361,9 +1477,37 @@ function allFollowAlongsDone(u, key) {
   return u.blocks.every((b, i) => !b.code || progress[`${key}.fa${i}`]);
 }
 
+/* 사이드바 체크·홈 통계·업적 등 "이 단원 완료했나?"를 보여주는 모든 곳에서 쓰는 기준.
+   연속 정답 스트릭과 그 단원의 모든 "따라 써보기"를 둘 다 마쳐야 진짜 완료로 쳐요. */
+function isUnitComplete(langKey, u) {
+  const key = `${langKey}.${u.id}`;
+  return !!progress[key]?.done && allFollowAlongsDone(u, key);
+}
+
+/* 언어 소개 단원(intro: true)은 문제·예제·진도 없이 순수 설명만 보여줘요.
+   퀴즈 섹션과 최종 도전 섹션을 통째로 빼고, 단원 번호 대신 "소개"라고 표시해요. */
+function renderIntroUnit(course, u) {
+  el('main').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">${course.name} · 소개</div>
+      <h1>${u.title}</h1>
+      <p>${u.summary}</p>
+    </div>
+    ${u.blocks.map(b => `
+      <section class="block card">
+        <h2>${b.h}</h2>
+        <div class="body">
+          ${b.html}
+          ${b.after || ''}
+        </div>
+      </section>`).join('')}`;
+}
+
 function renderUnit() {
   const course = COURSES[langKey];
   const u = course.units[unitIdx];
+  if (u.intro) { renderIntroUnit(course, u); return; }
+  const introOffset = course.units[0]?.intro ? 1 : 0;
   const key = `${langKey}.${u.id}`;
   const streakDone = !!progress[key]?.done;
   const followAlongDone = allFollowAlongsDone(u, key);
@@ -1388,7 +1532,7 @@ function renderUnit() {
     </section>`) : '';
   el('main').innerHTML = `
     <div class="hero">
-      <div class="eyebrow">${course.name} · ${unitIdx + 1}단원</div>
+      <div class="eyebrow">${course.name} · ${unitIdx + 1 - introOffset}단원</div>
       <h1>${u.title}</h1>
       <p>${u.summary}</p>
       <ul class="goals">${u.goals.map(g => `<li>${g}</li>`).join('')}</ul>
@@ -1406,7 +1550,7 @@ function renderUnit() {
     <section class="block card" id="quiz">
       <h2>연습 문제 <span class="muted" style="font-weight:400">· 연속 ${STREAK_GOAL}개를 맞히면 단원 완료</span></h2>
       <div class="body" style="padding-bottom:6px">
-        <p class="muted" style="margin:0 0 12px">문제를 풀고 <b>확인하기</b>를 누르면 정답과 설명이 나와요. 틀리면 그 자리에서 다시 풀어야 <b>다음 문제</b>로 넘어갈 수 있어요. 막히면 <b>힌트 보기</b>를 눌러보세요. 가끔 직접 코드를 작성하는 문제도 나와요 (제출은 Ctrl+Enter로도 가능해요).</p>
+        <p class="muted" style="margin:0 0 12px">문제를 풀고 <b>확인하기</b>를 누르면 정답과 설명이 나와요. 틀리면 그 자리에서 다시 풀어야 <b>다음 문제</b>로 넘어갈 수 있어요(막히면 <b>힌트 보기</b>를 눌러보세요). 직접 코드를 작성하는 문제는 정답 표현이 다양할 수 있어서, 틀려도 자유롭게 다음 문제로 넘어갈 수 있어요 (제출은 Ctrl+Enter로도 가능해요).</p>
         <div class="quiz-stats" id="quiz-stats"></div>
       </div>
       <div id="qlist"></div>
@@ -1431,7 +1575,7 @@ function reviewPool() {
   const pool = [];
   for (const lang of reviewLangs) {
     for (const u of COURSES[lang].units) {
-      if (u.ready) pool.push({ lang, u });
+      if (u.ready && !u.intro) pool.push({ lang, u });
     }
   }
   return pool;
@@ -1458,9 +1602,10 @@ function newQuestion() {
   el('check').textContent = '확인하기';
   el('hintBox').hidden = true;
   /* 단원 학습(practice)에서는 이번 문제를 맞히기 전까지 "다음 문제"를 눌러도 못 넘어가요.
-     복습·오답노트는 예전처럼 언제든 다음 문제로 넘어갈 수 있어요. */
+     복습·오답노트는 예전처럼 언제든 다음 문제로 넘어갈 수 있어요.
+     직접 코드를 쓰는 문제(실행형 제외)는 정답 표현이 여러 가지일 수 있어서 게이트에서 빼요. */
   const nextBtn = el('next');
-  if (nextBtn) nextBtn.disabled = quizMode === 'practice';
+  if (nextBtn) nextBtn.disabled = quizMode === 'practice' && !isExactMatchCodeQuestion(currentQuestion);
   renderStats();
 }
 
@@ -1482,11 +1627,18 @@ function runUserJS(code) {
   }
 }
 
+/* 직접 코드를 쓰는 문제(자바스크립트 실행형 제외)는 대부분 "정답 문자열이 딱 하나"라서,
+   논리는 맞아도 변수 이름 등 표현이 다르면 오답으로 처리될 수 있어요. 이런 문제까지 "맞을 때까지
+   못 넘어가게" 하면 억울하게 막힐 수 있어서, 다시 풀기 대상에서 빼요. */
+function isExactMatchCodeQuestion(q) {
+  return q.type === 'code' && q.mode !== 'run-js';
+}
+
 function gradeQuestion(q, box) {
   const verdict = box.querySelector('.verdict');
   /* quizMode는 view를 벗어나도 값이 남아있을 수 있어서(예: 홈에서 'practice'로
      설정된 채 오늘의 문제로 이동), 단원 학습 화면(view === 'lesson')일 때만 다시 풀기를 적용해요. */
-  const retryOnWrong = view === 'lesson' && quizMode === 'practice';
+  const retryOnWrong = view === 'lesson' && quizMode === 'practice' && !isExactMatchCodeQuestion(q);
   let ok = null;
 
   if (q.type === 'choice') {
@@ -1552,7 +1704,9 @@ function gradeQuestion(q, box) {
 
   verdict.hidden = false;
   verdict.className = 'verdict ' + (ok ? 'ok' : 'no');
-  verdict.innerHTML = q.why + (!ok ? diffCompareHTML(input.value, q.accept[0], false) : '');
+  /* 다시 풀어야 하는 모드에서는 오답이어도 정답을 바로 보여주지 않아요(그대로 베끼면 재도전의 의미가 없으니까).
+     힌트 버튼으로 살짝만 도움받고, 결국 스스로 맞혀야 해요. */
+  verdict.innerHTML = q.why + (!ok && !retryOnWrong ? diffCompareHTML(input.value, q.accept[0], false) : '');
   if (ok || !retryOnWrong) {
     box.querySelectorAll('input').forEach(i => { i.disabled = true; });
   } else {
@@ -1572,7 +1726,7 @@ function checkAnswer() {
 
   /* quizMode는 view를 벗어나도 값이 남아있을 수 있어서(예: 홈에서 'practice'로
      설정된 채 오늘의 문제로 이동), 단원 학습 화면(view === 'lesson')일 때만 다시 풀기를 적용해요. */
-  const retryOnWrong = view === 'lesson' && quizMode === 'practice';
+  const retryOnWrong = view === 'lesson' && quizMode === 'practice' && !isExactMatchCodeQuestion(currentQuestion);
   el('check').disabled = ok || !retryOnWrong;
   if (ok && retryOnWrong) el('next').disabled = false;
   touchDailyStreak();
@@ -1609,9 +1763,9 @@ function checkFollowAlong(idx) {
     if (badge) badge.hidden = false;
     /* 방금 그 완료로 이 단원의 예제를 전부 다 맞혔고, 연속 정답 스트릭도 이미 달성한 상태라면
        "최종 도전"이 새로 열린 거라 화면을 다시 그려서 잠금 해제된 걸 바로 보여줘요. */
-    const key = `${langKey}.${u.id}`;
-    if (!wasAlreadyDone && progress[key]?.done && allFollowAlongsDone(u, key)) {
+    if (!wasAlreadyDone && isUnitComplete(langKey, u)) {
       renderUnit();
+      renderUnits(); // 이 단원이 속한 티어가 마침 이걸로 다 끝났다면, 사이드바의 티어 최종 도전도 함께 열려요
     }
   }
 }
@@ -1667,13 +1821,14 @@ function renderStats() {
     `;
     return;
   }
-  const key = `${langKey}.${COURSES[langKey].units[unitIdx].id}`;
+  const curUnit = COURSES[langKey].units[unitIdx];
+  const key = `${langKey}.${curUnit.id}`;
   const rec = progress[key] || { asked: 0, correct: 0, streak: 0, bestStreak: 0, done: false };
   el('quiz-stats').innerHTML = `
     <span class="stat"><b>${rec.streak}</b>연속 정답</span>
     <span class="stat"><b>${rec.correct}</b>/${rec.asked} 맞음</span>
     <span class="stat"><b>${rec.bestStreak}</b>최고 기록</span>
-    ${rec.done ? '<span class="stat done">단원 완료</span>' : ''}
+    ${isUnitComplete(langKey, curUnit) ? '<span class="stat done">단원 완료</span>' : ''}
   `;
   renderProgress();
 }
@@ -1824,6 +1979,7 @@ document.addEventListener('click', async e => {
     else if (chip.classList.contains('search-chip')) goSearch();
     else if (chip.classList.contains('cheatsheet-chip')) goCheatSheet();
     else if (chip.classList.contains('daily-chip')) goDaily();
+    else if (chip.classList.contains('help-chip')) goHelp();
     else goLesson(chip.dataset.lang, 0);
     return;
   }
