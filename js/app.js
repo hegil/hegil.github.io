@@ -13,7 +13,8 @@ const SYNTAX = {
   go:         { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['package','import','func','var','const','type','struct','interface','map','chan','go','defer','return','if','else','for','range','switch','case','default','break','continue','select','fallthrough','nil','true','false','int','string','bool','float64','error','make','len','cap'] },
   php:        { comment:'//[^\\n]*|#[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['echo','print','function','fn','return','if','elseif','else','foreach','for','while','as','class','new','public','private','protected','static','true','false','null','array','use','namespace','try','catch','throw','extends','implements','interface','abstract','const','match','switch','case','default','break','continue','require','include'] },
   rust:       { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['fn','let','mut','const','struct','enum','impl','trait','match','if','else','while','loop','for','in','return','pub','use','mod','self','Self','true','false','String','str','i32','u32','f64','bool','Vec','Option','Result','Some','None','Ok','Err','dyn','move','async','await','where','as'] },
-  cpp:        { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['int','float','double','char','bool','void','class','struct','public','private','protected','virtual','override','const','static','template','typename','namespace','using','new','delete','this','return','if','else','for','while','switch','case','break','continue','true','false','nullptr','auto','try','catch','throw','std'] }
+  cpp:        { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['int','float','double','char','bool','void','class','struct','public','private','protected','virtual','override','const','static','template','typename','namespace','using','new','delete','this','return','if','else','for','while','switch','case','break','continue','true','false','nullptr','auto','try','catch','throw','std'] },
+  swift:      { comment:'//[^\\n]*|/\\*[\\s\\S]*?\\*/', keywords:['let','var','func','struct','class','enum','protocol','extension','if','else','guard','switch','case','default','for','while','return','true','false','nil','self','Self','init','override','private','public','internal','static','try','catch','throws','async','await','Int','String','Bool','Double','Array','Dictionary','Optional','Some','None'] }
 };
 const STRING_PAT = `"""[\\s\\S]*?"""|'''[\\s\\S]*?'''|\`(?:\\\\.|[^\`\\\\])*\`|"(?:\\\\.|[^"\\\\\\n])*"|'(?:\\\\.|[^'\\\\\\n])*'|<[a-z.]+\\.h>`;
 
@@ -574,7 +575,8 @@ const PLAYGROUND_TABS = [
   { key: 'php', label: 'PHP', kind: 'highlight' },
   { key: 'rust', label: 'Rust', kind: 'highlight' },
   { key: 'cpp', label: 'C++', kind: 'highlight' },
-  { key: 'csharp', label: 'C#', kind: 'highlight' }
+  { key: 'csharp', label: 'C#', kind: 'highlight' },
+  { key: 'swift', label: 'Swift', kind: 'highlight' }
 ];
 let playgroundLang = 'javascript';
 const playgroundCode = {
@@ -591,7 +593,8 @@ const playgroundCode = {
   php: '<?php\n// 여기에 PHP 코드를 자유롭게 써보세요\necho "Hello, World!";',
   rust: '// 여기에 Rust 코드를 자유롭게 써보세요\nfn main() {\n    println!("Hello, World!");\n}',
   cpp: '// 여기에 C++ 코드를 자유롭게 써보세요\n#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}',
-  csharp: '// 여기에 C# 코드를 자유롭게 써보세요\nusing System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Hello, World!");\n    }\n}'
+  csharp: '// 여기에 C# 코드를 자유롭게 써보세요\nusing System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Hello, World!");\n    }\n}',
+  swift: '// 여기에 Swift 코드를 자유롭게 써보세요\nprint("Hello, World!")'
 };
 
 /* 외부 스크립트(Pyodide, sql.js)를 한 번만 불러오는 헬퍼. 실습장에서 그 언어를
@@ -614,7 +617,7 @@ function loadScriptOnce(src) {
    여러 언어 목록을 보여주는 화면(홈, 검색, 치트시트 목록 등)은 전부 그 시점의
    COURSES를 기준으로 매번 다시 그려지기 때문에, 아직 안 받아진 언어는 목록에
    안 보일 뿐이라 사용자가 로딩 중인 언어를 잘못 눌러서 생기는 오류는 없어요. */
-const LAZY_LANG_FILES = ['javascript', 'typescript', 'webpage', 'java', 'kotlin', 'c', 'unity', 'sql', 'go', 'php', 'rust', 'cpp', 'csharp'];
+const LAZY_LANG_FILES = ['javascript', 'typescript', 'webpage', 'java', 'kotlin', 'c', 'unity', 'sql', 'go', 'php', 'rust', 'cpp', 'csharp', 'swift'];
 /* "오늘의 문제"처럼 모두에게 같은 결과가 나와야 하는 곳 전용 — 언어 파일이 네트워크에서
    받아지는 순서(사람마다 다를 수 있음)와 무관하게 항상 같은 순서를 보장해요. */
 const ALL_LANG_KEYS = ['python', ...LAZY_LANG_FILES];

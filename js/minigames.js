@@ -22,6 +22,7 @@ const GAME_MATRIX = {
   rust:       { beginner: 'typing',   intermediate: 'bug',     advanced: 'reorder' },
   cpp:        { beginner: 'keywords', intermediate: 'bug',     advanced: 'match' },
   csharp:     { beginner: 'reorder',  intermediate: 'match',   advanced: 'keywords' },
+  swift:      { beginner: 'match',    intermediate: 'keywords', advanced: 'bug' },
 };
 
 const GAME_TYPE_LABEL = {
@@ -194,6 +195,14 @@ const BUG_SNIPPETS = {
     { lines: ['int[] nums = { 1, 2, 3 };', 'Console.WriteLine(nums[3]);'], buggy: 1,
       why: 'nums의 크기가 3(인덱스 0~2)인데 <code>nums[3]</code>은 범위를 벗어나서 IndexOutOfRangeException이 발생해요.' },
   ],
+  swift: [
+    { lines: ['let age = 17', 'age = 18', 'print(age)'], buggy: 1,
+      why: 'let으로 선언한 값은 상수라서 재대입할 수 없어요. 값을 바꾸려면 <code>var age = 17</code>처럼 var를 써야 해요.' },
+    { lines: ['let score: Int? = 90', 'print(score + 1)'], buggy: 1,
+      why: 'score는 옵셔널(Int?)이라서 바로 계산할 수 없어요. <code>if let</code>이나 <code>!</code>로 먼저 언래핑해야 해요.' },
+    { lines: ['let age = 17', 'if age = 18 {', '    print("성인")', '}'], buggy: 1,
+      why: '비교할 때는 <code>==</code>를 써야 해요. <code>=</code>는 대입 기호라서, if 조건에 Bool이 아닌 값이 와서 컴파일 오류가 나요.' },
+  ],
 };
 const BUG_ROUNDS = 6;
 
@@ -302,6 +311,7 @@ const TYPING_SNIPPETS = {
   rust: ['println!("Hello, World!");', 'let mut age = 17;', 'if age >= 18 {', 'for i in 0..5 {', 'fn add(a: i32, b: i32) -> i32 {'],
   cpp: ['std::cout << "Hello, World!";', 'int age = 17;', 'if (age >= 18) {', 'for (int i = 0; i < 5; i++) {', 'std::vector<int> v;'],
   csharp: ['Console.WriteLine("Hello, World!");', 'int age = 17;', 'if (age >= 18) {', 'for (int i = 0; i < 5; i++) {', 'List<int> nums = new List<int>();'],
+  swift: ['print("Hello, World!")', 'let age = 17', 'if age >= 18 {', 'for i in 1...5 {', 'guard let name = name else {'],
 };
 
 function renderTypingGame(lang) {
@@ -399,6 +409,10 @@ const REORDER_SNIPPETS = {
   csharp: [
     ['int age = 17;', 'if (age >= 18)', '{', '    Console.WriteLine("성인");', '}', 'else', '{', '    Console.WriteLine("미성년자");', '}'],
     ['int total = 0;', 'for (int i = 0; i < 5; i++)', '{', '    total += i;', '}'],
+  ],
+  swift: [
+    ['let age = 17', 'if age >= 18 {', '    print("성인")', '} else {', '    print("미성년자")', '}'],
+    ['var total = 0', 'for i in 0..<5 {', '    total += i', '}', 'print(total)'],
   ],
 };
 
@@ -553,6 +567,14 @@ const MATCH_PAIRS = {
     { term: 'async/await', def: '비동기 작업을 순서대로 기다리게 해주는 키워드 짝' },
     { term: 'interface', def: '구현 없이 규격만 정의하는 계약 타입' },
     { term: '??', def: '왼쪽이 null이면 오른쪽 값을 쓰는 널 병합 연산자' },
+  ],
+  swift: [
+    { term: 'let', def: '값이 바뀌지 않는 상수를 만드는 키워드' },
+    { term: 'var', def: '값이 바뀔 수 있는 변수를 만드는 키워드' },
+    { term: 'Optional', def: '값이 있을 수도 없을 수도 있음을 나타내는 타입' },
+    { term: 'guard let', def: '값이 없으면 즉시 함수를 빠져나가게 하는 문법' },
+    { term: '??', def: '옵셔널이 nil이면 대신 쓸 기본값을 지정하는 연산자' },
+    { term: 'protocol', def: '타입이 지켜야 할 규약을 정의하는 스위프트의 인터페이스' },
   ],
 };
 
@@ -740,6 +762,7 @@ const KEYWORD_BANK = {
   rust: ['fn', 'let', 'mut', 'struct', 'enum', 'impl', 'trait', 'match', 'if', 'for', 'true', 'false'],
   cpp: ['class', 'virtual', 'public', 'private', 'template', 'namespace', 'auto', 'const', 'new', 'delete', 'try', 'catch'],
   csharp: ['class', 'interface', 'struct', 'enum', 'record', 'override', 'readonly', 'namespace', 'async', 'await', 'foreach', 'var'],
+  swift: ['let', 'var', 'func', 'struct', 'enum', 'protocol', 'guard', 'extension', 'nil', 'init', 'override', 'switch'],
 };
 function pickKeywordDistractors(lang, count) {
   const validSet = new Set((KEYWORD_BANK[lang] || []).map(w => w.toLowerCase()));

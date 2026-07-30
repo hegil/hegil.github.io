@@ -1,4 +1,4 @@
-const CACHE_NAME = 'codelab-cache-v5';
+const CACHE_NAME = 'codelab-cache-v6';
 const PRECACHE_URLS = [
   './',
   'index.html',
@@ -21,6 +21,7 @@ const PRECACHE_URLS = [
   'js/data/rust.js',
   'js/data/cpp.js',
   'js/data/csharp.js',
+  'js/data/swift.js',
   'js/app.js',
   'js/minigames.js'
 ];
